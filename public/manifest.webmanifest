@@ -1,11 +1,14 @@
 {
   "name": "Yuyu Lounge",
-  "short_name": "Roo",
-  "start_url": ".",
+  "short_name": "Yuyu",
+  "id": "/yuyu-lounge/",
+  "start_url": "/yuyu-lounge/",
+  "scope": "/yuyu-lounge/",
   "display": "standalone",
-  "background_color": "#F4E8D0",
-  "theme_color": "#F4E8D0",
-  "description": "A cosy PWA for clips, chat, stocks, and a tiny game.",
+  "orientation": "portrait",
+  "background_color": "#fff6fb",
+  "theme_color": "#ff8ec3",
+  "description": "Y2K-pink lounge for reels, chat, stocks, and a tiny game.",
   "icons": [
     {
       "src": "/yuyu-lounge/icons/icon.svg",
@@ -19,5 +22,7 @@
       "type": "image/svg+xml",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["entertainment", "social", "productivity"],
+  "prefer_related_applications": false
 }

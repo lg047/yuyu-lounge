@@ -1,6 +1,5 @@
 // src/views/clips.ts
-// Viewer + tile grid. Tiles are muted previews without controls.
-// Clicking a tile loads the main viewer above and starts playback.
+// Full-width main viewer at top, tiles below. No controls, no scrub bar.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -20,21 +19,6 @@ async function loadClips(): Promise<string[]> {
   return data.map(String).filter(u => /\.mp4(\?|$)/i.test(u));
 }
 
-function wireAutoplay(video: HTMLVideoElement) {
-  video.muted = true;
-  video.playsInline = true;
-  const io = new IntersectionObserver(
-    entries => {
-      for (const e of entries) {
-        if (e.isIntersecting) void video.play();
-        else video.pause();
-      }
-    },
-    { threshold: 0.6 }
-  );
-  io.observe(video);
-}
-
 export default function ClipsView(): HTMLElement {
   const root = document.createElement("section");
   root.className = "clips-view";
@@ -44,26 +28,32 @@ export default function ClipsView(): HTMLElement {
   title.style.marginBottom = "10px";
 
   // Main viewer
+  const viewerWrapper = document.createElement("div");
+  viewerWrapper.className = "clip-viewer-wrapper";
+
   const viewer = document.createElement("video");
   viewer.className = "clip-viewer";
-  viewer.controls = true;
   viewer.playsInline = true;
+  viewer.muted = true;
+  viewer.autoplay = true;
+  viewer.loop = true;
+  viewer.preload = "auto";
+
+  viewerWrapper.appendChild(viewer);
 
   // Grid container
   const grid = document.createElement("div");
   grid.className = "clips-grid";
 
-  // Status
   const status = document.createElement("div");
   status.textContent = "Loading…";
   status.style.opacity = "0.7";
 
   root.appendChild(title);
-  root.appendChild(viewer);
+  root.appendChild(viewerWrapper);
   root.appendChild(status);
   root.appendChild(grid);
 
-  // Load and render
   loadClips()
     .then(urls => {
       status.remove();
@@ -77,26 +67,21 @@ export default function ClipsView(): HTMLElement {
         tile.type = "button";
         tile.setAttribute("aria-label", "Play clip");
 
-        // Muted preview video inside tile
         const v = document.createElement("video");
         v.src = url;
+        v.muted = true;
+        v.playsInline = true;
         v.loop = true;
         v.preload = "metadata";
-        v.style.display = "block";
-        wireAutoplay(v);
-
-        // Play badge
-        const badge = document.createElement("span");
-        badge.className = "play-badge";
-        badge.textContent = "Play";
+        v.autoplay = true;
+        v.className = "clip-preview";
 
         tile.appendChild(v);
-        tile.appendChild(badge);
 
         tile.addEventListener("click", () => {
-          if (viewer.src !== url) viewer.src = url;
+          viewer.src = url;
           viewer.play().catch(() => {});
-          viewer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          window.scrollTo({ top: 0, behavior: "smooth" });
         });
 
         grid.appendChild(tile);

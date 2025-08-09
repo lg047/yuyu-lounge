@@ -1,10 +1,8 @@
-// src/components/TopNav.ts
-
+// src/components/topnav.ts
 export default function TopNav(): DocumentFragment {
   const frag = document.createDocumentFragment();
 
   type Item = { label: string; href: string; id: string };
-
   const items: Item[] = [
     { label: "Reels", href: "#/reels", id: "nav-reels" },
     { label: "Roo Chat", href: "#/chat", id: "nav-chat" },
@@ -19,11 +17,7 @@ export default function TopNav(): DocumentFragment {
     a.href = href;
     a.textContent = label;
     a.setAttribute("role", "link");
-    a.setAttribute("data-nav", "");
-    a.addEventListener("click", () => {
-      // Let router handle hashchange. Keep focus on link for accessibility.
-      a.blur();
-    });
+    a.addEventListener("click", () => a.blur());
     frag.appendChild(a);
   }
 

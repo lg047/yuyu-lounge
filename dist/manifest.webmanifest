@@ -1,0 +1,23 @@
+{
+  "name": "Yuyu Lounge",
+  "short_name": "Roo",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F4E8D0",
+  "theme_color": "#F4E8D0",
+  "description": "A cosy PWA for clips, chat, stocks, and a tiny game.",
+  "icons": [
+    {
+      "src": "/yuyu-lounge/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/yuyu-lounge/icons/maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

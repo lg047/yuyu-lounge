@@ -1,5 +1,5 @@
 {
-  "name": "Roo Lounge",
+  "name": "Yuyu Lounge",
   "short_name": "Roo",
   "start_url": ".",
   "display": "standalone",
@@ -8,13 +8,13 @@
   "description": "A cosy PWA for clips, chat, stocks, and a tiny game.",
   "icons": [
     {
-      "src": "/roo-lounge/icons/icon.svg",
+      "src": "/roo-yuyu-lounge/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/roo-lounge/icons/maskable.svg",
+      "src": "/yuyu-lounge/icons/maskable.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"

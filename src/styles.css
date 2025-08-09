@@ -33,48 +33,39 @@ body {
 
 .view { padding: 14px; padding-bottom: 72px; }
 
-.card {
-  background: var(--card);
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+/* Centered grid wrapper like Instagram explore */
+.clips-grid-wrap {
+  max-width: 980px;          /* center column */
+  margin: 0 auto;
+  padding: 0 8px;
 }
 
-.card video {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: #000;
-  border-radius: 12px;
-}
-
-/* Clips */
-.clips-view { display: grid; gap: 14px; }
-
-/* Larger, vertical tiles, explore-like density */
 .clips-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  /* square tiles, responsive count */
+  grid-template-columns: repeat(3, 1fr);
 }
 
-@media (min-width: 480px) {
-  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+@media (max-width: 900px) {
+  .clips-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 700px) {
+  .clips-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 460px) {
+  .clips-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (min-width: 960px) {
-  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-}
-
+/* Square tiles */
 .clip-tile {
   padding: 0;
-  border: none;
+  border: 0;
   background: none;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  aspect-ratio: 9 / 16;       /* force vertical */
+  aspect-ratio: 1 / 1;     /* square */
 }
 
 .clip-preview {
@@ -82,46 +73,43 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  pointer-events: none;
   background: #000;
-  filter: brightness(0.95);
+  pointer-events: none;
 }
 
-/* Backdrop + floating player */
+/* Backdrop and overlay */
 .clip-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.0);
+  background: rgba(0,0,0,0);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
   z-index: 999;
 }
-
 .clip-backdrop.is-visible {
-  background: rgba(0,0,0,0.55);  /* stronger dim */
+  background: rgba(0,0,0,0.6);
   opacity: 1;
   pointer-events: auto;
 }
 
+/* Centered modal player */
 .clip-overlay {
   position: fixed;
-  top: 6vh;
   left: 50%;
-  transform: translateX(-50%);
-  width: min(92vw, 420px);       /* keep vertical phone-friendly size */
-  aspect-ratio: 9 / 16;
-  z-index: 1000;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 540px);
+  aspect-ratio: 9 / 16;          /* show reels vertical */
+  background: #000;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-  background: #000;
-
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
+  z-index: 1000;
 }
-
 .clip-overlay.is-visible {
   opacity: 1;
   pointer-events: auto;
@@ -134,25 +122,44 @@ body {
   display: block;
 }
 
+/* Close and nav */
 .clip-overlay-close {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 32px; height: 32px;
+  top: 8px;
+  right: 8px;
+  width: 34px; height: 34px;
   border: 0;
   border-radius: 50%;
   background: rgba(255,255,255,0.95);
   color: #000;
-  font-size: 20px;
-  line-height: 32px;
+  font-size: 22px;
+  line-height: 34px;
   text-align: center;
   cursor: pointer;
 }
 
-/* Also dim the grid contents a bit when open */
+.clip-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px; height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  font-size: 28px;
+  line-height: 44px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+.clip-nav-prev { left: 8px; }
+.clip-nav-next { right: 8px; }
+
+/* Dim the grid when open as an extra cue */
 html.clip-open .clips-grid { filter: brightness(0.7); }
 
-/* Tabs */
+/* Tabs (unchanged) */
 .tabs {
   position: fixed; bottom: 0; left: 0; right: 0;
   display: grid; grid-template-columns: repeat(5, 1fr);
@@ -168,8 +175,3 @@ html.clip-open .clips-grid { filter: brightness(0.7); }
   font-weight: 600;
   outline: 2px solid rgba(0,0,0,0.04);
 }
-
-.badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
-  background: rgba(242, 201, 76, 0.35); color: #3a2c1e; font-size: 12px; }
-
-.placeholder { opacity: 0.8; }

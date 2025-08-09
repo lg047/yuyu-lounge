@@ -11,12 +11,21 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 async function loadClips(): Promise<string[]> {
-  const res = await fetch("/clips.json", { cache: "no-cache" });
-  if (!res.ok) throw new Error(`fetch /clips.json failed: ${res.status}`);
+  // Resolve to correct base path in dev and production (GitHub Pages)
+  const base = import.meta.env.BASE_URL || "/";
+  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
+  if (!res.ok) {
+    throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
+  }
   const data = (await res.json()) as unknown;
-  if (!Array.isArray(data)) throw new Error("clips.json is not an array");
-  return (data as unknown[]).map(String).filter(u => /\.mp4(\?|$)/i.test(u));
+  if (!Array.isArray(data)) {
+    throw new Error("clips.json is not an array");
+  }
+  return (data as unknown[])
+    .map(String)
+    .filter(u => /\.mp4(\?|$)/i.test(u));
 }
+
 
 function makeGrid(): HTMLDivElement {
   const grid = document.createElement("div");

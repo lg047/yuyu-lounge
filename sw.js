@@ -3,15 +3,15 @@ const VERSION = "v1";
 const STATIC = `roo-static-${VERSION}`;
 
 const SHELL = [
-  "/roo-lounge/",
-  "/roo-lounge/index.html",
-  "/roo-lounge/src/styles.css",
-  "/roo-lounge/src/main.ts",
-  "/roo-lounge/src/router.ts",
-  "/roo-lounge/public/env.js",
-  "/roo-lounge/icons/icon.svg",
-  "/roo-lounge/icons/maskable.svg",
-  "/roo-lounge/manifest.webmanifest"
+  "/yuyu-lounge/",
+  "/yuyu-lounge/index.html",
+  "/yuyu-lounge/src/styles.css",
+  "/yuyu-lounge/src/main.ts",
+  "/yuyu-lounge/src/router.ts",
+  "/yuyu-lounge/public/env.js",
+  "/yuyu-lounge/icons/icon.svg",
+  "/yuyu-lounge/icons/maskable.svg",
+  "/yuyu-lounge/manifest.webmanifest"
 ];
 
 // Install
@@ -37,7 +37,7 @@ self.addEventListener("fetch", (event) => {
   // Navigation requests: try network, fallback to cache
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => caches.match("/roo-lounge/index.html"))
+      fetch(req).catch(() => caches.match("/yuyu-lounge/index.html"))
     );
     return;
   }

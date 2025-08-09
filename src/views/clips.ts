@@ -1,4 +1,4 @@
-// Floating overlay player on top of the grid. Tiles below remain scrollable.
+// Floating player + dense grid. Tiles do not autoplay.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -26,7 +26,11 @@ export default function ClipsView(): HTMLElement {
   title.textContent = "Clips";
   title.style.marginBottom = "10px";
 
-  // Overlay player (initially hidden)
+  // Backdrop + overlay player
+  const backdrop = document.createElement("div");
+  backdrop.className = "clip-backdrop";
+  backdrop.addEventListener("click", () => closeOverlay());
+
   const overlay = document.createElement("div");
   overlay.className = "clip-overlay";
   overlay.setAttribute("aria-hidden", "true");
@@ -34,28 +38,40 @@ export default function ClipsView(): HTMLElement {
   const player = document.createElement("video");
   player.className = "clip-overlay-player";
   player.playsInline = true;
-  player.muted = true;
-  player.autoplay = true;
+  player.muted = true;   // iOS will not autoplay unmuted
   player.loop = true;
-  player.preload = "auto";      // no controls
+  player.preload = "auto";
 
   const closeBtn = document.createElement("button");
   closeBtn.className = "clip-overlay-close";
   closeBtn.type = "button";
   closeBtn.setAttribute("aria-label", "Close");
   closeBtn.textContent = "×";
-  closeBtn.addEventListener("click", () => {
-    overlay.classList.remove("is-visible");
-    overlay.setAttribute("aria-hidden", "true");
-    player.pause();
-    player.removeAttribute("src"); // drop buffered data
-    player.load();
-  });
+  closeBtn.addEventListener("click", () => closeOverlay());
 
   overlay.appendChild(player);
   overlay.appendChild(closeBtn);
 
-  // Grid of tiles
+  function openOverlay(url: string) {
+    if (player.src !== url) player.src = url;
+    document.documentElement.classList.add("clip-open");
+    overlay.classList.add("is-visible");
+    backdrop.classList.add("is-visible");
+    overlay.setAttribute("aria-hidden", "false");
+    player.play().catch(() => {});
+  }
+
+  function closeOverlay() {
+    overlay.classList.remove("is-visible");
+    backdrop.classList.remove("is-visible");
+    overlay.setAttribute("aria-hidden", "true");
+    document.documentElement.classList.remove("clip-open");
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+  }
+
+  // Grid
   const grid = document.createElement("div");
   grid.className = "clips-grid";
 
@@ -66,7 +82,8 @@ export default function ClipsView(): HTMLElement {
   root.appendChild(title);
   root.appendChild(status);
   root.appendChild(grid);
-  root.appendChild(overlay); // overlay floats; position fixed via CSS
+  root.appendChild(backdrop);
+  root.appendChild(overlay);
 
   loadClips()
     .then(urls => {
@@ -77,27 +94,25 @@ export default function ClipsView(): HTMLElement {
         const tile = document.createElement("button");
         tile.className = "clip-tile";
         tile.type = "button";
-        tile.setAttribute("aria-label", "Play clip");
+        tile.setAttribute("aria-label", "Open clip");
 
         const v = document.createElement("video");
         v.src = url;
         v.muted = true;
         v.playsInline = true;
-        v.loop = true;
-        v.preload = "metadata";
-        v.autoplay = true;
+        v.loop = false;
+        v.preload = "metadata";    // no autoplay
         v.className = "clip-preview";
 
-        tile.appendChild(v);
-
-        tile.addEventListener("click", () => {
-          if (player.src !== url) player.src = url;
-          overlay.classList.add("is-visible");
-          overlay.setAttribute("aria-hidden", "false");
-          player.play().catch(() => {});
-          // Keep page position; overlay is fixed on top
+        // Seek a tiny offset after metadata to avoid a black poster
+        v.addEventListener("loadedmetadata", () => {
+          try {
+            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
+          } catch {}
         });
 
+        tile.appendChild(v);
+        tile.addEventListener("click", () => openOverlay(url));
         grid.appendChild(tile);
       }
     })

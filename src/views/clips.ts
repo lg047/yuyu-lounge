@@ -1,5 +1,6 @@
-// clips.ts
-// Fetch MP4 URLs from /clips.json and render a responsive video grid.
+// src/views/clips.ts
+// Viewer + tile grid. Tiles are muted previews without controls.
+// Clicking a tile loads the main viewer above and starts playback.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -11,34 +12,12 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 async function loadClips(): Promise<string[]> {
-  // Resolve to correct base path in dev and production (GitHub Pages)
   const base = import.meta.env.BASE_URL || "/";
-  const res = await fetch("clips.json", { cache: "no-cache" });
-  if (!res.ok) {
-    throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
-  }
-  const data = (await res.json()) as unknown;
-  if (!Array.isArray(data)) {
-    throw new Error("clips.json is not an array");
-  }
-  return (data as unknown[])
-    .map(String)
-    .filter(u => /\.mp4(\?|$)/i.test(u));
-}
-
-
-function makeGrid(): HTMLDivElement {
-  const grid = document.createElement("div");
-  grid.style.display = "grid";
-  grid.style.gap = "14px";
-  grid.style.gridTemplateColumns = "1fr";
-  const mq = window.matchMedia("(min-width: 640px)");
-  const setCols = () => {
-    grid.style.gridTemplateColumns = mq.matches ? "1fr 1fr" : "1fr";
-  };
-  setCols();
-  mq.addEventListener("change", setCols);
-  return grid;
+  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data)) throw new Error("clips.json is not an array");
+  return data.map(String).filter(u => /\.mp4(\?|$)/i.test(u));
 }
 
 function wireAutoplay(video: HTMLVideoElement) {
@@ -47,11 +26,8 @@ function wireAutoplay(video: HTMLVideoElement) {
   const io = new IntersectionObserver(
     entries => {
       for (const e of entries) {
-        if (e.isIntersecting) {
-          void video.play();
-        } else {
-          video.pause();
-        }
+        if (e.isIntersecting) void video.play();
+        else video.pause();
       }
     },
     { threshold: 0.6 }
@@ -60,43 +36,71 @@ function wireAutoplay(video: HTMLVideoElement) {
 }
 
 export default function ClipsView(): HTMLElement {
-  const el = document.createElement("section");
-  el.innerHTML = `<h2 style="margin-bottom:10px;">Clips</h2>`;
+  const root = document.createElement("section");
+  root.className = "clips-view";
 
+  const title = document.createElement("h2");
+  title.textContent = "Clips";
+  title.style.marginBottom = "10px";
+
+  // Main viewer
+  const viewer = document.createElement("video");
+  viewer.className = "clip-viewer";
+  viewer.controls = true;
+  viewer.playsInline = true;
+
+  // Grid container
+  const grid = document.createElement("div");
+  grid.className = "clips-grid";
+
+  // Status
   const status = document.createElement("div");
   status.textContent = "Loading…";
   status.style.opacity = "0.7";
 
-  const grid = makeGrid();
-  el.appendChild(status);
-  el.appendChild(grid);
+  root.appendChild(title);
+  root.appendChild(viewer);
+  root.appendChild(status);
+  root.appendChild(grid);
 
+  // Load and render
   loadClips()
     .then(urls => {
       status.remove();
-      const shuffled = shuffle(urls);
-      shuffled.forEach(url => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.borderRadius = "12px";
-        card.style.overflow = "hidden";
-        card.style.background = "#000";
 
-        const video = document.createElement("video");
-        video.src = url;
-        video.controls = true;
-        video.loop = true;
-        video.preload = "metadata";
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.display = "block";
-        video.setAttribute("aria-label", "Clip");
+      const list = shuffle(urls);
+      if (list.length) viewer.src = list[0];
 
-        wireAutoplay(video);
+      for (const url of list) {
+        const tile = document.createElement("button");
+        tile.className = "clip-tile";
+        tile.type = "button";
+        tile.setAttribute("aria-label", "Play clip");
 
-        card.appendChild(video);
-        grid.appendChild(card);
-      });
+        // Muted preview video inside tile
+        const v = document.createElement("video");
+        v.src = url;
+        v.loop = true;
+        v.preload = "metadata";
+        v.style.display = "block";
+        wireAutoplay(v);
+
+        // Play badge
+        const badge = document.createElement("span");
+        badge.className = "play-badge";
+        badge.textContent = "Play";
+
+        tile.appendChild(v);
+        tile.appendChild(badge);
+
+        tile.addEventListener("click", () => {
+          if (viewer.src !== url) viewer.src = url;
+          viewer.play().catch(() => {});
+          viewer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+
+        grid.appendChild(tile);
+      }
     })
     .catch(err => {
       status.textContent = `Failed to load clips: ${
@@ -104,5 +108,5 @@ export default function ClipsView(): HTMLElement {
       }`;
     });
 
-  return el;
+  return root;
 }

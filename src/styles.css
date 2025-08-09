@@ -49,33 +49,32 @@ body {
   border-radius: 12px;
 }
 
-/* Dense explore-like grid */
+/* Clips */
 .clips-view { display: grid; gap: 14px; }
 
+/* Larger, vertical tiles, explore-like density */
 .clips-grid {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
-/* Orientation tweaks */
-@media (orientation: portrait) {
-  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  .clip-tile { aspect-ratio: 4 / 5; }
-}
-@media (orientation: landscape) {
-  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-  .clip-tile { aspect-ratio: 16 / 9; }
+@media (min-width: 480px) {
+  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 }
 
-/* Tiles */
+@media (min-width: 960px) {
+  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+}
+
 .clip-tile {
   padding: 0;
   border: none;
   background: none;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
+  aspect-ratio: 9 / 16;       /* force vertical */
 }
 
 .clip-preview {
@@ -85,6 +84,7 @@ body {
   display: block;
   pointer-events: none;
   background: #000;
+  filter: brightness(0.95);
 }
 
 /* Backdrop + floating player */
@@ -95,30 +95,31 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
-  z-index: 999; /* sits under overlay */
+  z-index: 999;
 }
 
 .clip-backdrop.is-visible {
-  opacity: 0.5;          /* darken the rest of the page */
+  background: rgba(0,0,0,0.55);  /* stronger dim */
+  opacity: 1;
   pointer-events: auto;
 }
 
 .clip-overlay {
   position: fixed;
-  top: 8px;
+  top: 6vh;
   left: 50%;
   transform: translateX(-50%);
-  width: min(92vw, 820px);
+  width: min(92vw, 420px);       /* keep vertical phone-friendly size */
   aspect-ratio: 9 / 16;
   z-index: 1000;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
   background: #000;
 
   opacity: 0;
   pointer-events: none;
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition: opacity 140ms ease;
 }
 
 .clip-overlay.is-visible {
@@ -140,7 +141,7 @@ body {
   width: 32px; height: 32px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   color: #000;
   font-size: 20px;
   line-height: 32px;
@@ -148,10 +149,8 @@ body {
   cursor: pointer;
 }
 
-/* Dim the page slightly when a clip is open (optional extra) */
-html.clip-open .clips-grid {
-  filter: brightness(0.85);
-}
+/* Also dim the grid contents a bit when open */
+html.clip-open .clips-grid { filter: brightness(0.7); }
 
 /* Tabs */
 .tabs {

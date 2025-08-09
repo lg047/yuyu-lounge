@@ -1,4 +1,3 @@
-cat > .github/workflows/pages.yml <<'YAML'
 name: Deploy to GitHub Pages
 
 on:
@@ -39,5 +38,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-YAML
 

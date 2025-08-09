@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 
-// Set base to "/<REPO_NAME>/" for GitHub Pages.
-// Replace REPO_NAME before deploy.
 export default defineConfig({
+  // Must match your repo name on GitHub Pages
   base: "/yuyu-lounge/",
 });

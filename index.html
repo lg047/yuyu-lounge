@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Yuyu Lounge</title>
     <meta name="theme-color" content="#F4E8D0" />
-    <link rel="manifest" href="/yuyu-lounge/manifest.webmanifest" />
-    <link rel="icon" href="/yuyu-lounge/icons/icon.svg" />
+    <!-- Let Vite rewrite with base. No repo prefix here. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <script src="/yuyu-lounge/env.js"></script>
+    <script src="/env.js"></script>
   </head>
   <body>
     <div id="app">
@@ -28,6 +29,7 @@
         <a href="#/settings" data-tab>Settings</a>
       </nav>
     </div>
-    <script type="module" src="/yuyu-lounge/src/main.ts"></script>
+    <!-- Entry must be /src/main.ts -->
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

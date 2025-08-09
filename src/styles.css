@@ -49,35 +49,60 @@ body {
   border-radius: 12px;
 }
 
-/* Grid */
+/* Dense explore-like grid */
 .clips-view { display: grid; gap: 14px; }
 
 .clips-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
 }
-@media (min-width: 640px) { .clips-grid { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 960px) { .clips-grid { grid-template-columns: 1fr 1fr 1fr; } }
 
+/* Orientation tweaks */
+@media (orientation: portrait) {
+  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .clip-tile { aspect-ratio: 4 / 5; }
+}
+@media (orientation: landscape) {
+  .clips-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .clip-tile { aspect-ratio: 16 / 9; }
+}
+
+/* Tiles */
 .clip-tile {
   padding: 0;
   border: none;
   background: none;
   border-radius: 12px;
   overflow: hidden;
-  aspect-ratio: 9 / 16; /* adjust if your clips are landscape */
   cursor: pointer;
 }
+
 .clip-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
+  background: #000;
 }
 
-/* Floating overlay player */
+/* Backdrop + floating player */
+.clip-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  z-index: 999; /* sits under overlay */
+}
+
+.clip-backdrop.is-visible {
+  opacity: 0.5;          /* darken the rest of the page */
+  pointer-events: auto;
+}
+
 .clip-overlay {
   position: fixed;
   top: 8px;
@@ -93,8 +118,9 @@ body {
 
   opacity: 0;
   pointer-events: none;
-  transition: opacity 140ms ease;
+  transition: opacity 140ms ease, transform 140ms ease;
 }
+
 .clip-overlay.is-visible {
   opacity: 1;
   pointer-events: auto;
@@ -103,7 +129,7 @@ body {
 .clip-overlay-player {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* no black bars */
+  object-fit: cover;
   display: block;
 }
 
@@ -120,6 +146,11 @@ body {
   line-height: 32px;
   text-align: center;
   cursor: pointer;
+}
+
+/* Dim the page slightly when a clip is open (optional extra) */
+html.clip-open .clips-grid {
+  filter: brightness(0.85);
 }
 
 /* Tabs */

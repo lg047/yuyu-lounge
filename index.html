@@ -2,42 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Yuyu Lounge</title>
-    <meta name="theme-color" content="#F4E8D0" />
+    <!-- iOS safe areas -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-    <!-- Public assets: use relative paths so they honor Vite base -->
+    <title>Yuyu Lounge</title>
+    <meta name="description" content="Y2K-style lounge with reels, chat, stocks, and more." />
+    <meta name="theme-color" content="#ff8ec3" />
+
+    <!-- PWA -->
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yuyu Lounge" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=VT323&family=Atkinson+Hyperlegible:wght@400;700&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Optional: faster first video load -->
-    <link rel="preconnect" href="https://pub-79f5b26eb4964851858b0213a591d17e.r2.dev" />
+    <link rel="preconnect" href="https://pub-79f5b26eb4964851858b0213a591d17e.r2.dev" crossorigin />
 
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Preload small accents so they are instant in CSS -->
+    <link rel="preload" as="image" href="assets/sparkle.gif" type="image/gif" />
+    <link rel="preload" as="image" href="assets/heart.gif" type="image/gif" />
 
     <!-- If you use env.js from /public -->
     <script src="env.js"></script>
   </head>
   <body>
     <div id="app">
-      <header class="topbar">
-        <h1>Yuyu Lounge</h1>
+      <!-- Site header -->
+      <header class="site-header">
+        <h1 class="site-title">Yuyu Lounge</h1>
         <button id="installBtn" class="install" hidden>Install</button>
       </header>
 
-      <main id="view" class="view"></main>
+      <!-- Top navigation is injected/rendered by src/components/TopNav.ts -->
+      <nav id="topnav" class="topnav" aria-label="Primary"></nav>
 
-      <nav class="tabs">
-        <a href="#/chat" data-tab>Roo Chat</a>
-        <a href="#/clips" data-tab>Clips</a>
-        <a href="#/stocks" data-tab>Happy Stocks</a>
-        <a href="#/game" data-tab>Mini Game</a>
-        <a href="#/settings" data-tab>Settings</a>
-      </nav>
+      <!-- Section heading: main.ts sets this per route -->
+      <h2 id="sectionHeading" class="section-heading" aria-live="polite"></h2>
+
+      <!-- View outlet -->
+      <main id="view" class="view" role="main"></main>
     </div>
 
-    <!-- Entry: keep relative so Vite rewrites correctly on build -->
+    <!-- Entry: Vite rewrites correctly on build -->
     <script type="module" src="src/main.ts"></script>
   </body>
 </html>

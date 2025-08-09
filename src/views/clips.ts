@@ -1,10 +1,12 @@
-// Slice 2 – Instagram feed via oEmbed proxy
+// Instagram feed without API.
+// Just paste public post URLs into CLIPS and they will embed.
+// Order is randomised each load.
 
-const PLACEHOLDER_URLS = [
+const CLIPS: string[] = [
   "https://www.instagram.com/reel/DM-wYaNuJd1/?utm_source=ig_web_copy_link&igsh=MWU2d2V0eXc2ZHA5NA==",
   "https://www.instagram.com/reel/DMiW4HHOeSW/?utm_source=ig_web_copy_link&igsh=MW55anU2em55dWVnaw==",
   "https://www.instagram.com/reel/DMh0GoFJdAO/?utm_source=ig_web_copy_link&igsh=NnFmaW1ueno2M212",
-  "https://www.instagram.com/reel/DKwioczJn5p/?utm_source=ig_web_copy_link&igsh=bnJodnl0Nnhoa2Vt",
+  "https://www.instagram.com/reel/DKwioczJn5p/?utm_source=ig_web_copy_link&igsh=bnJodnl0Nnhoa2Vt"
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -17,54 +19,42 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function ClipsView(): HTMLElement {
-  const env = (window as any).__ENV || {};
-  const ok = !!(env.WORKER_BASE && env.OEMBED_ROUTE);
-
   const el = document.createElement("section");
   el.innerHTML = `<h2 style="margin-bottom:10px;">Clips</h2>`;
 
-  if (!ok) {
-    const card = document.createElement("div");
-    card.className = "card placeholder";
-    card.innerHTML = `
-      <p>Proxy URL missing. Add <code>WORKER_BASE</code> and <code>OEMBED_ROUTE</code> in <code>public/env.js</code>, then reload.</p>
-    `;
-    el.appendChild(card);
-    return el;
-  }
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gap = "14px";
+  grid.style.gridTemplateColumns = "1fr";
+  const mq = window.matchMedia("(min-width: 640px)");
+  const setCols = () => grid.style.gridTemplateColumns = mq.matches ? "1fr 1fr" : "1fr";
+  setCols(); mq.addEventListener("change", setCols);
 
-  const shuffled = shuffle(PLACEHOLDER_URLS);
+  el.appendChild(grid);
 
-  shuffled.forEach((url) => {
+  const shuffled = shuffle(CLIPS);
+
+  shuffled.forEach(url => {
     const card = document.createElement("div");
     card.className = "card";
-    card.style.marginBottom = "14px";
-    card.innerHTML = `<p class="placeholder">Loading clip...</p>`;
-    el.appendChild(card);
-
-    // Lazy-load each embed
-    fetch(`${env.WORKER_BASE}${env.OEMBED_ROUTE}?url=${encodeURIComponent(url)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.html) {
-          card.innerHTML = data.html;
-          // Ensure Instagram embed script runs
-          if (typeof window.instgrm === "undefined") {
-            const s = document.createElement("script");
-            s.src = "https://www.instagram.com/embed.js";
-            s.async = true;
-            document.body.appendChild(s);
-          } else {
-            window.instgrm.Embeds.process();
-          }
-        } else {
-          card.innerHTML = `<p class="placeholder">Failed to load clip.</p>`;
-        }
-      })
-      .catch(() => {
-        card.innerHTML = `<p class="placeholder">Error fetching clip.</p>`;
-      });
+    card.innerHTML = `
+      <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="background:#fff; min-height:200px; border-radius:12px;"></blockquote>
+    `;
+    grid.appendChild(card);
   });
+
+  // Load Instagram embed.js script
+  const ensureScript = () => {
+    if (typeof (window as any).instgrm === "undefined") {
+      const s = document.createElement("script");
+      s.src = "https://www.instagram.com/embed.js";
+      s.async = true;
+      document.body.appendChild(s);
+    } else {
+      (window as any).instgrm.Embeds.process();
+    }
+  };
+  setTimeout(ensureScript, 0);
 
   return el;
 }

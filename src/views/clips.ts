@@ -1,4 +1,4 @@
-// Floating player + dense grid. Tiles do not autoplay.
+// Floating player, no autoplay on tiles. Vertical tiles, stronger dimming.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -38,7 +38,7 @@ export default function ClipsView(): HTMLElement {
   const player = document.createElement("video");
   player.className = "clip-overlay-player";
   player.playsInline = true;
-  player.muted = true;   // iOS will not autoplay unmuted
+  player.muted = true;
   player.loop = true;
   player.preload = "auto";
 
@@ -55,8 +55,8 @@ export default function ClipsView(): HTMLElement {
   function openOverlay(url: string) {
     if (player.src !== url) player.src = url;
     document.documentElement.classList.add("clip-open");
-    overlay.classList.add("is-visible");
     backdrop.classList.add("is-visible");
+    overlay.classList.add("is-visible");
     overlay.setAttribute("aria-hidden", "false");
     player.play().catch(() => {});
   }
@@ -71,7 +71,6 @@ export default function ClipsView(): HTMLElement {
     player.load();
   }
 
-  // Grid
   const grid = document.createElement("div");
   grid.className = "clips-grid";
 
@@ -82,6 +81,7 @@ export default function ClipsView(): HTMLElement {
   root.appendChild(title);
   root.appendChild(status);
   root.appendChild(grid);
+  // append backdrop then overlay so overlay sits above it
   root.appendChild(backdrop);
   root.appendChild(overlay);
 
@@ -101,10 +101,8 @@ export default function ClipsView(): HTMLElement {
         v.muted = true;
         v.playsInline = true;
         v.loop = false;
-        v.preload = "metadata";    // no autoplay
+        v.preload = "metadata";
         v.className = "clip-preview";
-
-        // Seek a tiny offset after metadata to avoid a black poster
         v.addEventListener("loadedmetadata", () => {
           try {
             v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);

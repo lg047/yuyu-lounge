@@ -1,4 +1,4 @@
-// Floating player, no autoplay on tiles. Vertical tiles, stronger dimming.
+// Centered square grid + overlay player with prev/next navigation.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -24,9 +24,9 @@ export default function ClipsView(): HTMLElement {
 
   const title = document.createElement("h2");
   title.textContent = "Clips";
-  title.style.marginBottom = "10px";
+  title.style.margin = "0 0 12px 0";
 
-  // Backdrop + overlay player
+  // Backdrop and overlay
   const backdrop = document.createElement("div");
   backdrop.className = "clip-backdrop";
   backdrop.addEventListener("click", () => closeOverlay());
@@ -49,10 +49,30 @@ export default function ClipsView(): HTMLElement {
   closeBtn.textContent = "×";
   closeBtn.addEventListener("click", () => closeOverlay());
 
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "clip-nav clip-nav-prev";
+  prevBtn.type = "button";
+  prevBtn.setAttribute("aria-label", "Previous");
+  prevBtn.textContent = "‹";
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "clip-nav clip-nav-next";
+  nextBtn.type = "button";
+  nextBtn.setAttribute("aria-label", "Next");
+  nextBtn.textContent = "›";
+
   overlay.appendChild(player);
   overlay.appendChild(closeBtn);
+  overlay.appendChild(prevBtn);
+  overlay.appendChild(nextBtn);
 
-  function openOverlay(url: string) {
+  let list: string[] = [];
+  let current = -1;
+
+  function openOverlay(index: number) {
+    if (index < 0 || index >= list.length) return;
+    current = index;
+    const url = list[current];
     if (player.src !== url) player.src = url;
     document.documentElement.classList.add("clip-open");
     backdrop.classList.add("is-visible");
@@ -69,7 +89,35 @@ export default function ClipsView(): HTMLElement {
     player.pause();
     player.removeAttribute("src");
     player.load();
+    current = -1;
   }
+
+  function step(delta: number) {
+    if (current < 0) return;
+    const next = (current + delta + list.length) % list.length;
+    openOverlay(next);
+  }
+
+  prevBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    step(-1);
+  });
+  nextBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    step(1);
+  });
+
+  // Keyboard support
+  window.addEventListener("keydown", e => {
+    if (!overlay.classList.contains("is-visible")) return;
+    if (e.key === "Escape") closeOverlay();
+    else if (e.key === "ArrowLeft") step(-1);
+    else if (e.key === "ArrowRight") step(1);
+  });
+
+  // Centered grid
+  const gridWrap = document.createElement("div");
+  gridWrap.className = "clips-grid-wrap";
 
   const grid = document.createElement("div");
   grid.className = "clips-grid";
@@ -80,17 +128,17 @@ export default function ClipsView(): HTMLElement {
 
   root.appendChild(title);
   root.appendChild(status);
-  root.appendChild(grid);
-  // append backdrop then overlay so overlay sits above it
+  gridWrap.appendChild(grid);
+  root.appendChild(gridWrap);
   root.appendChild(backdrop);
   root.appendChild(overlay);
 
   loadClips()
     .then(urls => {
       status.remove();
-      const list = shuffle(urls);
+      list = shuffle(urls);
 
-      for (const url of list) {
+      list.forEach((url, index) => {
         const tile = document.createElement("button");
         tile.className = "clip-tile";
         tile.type = "button";
@@ -110,9 +158,9 @@ export default function ClipsView(): HTMLElement {
         });
 
         tile.appendChild(v);
-        tile.addEventListener("click", () => openOverlay(url));
+        tile.addEventListener("click", () => openOverlay(index));
         grid.appendChild(tile);
-      }
+      });
     })
     .catch(err => {
       status.textContent = `Failed to load clips: ${

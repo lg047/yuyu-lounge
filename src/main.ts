@@ -1,7 +1,6 @@
-import { initRouter } from "./router.ts";
+import { initRouter } from "./router";
 import "./styles.css";
 
-// PWA install prompt handler
 let deferredPrompt: any = null;
 const installBtn = document.getElementById("installBtn") as HTMLButtonElement;
 
@@ -18,12 +17,12 @@ installBtn?.addEventListener("click", async () => {
   deferredPrompt = null;
 });
 
-// Router
 initRouter();
 
-// SW register
+// Use import.meta.env.BASE_URL so it works on localhost and Pages
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/roo-lounge/sw.js").catch(console.error);
+    const url = import.meta.env.BASE_URL + "sw.js";
+    navigator.serviceWorker.register(url).catch(console.error);
   });
 }

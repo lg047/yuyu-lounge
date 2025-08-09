@@ -7,22 +7,19 @@
   --cream: #fff6fb;
   --ink: #2a2230;
 
-  --bg: var(--cream);
+  --bg: var(--pink-light);
   --text: var(--ink);
   --accent: var(--pink-mid);
   --accent-strong: var(--pink-strong);
+
+  /* iOS safe areas */
+  --sa-top: env(safe-area-inset-top, 0px);
+  --sa-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-}
+html, body, #app { height: 100%; margin: 0; }
 
 body {
   font-family: 'Atkinson Hyperlegible', ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -35,27 +32,31 @@ body {
 .site-header {
   position: sticky;
   top: 0;
-  padding: 10px 14px;
-  background: var(--pink-light);
-  border-bottom: 2px solid var(--accent);
+  z-index: 5;
+  padding: calc(10px + var(--sa-top)) 14px 10px;
+  background: var(--pink-mid);
+  border-bottom: 3px solid var(--accent-strong);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;         /* center title */
+  gap: 8px;
 }
 
 .site-title {
   font-family: 'VT323', monospace;
-  font-size: 32px;
-  color: var(--accent-strong);
+  font-size: 40px;
+  color: var(--cream);
   margin: 0;
-  line-height: 1;
+  line-height: 1.1;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
 .install {
   font-size: 14px;
   padding: 6px 10px;
   border-radius: 8px;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--cream);
   background: var(--lilac);
   color: var(--ink);
   cursor: pointer;
@@ -63,26 +64,28 @@ body {
 
 /* --- Top nav --- */
 .topnav {
-  background: var(--pink-mid);
+  background: var(--pink-strong);     /* stronger pink band */
   display: flex;
   justify-content: center;
-  gap: 16px;
-  padding: 8px 12px;
+  gap: 20px;
+  padding: 10px 14px;
   border-bottom: 2px solid var(--accent-strong);
 }
 
 .topnav a {
-  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-family: 'VT323', monospace;    /* match title vibe */
   text-decoration: none;
-  font-size: 14px;
-  color: var(--ink);
+  font-size: 16px;
+  color: var(--cream);
   padding: 4px 8px;
   position: relative;
 }
 
+.topnav a:hover { opacity: 0.9; }
+
 .topnav a.active {
-  font-weight: bold;
-  color: var(--accent-strong);
+  color: var(--lilac);
+  text-decoration: underline;
 }
 
 .topnav a.active::after {
@@ -92,24 +95,24 @@ body {
   height: 14px;
   background: url('assets/heart.gif') no-repeat center/contain;
   margin-left: 4px;
-  vertical-align: middle;
+  vertical-align: -2px;
 }
 
 /* --- Section heading --- */
 .section-heading {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 14px;
+  font-family: 'VT323', monospace;
+  font-size: 22px;                  /* less squashed */
   text-align: center;
   color: var(--accent-strong);
-  background: var(--cream) url('assets/sparkle.gif') repeat-x top center;
-  padding: 6px 0;
+  background: var(--cream) url('assets/sparkle.gif') repeat-x center;
+  padding: 12px 0;                  /* breathing room */
   margin: 0;
-  border-bottom: 1px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
 }
 
 /* --- View container --- */
 .view {
-  padding: 14px;
+  padding: 14px 14px calc(14px + var(--sa-bottom));
 }
 
 /* --- Reels grid --- */
@@ -124,33 +127,20 @@ body {
   gap: 3px;
   grid-template-columns: repeat(3, 1fr);
 }
+@media (max-width: 900px) { .clips-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
 
-@media (max-width: 900px) {
-  .clips-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-@media (max-width: 700px) {
-  .clips-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (max-width: 460px) {
-  .clips-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
+/* Square tiles, hard edges */
 .clip-tile {
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 0;
+  border-radius: 0;              /* no rounding */
   overflow: hidden;
   cursor: pointer;
   aspect-ratio: 1 / 1;
 }
-
 .clip-preview {
   width: 100%;
   height: 100%;
@@ -160,18 +150,18 @@ body {
   pointer-events: none;
 }
 
-/* --- Backdrop and overlay --- */
+/* Backdrop and overlay */
 .clip-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0);
+  background: rgba(0,0,0,0);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
   z-index: 999;
 }
 .clip-backdrop.is-visible {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.6);
   opacity: 1;
   pointer-events: auto;
 }
@@ -186,7 +176,7 @@ body {
   background: #000;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
@@ -203,16 +193,15 @@ body {
   display: block;
 }
 
-/* --- Close and nav --- */
+/* Close and nav */
 .clip-overlay-close {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 34px;
-  height: 34px;
+  width: 34px; height: 34px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255,255,255,0.95);
   color: #000;
   font-size: 22px;
   line-height: 34px;
@@ -223,11 +212,10 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255,255,255,0.9);
   color: #000;
   font-size: 28px;
   line-height: 44px;
@@ -235,22 +223,12 @@ body {
   cursor: pointer;
   user-select: none;
 }
-.clip-nav-prev {
-  left: 8px;
-}
-.clip-nav-next {
-  right: 8px;
-}
+.clip-nav-prev { left: 8px; }
+.clip-nav-next { right: 8px; }
 
-/* --- Dim grid when open --- */
-html.clip-open .clips-grid {
-  filter: brightness(0.7);
-}
+/* Dim grid when open */
+html.clip-open .clips-grid { filter: brightness(0.7); }
 
-/* --- Accent helpers --- */
-.sparkle-accent {
-  background: url('assets/sparkle.gif') no-repeat center/contain;
-}
-.heart-accent {
-  background: url('assets/heart.gif') no-repeat center/contain;
-}
+/* Accent helpers */
+.sparkle-accent { background: url('assets/sparkle.gif') no-repeat center/contain; }
+.heart-accent { background: url('assets/heart.gif') no-repeat center/contain; }

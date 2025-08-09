@@ -1,9 +1,6 @@
-// Runtime feature flags and backend URLs.
-// Replace values after you deploy the Worker.
-// Never put keys here.
 window.__ENV = {
-  WORKER_BASE: "",            // e.g. "https://yuyu-worker.your-subdomain.workers.dev"
-  LLM_ROUTE: "/llm",
+  WORKER_BASE: "https://<your-worker>.workers.dev",
   OEMBED_ROUTE: "/oembed",
+  LLM_ROUTE: "/llm",
   STOCKS_ROUTE: "/stocks"
 };

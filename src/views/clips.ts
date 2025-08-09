@@ -1,5 +1,4 @@
-// src/views/clips.ts
-// Full-width main viewer at top, tiles below. No controls, no scrub bar.
+// Floating overlay player on top of the grid. Tiles below remain scrollable.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -27,21 +26,36 @@ export default function ClipsView(): HTMLElement {
   title.textContent = "Clips";
   title.style.marginBottom = "10px";
 
-  // Main viewer
-  const viewerWrapper = document.createElement("div");
-  viewerWrapper.className = "clip-viewer-wrapper";
+  // Overlay player (initially hidden)
+  const overlay = document.createElement("div");
+  overlay.className = "clip-overlay";
+  overlay.setAttribute("aria-hidden", "true");
 
-  const viewer = document.createElement("video");
-  viewer.className = "clip-viewer";
-  viewer.playsInline = true;
-  viewer.muted = true;
-  viewer.autoplay = true;
-  viewer.loop = true;
-  viewer.preload = "auto";
+  const player = document.createElement("video");
+  player.className = "clip-overlay-player";
+  player.playsInline = true;
+  player.muted = true;
+  player.autoplay = true;
+  player.loop = true;
+  player.preload = "auto";      // no controls
 
-  viewerWrapper.appendChild(viewer);
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "clip-overlay-close";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close");
+  closeBtn.textContent = "×";
+  closeBtn.addEventListener("click", () => {
+    overlay.classList.remove("is-visible");
+    overlay.setAttribute("aria-hidden", "true");
+    player.pause();
+    player.removeAttribute("src"); // drop buffered data
+    player.load();
+  });
 
-  // Grid container
+  overlay.appendChild(player);
+  overlay.appendChild(closeBtn);
+
+  // Grid of tiles
   const grid = document.createElement("div");
   grid.className = "clips-grid";
 
@@ -50,16 +64,14 @@ export default function ClipsView(): HTMLElement {
   status.style.opacity = "0.7";
 
   root.appendChild(title);
-  root.appendChild(viewerWrapper);
   root.appendChild(status);
   root.appendChild(grid);
+  root.appendChild(overlay); // overlay floats; position fixed via CSS
 
   loadClips()
     .then(urls => {
       status.remove();
-
       const list = shuffle(urls);
-      if (list.length) viewer.src = list[0];
 
       for (const url of list) {
         const tile = document.createElement("button");
@@ -79,9 +91,11 @@ export default function ClipsView(): HTMLElement {
         tile.appendChild(v);
 
         tile.addEventListener("click", () => {
-          viewer.src = url;
-          viewer.play().catch(() => {});
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          if (player.src !== url) player.src = url;
+          overlay.classList.add("is-visible");
+          overlay.setAttribute("aria-hidden", "false");
+          player.play().catch(() => {});
+          // Keep page position; overlay is fixed on top
         });
 
         grid.appendChild(tile);

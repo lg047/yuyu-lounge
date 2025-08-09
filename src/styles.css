@@ -31,29 +31,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Floating decorative sparkles/hearts --- */
-.decoration {
-  position: fixed;
-  z-index: 0;
-  pointer-events: none;
-  animation: floaty 12s ease-in-out infinite alternate;
-}
-.decoration.heart1 {
-  top: 10%;
-  left: 5%;
-  width: 48px;
-  height: 48px;
-  background: url('assets/heart.gif') no-repeat center/contain;
-  animation-delay: 0s;
-}
-.decoration.sparkle1 {
-  bottom: 15%;
-  right: 10%;
-  width: 32px;
-  height: 32px;
-  background: url('assets/sparkle.gif') no-repeat center/contain;
-  animation-delay: 3s;
-}
+ç
 
 @keyframes floaty {
   0%   { transform: translateY(0) rotate(0deg); opacity: 0.8; }

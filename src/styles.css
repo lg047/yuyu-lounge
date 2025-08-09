@@ -64,24 +64,26 @@ body {
 
 /* --- Top nav --- */
 .topnav {
-  background: var(--pink-strong);     /* stronger pink band */
+  background: var(--pink-strong);
   display: flex;
   justify-content: center;
-  gap: 20px;
-  padding: 10px 14px;
-  border-bottom: 2px solid var(--accent-strong);
+  gap: 24px;
+  padding: 14px 18px;
+  border-bottom: 3px solid var(--accent-strong);
 }
 
 .topnav a {
-  font-family: 'VT323', monospace;    /* match title vibe */
+  font-family: 'VT323', monospace;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 20px;               /* more prominent */
+  letter-spacing: 1px;
   color: var(--cream);
-  padding: 4px 8px;
+  padding: 6px 10px;
   position: relative;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
 
-.topnav a:hover { opacity: 0.9; }
+.topnav a:hover { opacity: 0.85; }
 
 .topnav a.active {
   color: var(--lilac);
@@ -91,10 +93,10 @@ body {
 .topnav a.active::after {
   content: '';
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: url('assets/heart.gif') no-repeat center/contain;
-  margin-left: 4px;
+  margin-left: 5px;
   vertical-align: -2px;
 }
 

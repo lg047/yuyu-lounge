@@ -13,7 +13,7 @@ function shuffle<T>(arr: T[]): T[] {
 async function loadClips(): Promise<string[]> {
   // Resolve to correct base path in dev and production (GitHub Pages)
   const base = import.meta.env.BASE_URL || "/";
-  const res = await fetch("clips.json", { cache: "no-cache" });
+  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
   if (!res.ok) {
     throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
   }

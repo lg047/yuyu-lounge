@@ -22,6 +22,12 @@ initRouter();
 // Register SW with correct base path for GitHub Pages
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(console.error);
+    const swUrl = `${import.meta.env.BASE_URL}sw.js?cache-bust=${Date.now()}`;
+    navigator.serviceWorker
+      .register(swUrl, {
+        scope: import.meta.env.BASE_URL,
+        updateViaCache: "none",
+      })
+      .catch(console.error);
   });
 }

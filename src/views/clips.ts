@@ -1,4 +1,4 @@
-// Centered square grid + overlay player with prev/next navigation.
+// Centered square grid + overlay player with prev/next. Audio on.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -38,7 +38,7 @@ export default function ClipsView(): HTMLElement {
   const player = document.createElement("video");
   player.className = "clip-overlay-player";
   player.playsInline = true;
-  player.muted = true;
+  player.muted = false;   // audio on
   player.loop = true;
   player.preload = "auto";
 
@@ -74,11 +74,22 @@ export default function ClipsView(): HTMLElement {
     current = index;
     const url = list[current];
     if (player.src !== url) player.src = url;
+
     document.documentElement.classList.add("clip-open");
     backdrop.classList.add("is-visible");
     overlay.classList.add("is-visible");
     overlay.setAttribute("aria-hidden", "false");
-    player.play().catch(() => {});
+
+    // Should succeed on mobile because this runs after a click
+    player.play().catch(() => {
+      // Fallback: require a direct tap on the video to start
+      const tapToPlay = () => {
+        player.play().finally(() => {
+          player.removeEventListener("click", tapToPlay);
+        });
+      };
+      player.addEventListener("click", tapToPlay, { once: true });
+    });
   }
 
   function closeOverlay() {
@@ -107,7 +118,6 @@ export default function ClipsView(): HTMLElement {
     step(1);
   });
 
-  // Keyboard support
   window.addEventListener("keydown", e => {
     if (!overlay.classList.contains("is-visible")) return;
     if (e.key === "Escape") closeOverlay();
@@ -146,15 +156,13 @@ export default function ClipsView(): HTMLElement {
 
         const v = document.createElement("video");
         v.src = url;
-        v.muted = true;
+        v.muted = true;          // previews silent
         v.playsInline = true;
         v.loop = false;
         v.preload = "metadata";
         v.className = "clip-preview";
         v.addEventListener("loadedmetadata", () => {
-          try {
-            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
-          } catch {}
+          try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01); } catch {}
         });
 
         tile.appendChild(v);

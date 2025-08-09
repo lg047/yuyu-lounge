@@ -23,7 +23,6 @@ body {
   padding: 12px 14px; background: var(--bg);
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
-
 .topbar h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
 
 .install {
@@ -33,41 +32,32 @@ body {
 
 .view { padding: 14px; padding-bottom: 72px; }
 
-/* Centered grid wrapper like Instagram explore */
+/* Center column like Explore */
 .clips-grid-wrap {
-  max-width: 980px;          /* center column */
+  max-width: 980px;
   margin: 0 auto;
-  padding: 0 8px;
+  padding: 0;                    /* no soft padding */
 }
 
 .clips-grid {
   display: grid;
-  gap: 6px;
-  /* square tiles, responsive count */
+  gap: 3px;                      /* tight gutters */
   grid-template-columns: repeat(3, 1fr);
 }
+@media (max-width: 900px) { .clips-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
 
-@media (max-width: 900px) {
-  .clips-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 700px) {
-  .clips-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 460px) {
-  .clips-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* Square tiles */
+/* Square tiles, hard edges */
 .clip-tile {
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 12px;
+  border-radius: 0;              /* no rounding */
   overflow: hidden;
   cursor: pointer;
-  aspect-ratio: 1 / 1;     /* square */
+  aspect-ratio: 1 / 1;
 }
-
 .clip-preview {
   width: 100%;
   height: 100%;
@@ -93,16 +83,15 @@ body {
   pointer-events: auto;
 }
 
-/* Centered modal player */
 .clip-overlay {
   position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(92vw, 540px);
-  aspect-ratio: 9 / 16;          /* show reels vertical */
+  aspect-ratio: 9 / 16;
   background: #000;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 24px 80px rgba(0,0,0,0.55);
   opacity: 0;
@@ -114,7 +103,6 @@ body {
   opacity: 1;
   pointer-events: auto;
 }
-
 .clip-overlay-player {
   width: 100%;
   height: 100%;
@@ -137,7 +125,6 @@ body {
   text-align: center;
   cursor: pointer;
 }
-
 .clip-nav {
   position: absolute;
   top: 50%;
@@ -156,7 +143,7 @@ body {
 .clip-nav-prev { left: 8px; }
 .clip-nav-next { right: 8px; }
 
-/* Dim the grid when open as an extra cue */
+/* Dim grid when open */
 html.clip-open .clips-grid { filter: brightness(0.7); }
 
 /* Tabs (unchanged) */

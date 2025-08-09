@@ -1,63 +1,156 @@
 :root {
-  --beige: #F4E8D0;
-  --honey: #F2C94C;
-  --brown: #5C4532;
-  --brown-soft: #8B6B4E;
-  --bg: var(--beige);
-  --text: var(--brown);
-  --card: #fffaf0;
+  /* Y2K pink theme variables */
+  --pink-light: #ffd1e8;
+  --pink-mid: #ff8ec3;
+  --pink-strong: #ff4fa3;
+  --lilac: #caa8ff;
+  --cream: #fff6fb;
+  --ink: #2a2230;
+
+  --bg: var(--cream);
+  --text: var(--ink);
+  --accent: var(--pink-mid);
+  --accent-strong: var(--pink-strong);
 }
 
-* { box-sizing: border-box; }
-html, body, #app { height: 100%; margin: 0; }
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
 
 body {
-  font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: 'Atkinson Hyperlegible', ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
-.topbar {
-  position: sticky; top: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; background: var(--bg);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+/* --- Site header --- */
+.site-header {
+  position: sticky;
+  top: 0;
+  padding: 10px 14px;
+  background: var(--pink-light);
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.topbar h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+
+.site-title {
+  font-family: 'VT323', monospace;
+  font-size: 32px;
+  color: var(--accent-strong);
+  margin: 0;
+  line-height: 1;
+}
 
 .install {
-  font-size: 14px; padding: 8px 10px; border-radius: 10px;
-  border: 1px solid var(--brown-soft); background: var(--honey); color: #3a2c1e;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  background: var(--lilac);
+  color: var(--ink);
+  cursor: pointer;
 }
 
-.view { padding: 14px; padding-bottom: 72px; }
+/* --- Top nav --- */
+.topnav {
+  background: var(--pink-mid);
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--accent-strong);
+}
 
-/* Center column like Explore */
+.topnav a {
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  text-decoration: none;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 4px 8px;
+  position: relative;
+}
+
+.topnav a.active {
+  font-weight: bold;
+  color: var(--accent-strong);
+}
+
+.topnav a.active::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: url('assets/heart.gif') no-repeat center/contain;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* --- Section heading --- */
+.section-heading {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  text-align: center;
+  color: var(--accent-strong);
+  background: var(--cream) url('assets/sparkle.gif') repeat-x top center;
+  padding: 6px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--accent);
+}
+
+/* --- View container --- */
+.view {
+  padding: 14px;
+}
+
+/* --- Reels grid --- */
 .clips-grid-wrap {
   max-width: 980px;
   margin: 0 auto;
-  padding: 0;                    /* no soft padding */
+  padding: 0;
 }
 
 .clips-grid {
   display: grid;
-  gap: 3px;                      /* tight gutters */
+  gap: 3px;
   grid-template-columns: repeat(3, 1fr);
 }
-@media (max-width: 900px) { .clips-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 700px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 460px) { .clips-grid { grid-template-columns: repeat(2, 1fr); } }
 
-/* Square tiles, hard edges */
+@media (max-width: 900px) {
+  .clips-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .clips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 460px) {
+  .clips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .clip-tile {
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 0;              /* no rounding */
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
   aspect-ratio: 1 / 1;
 }
+
 .clip-preview {
   width: 100%;
   height: 100%;
@@ -67,18 +160,18 @@ body {
   pointer-events: none;
 }
 
-/* Backdrop and overlay */
+/* --- Backdrop and overlay --- */
 .clip-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0);
+  background: rgba(0, 0, 0, 0);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
   z-index: 999;
 }
 .clip-backdrop.is-visible {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   opacity: 1;
   pointer-events: auto;
 }
@@ -93,7 +186,7 @@ body {
   background: #000;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
   opacity: 0;
   pointer-events: none;
   transition: opacity 140ms ease;
@@ -110,15 +203,16 @@ body {
   display: block;
 }
 
-/* Close and nav */
+/* --- Close and nav --- */
 .clip-overlay-close {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 34px; height: 34px;
+  width: 34px;
+  height: 34px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   color: #000;
   font-size: 22px;
   line-height: 34px;
@@ -129,10 +223,11 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   color: #000;
   font-size: 28px;
   line-height: 44px;
@@ -140,25 +235,22 @@ body {
   cursor: pointer;
   user-select: none;
 }
-.clip-nav-prev { left: 8px; }
-.clip-nav-next { right: 8px; }
-
-/* Dim grid when open */
-html.clip-open .clips-grid { filter: brightness(0.7); }
-
-/* Tabs (unchanged) */
-.tabs {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  gap: 0; background: var(--bg);
-  border-top: 1px solid rgba(0,0,0,0.08);
+.clip-nav-prev {
+  left: 8px;
 }
-.tabs a {
-  text-align: center; padding: 10px 4px; text-decoration: none; color: var(--brown);
-  font-size: 12px;
+.clip-nav-next {
+  right: 8px;
 }
-.tabs a.active {
-  background: rgba(242, 201, 76, 0.25);
-  font-weight: 600;
-  outline: 2px solid rgba(0,0,0,0.04);
+
+/* --- Dim grid when open --- */
+html.clip-open .clips-grid {
+  filter: brightness(0.7);
+}
+
+/* --- Accent helpers --- */
+.sparkle-accent {
+  background: url('assets/sparkle.gif') no-repeat center/contain;
+}
+.heart-accent {
+  background: url('assets/heart.gif') no-repeat center/contain;
 }

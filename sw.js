@@ -1,5 +1,5 @@
 // Minimal SW: navigation fallback to index.html within current scope
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -7,17 +7,27 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// For SPA routes, return index.html from same scope
+// Network-first for clips.json and MP4 to avoid stale content
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  const url = new URL(req.url);
+
+  const isClipsAsset =
+    url.pathname.endsWith("/clips.json") || url.pathname.endsWith(".mp4");
+
+  if (isClipsAsset) {
+    event.respondWith(
+      fetch(req).catch(() => caches.match(req))
+    );
+    return;
+  }
+
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req).catch(async () => {
-        // Resolve index.html relative to the SW scope
-        const scope = self.registration.scope; // e.g. https://user.github.io/yuyu-lounge/
+        const scope = self.registration.scope;
         const indexUrl = new URL("index.html", scope);
-        return caches.match(indexUrl.href) ||
-               fetch(indexUrl.href);
+        return caches.match(indexUrl.href) || fetch(indexUrl.href);
       })
     );
   }

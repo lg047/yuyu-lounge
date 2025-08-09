@@ -1,49 +1,24 @@
-// Very small cache-first shell. Adjust version to bust cache.
-const VERSION = "v1";
-const STATIC = `roo-static-${VERSION}`;
-
-const SHELL = [
-  "/yuyu-lounge/",
-  "/yuyu-lounge/index.html",
-  "/yuyu-lounge/src/styles.css",
-  "/yuyu-lounge/src/main.ts",
-  "/yuyu-lounge/src/router.ts",
-  "/yuyu-lounge/public/env.js",
-  "/yuyu-lounge/icons/icon.svg",
-  "/yuyu-lounge/icons/maskable.svg",
-  "/yuyu-lounge/manifest.webmanifest"
-];
-
-// Install
+// Minimal SW: navigation fallback to index.html within current scope
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(STATIC).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
-// Activate
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k.startsWith("roo-static-") && k !== STATIC).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil(self.clients.claim());
 });
 
-// Fetch
+// For SPA routes, return index.html from same scope
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-
-  // Navigation requests: try network, fallback to cache
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => caches.match("/yuyu-lounge/index.html"))
+      fetch(req).catch(async () => {
+        // Resolve index.html relative to the SW scope
+        const scope = self.registration.scope; // e.g. https://user.github.io/yuyu-lounge/
+        const indexUrl = new URL("index.html", scope);
+        return caches.match(indexUrl.href) ||
+               fetch(indexUrl.href);
+      })
     );
-    return;
   }
-
-  // Static: cache-first
-  event.respondWith(
-    caches.match(req).then(res => res || fetch(req))
-  );
 });

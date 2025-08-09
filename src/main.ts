@@ -1,7 +1,7 @@
 // src/main.ts
 import "./styles.css";
 import { initRouter } from "./router";
-import TopNav from "./components/TopNav";
+import TopNav from "./components/topnav";
 
 // --- PWA Install button wiring ---
 let deferredPrompt: unknown = null;

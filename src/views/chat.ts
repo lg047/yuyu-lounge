@@ -10,7 +10,7 @@ export default function ChatView(): HTMLElement {
       <p class="badge">Roo is curious, upbeat, gentle.</p>
       <p>Say hello to ${POM_NAME} while I set things up.</p>
       <img alt="${POM_NAME}" style="width:96px; aspect-ratio:1; border-radius:14px;"
-           src="/roo-lounge/icons/icon.svg"/>
+           src="/yuyu-lounge/icons/icon.svg"/>
     </div>
   `;
   return el;

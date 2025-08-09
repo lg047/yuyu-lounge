@@ -1,4 +1,6 @@
+// src/views/reels.ts
 // Centered square grid + overlay player with prev/next. Audio on.
+// Visuals are themed by CSS. Behaviour unchanged from previous Clips view.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -15,16 +17,12 @@ async function loadClips(): Promise<string[]> {
   if (!res.ok) throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
   const data = await res.json();
   if (!Array.isArray(data)) throw new Error("clips.json is not an array");
-  return data.map(String).filter(u => /\.mp4(\?|$)/i.test(u));
+  return data.map(String).filter((u) => /\.mp4(\?|$)/i.test(u));
 }
 
-export default function ClipsView(): HTMLElement {
+export default function ReelsView(): HTMLElement {
   const root = document.createElement("section");
   root.className = "clips-view";
-
-  const title = document.createElement("h2");
-  title.textContent = "Clips";
-  title.style.margin = "0 0 12px 0";
 
   // Backdrop and overlay
   const backdrop = document.createElement("div");
@@ -38,7 +36,7 @@ export default function ClipsView(): HTMLElement {
   const player = document.createElement("video");
   player.className = "clip-overlay-player";
   player.playsInline = true;
-  player.muted = false;   // audio on
+  player.muted = false; // audio on
   player.loop = true;
   player.preload = "auto";
 
@@ -80,9 +78,7 @@ export default function ClipsView(): HTMLElement {
     overlay.classList.add("is-visible");
     overlay.setAttribute("aria-hidden", "false");
 
-    // Should succeed on mobile because this runs after a click
     player.play().catch(() => {
-      // Fallback: require a direct tap on the video to start
       const tapToPlay = () => {
         player.play().finally(() => {
           player.removeEventListener("click", tapToPlay);
@@ -109,16 +105,16 @@ export default function ClipsView(): HTMLElement {
     openOverlay(next);
   }
 
-  prevBtn.addEventListener("click", e => {
+  prevBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     step(-1);
   });
-  nextBtn.addEventListener("click", e => {
+  nextBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     step(1);
   });
 
-  window.addEventListener("keydown", e => {
+  window.addEventListener("keydown", (e) => {
     if (!overlay.classList.contains("is-visible")) return;
     if (e.key === "Escape") closeOverlay();
     else if (e.key === "ArrowLeft") step(-1);
@@ -136,7 +132,6 @@ export default function ClipsView(): HTMLElement {
   status.textContent = "Loading…";
   status.style.opacity = "0.7";
 
-  root.appendChild(title);
   root.appendChild(status);
   gridWrap.appendChild(grid);
   root.appendChild(gridWrap);
@@ -144,7 +139,7 @@ export default function ClipsView(): HTMLElement {
   root.appendChild(overlay);
 
   loadClips()
-    .then(urls => {
+    .then((urls) => {
       status.remove();
       list = shuffle(urls);
 
@@ -156,13 +151,15 @@ export default function ClipsView(): HTMLElement {
 
         const v = document.createElement("video");
         v.src = url;
-        v.muted = true;          // previews silent
+        v.muted = true; // previews silent
         v.playsInline = true;
         v.loop = false;
         v.preload = "metadata";
         v.className = "clip-preview";
         v.addEventListener("loadedmetadata", () => {
-          try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01); } catch {}
+          try {
+            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
+          } catch {}
         });
 
         tile.appendChild(v);
@@ -170,7 +167,7 @@ export default function ClipsView(): HTMLElement {
         grid.appendChild(tile);
       });
     })
-    .catch(err => {
+    .catch((err) => {
       status.textContent = `Failed to load clips: ${
         err instanceof Error ? err.message : String(err)
       }`;

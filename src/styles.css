@@ -1,71 +1,19 @@
-:root {
-  --beige: #F4E8D0;
-  --honey: #F2C94C;
-  --brown: #5C4532;
-  --brown-soft: #8B6B4E;
-  --bg: var(--beige);
-  --text: var(--brown);
-  --card: #fffaf0;
-}
-
-* { box-sizing: border-box; }
-html, body, #app { height: 100%; margin: 0; }
-
-body {
-  font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.topbar {
-  position: sticky; top: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; background: var(--bg);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-.topbar h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
-
-.install {
-  font-size: 14px; padding: 8px 10px; border-radius: 10px;
-  border: 1px solid var(--brown-soft); background: var(--honey); color: #3a2c1e;
-}
-
-.view { padding: 14px; padding-bottom: 72px; }
-
-.card {
-  background: var(--card);
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-/* Old .card video kept for other views if any */
-.card video {
-  display: block;
+/* Main viewer full-width crop */
+.clip-viewer-wrapper {
   width: 100%;
-  height: auto;
-  background: #000;
+  aspect-ratio: 9 / 16; /* adjust if your clips are landscape */
+  overflow: hidden;
   border-radius: 12px;
-}
-
-/* New clips layout */
-.clips-view {
-  display: grid;
-  gap: 14px;
 }
 
 .clip-viewer {
   width: 100%;
-  max-height: 60vh;
+  height: 100%;
+  object-fit: cover; /* remove black bars */
   display: block;
-  background: #000;
-  border-radius: 12px;
-  outline: none;
 }
 
-/* Responsive grid of tiles */
+/* Grid of tiles */
 .clips-grid {
   display: grid;
   gap: 12px;
@@ -79,65 +27,20 @@ body {
   .clips-grid { grid-template-columns: 1fr 1fr 1fr; }
 }
 
-/* Tile button with muted preview */
 .clip-tile {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 9 / 16;       /* adjust if your clips are landscape */
   padding: 0;
-  border: 0;
+  border: none;
+  background: none;
   border-radius: 12px;
   overflow: hidden;
-  background: #000;
+  aspect-ratio: 9 / 16;
   cursor: pointer;
 }
 
-.clip-tile video {
+.clip-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  pointer-events: none;        /* click goes to button */
+  display: block;
+  pointer-events: none;
 }
-
-/* Play badge */
-.play-badge {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  font: 600 12px/1 system-ui, sans-serif;
-  padding: 6px 10px;
-  background: rgba(255,255,255,0.9);
-  color: #000;
-  border-radius: 999px;
-  transition: transform 120ms ease, opacity 120ms ease;
-}
-
-.clip-tile:hover .play-badge {
-  transform: scale(1.05);
-  opacity: 1;
-}
-
-/* Tabs */
-.tabs {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  gap: 0; background: var(--bg);
-  border-top: 1px solid rgba(0,0,0,0.08);
-}
-
-.tabs a {
-  text-align: center; padding: 10px 4px; text-decoration: none; color: var(--brown);
-  font-size: 12px;
-}
-
-.tabs a.active {
-  background: rgba(242, 201, 76, 0.25);
-  font-weight: 600;
-  outline: 2px solid rgba(0,0,0,0.04);
-}
-
-.badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
-  background: rgba(242, 201, 76, 0.35); color: #3a2c1e; font-size: 12px; }
-
-.placeholder { opacity: 0.8; }

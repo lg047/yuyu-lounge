@@ -8,7 +8,7 @@
   "description": "A cosy PWA for clips, chat, stocks, and a tiny game.",
   "icons": [
     {
-      "src": "/roo-yuyu-lounge/icons/icon.svg",
+      "src": "/yuyu-lounge/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

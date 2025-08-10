@@ -132,10 +132,10 @@ const game = {
     document.addEventListener("visibilitychange", onVis, { passive: true });
 
     const step = (dtRaw: number) => {
-      // Normalize units. If an ms spike arrives on first frame, convert to seconds.
+      // Normalize units
       const raw = dtRaw > 1 ? dtRaw / 1000 : dtRaw;
 
-      // Throw away first few frames and any absurd resume spikes
+      // Throw away first frames and resume spikes
       if (this._warmup > 0 || raw > 0.2) {
         if (this._warmup > 0) this._warmup--;
         return;
@@ -190,7 +190,7 @@ const game = {
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // world motion with a hard cap to hide any residual blip
+      // world motion with a cap to hide residual blips
       const vx = Math.min(this._speed * dpr * dt, W * 0.5);
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
@@ -216,15 +216,14 @@ const game = {
       // pillars
       for (const o of this._ob) drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0);
 
-      // moving ground
+      // moving ground strip only, do not touch sky
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
-      ctx.fillStyle = "#eef3ff";
-      ctx.fillRect(0, 0, W, H);
-      ctx.clearRect(0, 0, W, gy); // keep sky area clear
+
       ctx.fillStyle = "#eef3ff";
       ctx.fillRect(0, gy, W, gh);
+
       ctx.fillStyle = "#cfdcff";
       const tile = Math.round(GROUND_TILE * dpr);
       for (let x = -tile; x < W + tile; x += tile) {
@@ -256,7 +255,7 @@ const game = {
     const draw = () => {};
     this._running = true;
 
-    // ideal if you control core: reset its clock before first rAF
+    // reset core clock if available
     if (typeof (core as any).resetClock === "function") {
       (core as any).resetClock();
     }

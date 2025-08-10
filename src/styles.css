@@ -116,8 +116,11 @@ body {
   background: var(--pink-strong);
   display: flex;
   justify-content: center;
+  flex-wrap: wrap; /* nicer wrapping on small screens */
   gap: 24px;
-  padding: 14px 18px;
+  /* more breathing room + respect iPhone notches */
+  padding-block: 12px;
+  padding-inline: calc(20px + var(--sa-left)) calc(20px + var(--sa-right));
   border-bottom: 3px solid var(--accent-strong);
 }
 
@@ -136,10 +139,16 @@ body {
 
 .topnav a.active {
   color: var(--lilac);
-  /* absolute path so it loads on Pages */
   background: url('/yuyu-lounge/assets/sparkle.gif') no-repeat bottom center/contain;
   padding-bottom: 12px;
 }
+
+/* tighten a bit when very narrow */
+@media (max-width: 480px) {
+  .topnav { gap: 16px; padding-inline: calc(24px + var(--sa-left)) calc(24px + var(--sa-right)); }
+  .topnav a { font-size: 18px; }
+}
+
 
 /* --- View container --- */
 .view {

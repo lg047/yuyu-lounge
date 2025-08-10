@@ -133,7 +133,7 @@ const game = {
     this._ph = targetH;
 
     const gh = Math.round(GROUND_H_CSS * dpr);
-    const touchOverlap = Math.max(1, Math.round(2 * dpr)); // slight sink to remove visual gap
+    const touchOverlap = Math.max(1, Math.round(6 * dpr)); // slight sink to remove visual gap
     this._px = Math.round((W - this._pw) * 0.5);
     this._py = Math.round(H - gh - this._ph + touchOverlap);
 

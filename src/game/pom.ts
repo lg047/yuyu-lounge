@@ -182,25 +182,14 @@ const game = {
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
       // draw
-      // player sprite (fallback to rect until loaded)
-      if (this._pomImg && this._pomImg.complete) {
-        const smoothingPrev = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false; // crisp pixels
-        ctx.drawImage(this._pomImg, Math.round(px), Math.round(py), Math.round(pw), Math.round(ph));
-        ctx.imageSmoothingEnabled = smoothingPrev;
-      } else {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(px, py, pw, ph);
-      }
 
-      
+      // background
       if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
       else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
       
+      // pillars
       for (const o of this._ob) drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0); // pillars
       // then player, ground, HUD...
-
-  
       
       // moving ground
       const gh = Math.round(GROUND_H_CSS * dpr);
@@ -213,7 +202,20 @@ const game = {
       for (let x = -tile; x < W + tile; x += tile) {
         const rx = Math.round(x - this._groundOff);
         ctx.fillRect(rx, gy, Math.round(tile * 0.5), gh);
-}
+
+
+     
+      // 4) player sprite (above world)
+      if (this._pomImg && this._pomImg.complete && this._pomImg.naturalWidth) {
+        const prev = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(this._pomImg, Math.round(px), Math.round(py), Math.round(pw), Math.round(ph));
+        ctx.imageSmoothingEnabled = prev;
+      } else {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(px, py, pw, ph);
+      }
+
 
 
       // HUD - no haze, no pills

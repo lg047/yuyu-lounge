@@ -72,11 +72,24 @@
 
 .game-icon img {
   display: block;
-  width: min(92vw, 720px);   /* fills the page, capped on desktop */
+  width: min(46vw, 360px);   /* fills the page, capped on desktop */
   height: auto;              /* keep original aspect ratio */
   image-rendering: pixelated;
   border-radius: 16px;
 }
+
+/* make the stacked tiles obviously clickable */
+.game-icon,
+.game-icon img {
+  cursor: pointer;
+}
+
+.game-icon:focus-visible {
+  outline: 3px solid #ff4f98;
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
 
 
 @media (prefers-reduced-motion: reduce) { }

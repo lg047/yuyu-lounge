@@ -351,7 +351,14 @@ const game = {
     const h = Math.round(baseH);
     const x = Math.round(Math.random() * Math.max(1, core.canvas.width - w));
     const vy = this._fallBase * (0.9 + Math.random() * 0.2);
-    this._treats.push({ x, y: -h, w, h, vy, kind });
+    // Detect iOS (iPhone/iPad/iPod)
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    // Spawn slightly lower on iOS so first catch is quicker
+    const startY = isiOS ? -h / 3 : -h;
+    
+    this._treats.push({ x, y: startY, w, h, vy, kind });
+
   },
 
   _drawGameOver() {

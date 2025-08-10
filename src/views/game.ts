@@ -19,6 +19,33 @@ const base = (import.meta as any).env.BASE_URL as string;
 const asset = (p: string) =>
   (base.endsWith("/") ? base : base + "/") + p.replace(/^\//, "");
 
+/* Fallback beep that uses its own AudioContext.
+   It will not mute or duck other media elements. */
+let fallbackCtx: AudioContext | null = null;
+function fallbackBeep(freq = 660, ms = 60) {
+  try {
+    const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    if (!fallbackCtx) fallbackCtx = new AC();
+    // resume if suspended due to autoplay policy
+    if (fallbackCtx.state === "suspended") fallbackCtx.resume();
+    const t0 = fallbackCtx.currentTime;
+    const osc = fallbackCtx.createOscillator();
+    const gain = fallbackCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    // small envelope to avoid clicks and keep volume gentle
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.08, t0 + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + ms / 1000);
+    osc.connect(gain).connect(fallbackCtx.destination);
+    osc.start();
+    osc.stop(t0 + ms / 1000 + 0.02);
+  } catch {
+    // ignore
+  }
+}
+
 export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
@@ -106,13 +133,17 @@ export default function GameView(): HTMLElement {
   };
   updateMuteLabel();
   muteBtn.onclick = () => {
-    // ensure AudioContext is running before toggling
+    // make sure WebAudio context is running
     core.audio.unlock();
     const was = core.store.getBool("muted", true);
     core.store.setBool("muted", !was);
-    core.audio.setEnabled(was); // enable when unmuting, disable when muting
+    core.audio.setEnabled(was); // enable when unmuting
     updateMuteLabel();
-    if (core.audio.enabled) core.audio.beep(660, 60);
+    if (core.audio.enabled) {
+      try { core.audio.beep(660, 60); } catch {}
+      // also ping fallback in case the game's audio engine is blocked on this device
+      fallbackBeep(660, 40);
+    }
   };
 
   let current: GameModule | null = null;
@@ -142,7 +173,6 @@ export default function GameView(): HTMLElement {
       "assets/game/fonts/VT323.woff2",
     ],
     hop: [
-      // update when hop assets exist
       "assets/game/fonts/VT323.woff2",
     ],
   };
@@ -230,18 +260,15 @@ export default function GameView(): HTMLElement {
     viewport.style.display = "block";
     controls.style.display = "flex";
 
-    // preload with progress bar
     await preload(id);
 
     const mod = (await loaders[id]()).default as GameModule;
 
-    // wait for async setup in init to avoid first frame being a static background
     await mod.init(canvas, core);
     mod.start();
     current = mod;
     fitRootHeight();
 
-    // hide loader after the first frame has a chance to draw
     requestAnimationFrame(() => {
       loader.style.opacity = "0";
       setTimeout(() => { loader.style.display = "none"; }, 160);
@@ -284,11 +311,12 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
-  // unlock audio on the first user interaction anywhere
+  // unlock audio on the first user interaction anywhere, and ping a quiet fallback beep if unmuted
   const unlockOnce = () => {
-    core.audio.unlock();
-    // respect the user's mute setting, just ensure the context is running
-    core.audio.setEnabled(!core.store.getBool("muted", true));
+    try { core.audio.unlock(); } catch {}
+    const muted = core.store.getBool("muted", true);
+    core.audio.setEnabled(!muted);
+    if (!muted) fallbackBeep(440, 40);
   };
   document.addEventListener("pointerdown", unlockOnce, { once: true, passive: true });
   document.addEventListener("keydown", unlockOnce, { once: true });

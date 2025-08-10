@@ -1,3 +1,5 @@
+import "../styles/game.css";
+
 import { makeCore } from "../game/core/loop";
 
 type GameModule = {

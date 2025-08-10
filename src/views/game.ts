@@ -133,6 +133,18 @@ export default function GameView(): HTMLElement {
     }
   });
 
+  // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
+  document.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
+    if (!a) return;
+    const path = location.hash.split("?")[0];
+    if (path === "#/game") {
+      e.preventDefault();   // default would be a no-op since hash is unchanged
+      showMenu();           // re-render tiles
+    }
+  }, { capture: false, passive: false });
+
+
 
   // deep link once then normalize
   (() => {

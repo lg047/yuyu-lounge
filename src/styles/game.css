@@ -90,6 +90,28 @@
   border-radius: 16px;
 }
 
+/* iOS playability and app-like feel */
+html, body {
+  margin: 0;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Scope to game area so normal pages stay selectable */
+#game-root, #game-root * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Canvas already sets touch-action in code, this is a safety net */
+#game-canvas {
+  touch-action: none;
+}
+
+
 
 
 @media (prefers-reduced-motion: reduce) { }

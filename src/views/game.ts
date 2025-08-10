@@ -71,22 +71,42 @@ export default function GameView(): HTMLElement {
   };
 
   let current: GameModule | null = null;
-z
 
-  function tile(id: string, label: string, imgRel: string) {
-    const imgUrl = asset(imgRel);
-    return `<button class="game-icon" data-g="${id}" aria-label="${label}">
-              <img src="${imgUrl}" alt="" decoding="async">
-            </button>`;
-  }
+  function showMenu() {
+    // stop and clean current game if any
+    if (current) {
+      try {
+        current.stop();
+      } catch {}
+      try {
+        current.destroy();
+      } catch {}
+      current = null;
+    }
 
-  overlay.innerHTML = `
-    <div class="icons-row">
-      ${tile("pom",  "Pom Dash",   "assets/game/icons/pom-tile.png")}
-      ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
-      ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
-    </div>
-  `;
+    viewport.style.display = "none";
+    controls.style.display = "none";
+
+    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+
+    const overlay = document.createElement("div");
+    overlay.className = "arcade-menu";
+
+    function tile(id: string, label: string, imgRel: string) {
+      const imgUrl = asset(imgRel);
+      return `<button class="game-icon" data-g="${id}" aria-label="${label}">
+                <img src="${imgUrl}" alt="" decoding="async">
+              </button>`;
+    }
+
+    overlay.innerHTML = `
+      <div class="icons-row">
+        ${tile("pom",  "Pom Dash",   "assets/game/icons/pom-tile.png")}
+        ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
+        ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
+      </div>
+    `;
+
     overlay.onclick = async (e) => {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
       if (!el) return;
@@ -95,7 +115,7 @@ z
       const id = el.dataset.g as keyof typeof loaders;
       await loadGame(id);
     };
-    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+
     root.appendChild(overlay);
 
     if (location.hash !== "#/game") {
@@ -124,17 +144,19 @@ z
   });
 
   // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
-  document.addEventListener("click", (e) => {
-    const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
-    if (!a) return;
-    const path = location.hash.split("?")[0];
-    if (path === "#/game") {
-      e.preventDefault();   // default would be a no-op since hash is unchanged
-      showMenu();           // re-render tiles
-    }
-  }, { capture: false, passive: false });
-
-
+  document.addEventListener(
+    "click",
+    (e) => {
+      const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
+      if (!a) return;
+      const path = location.hash.split("?")[0];
+      if (path === "#/game") {
+        e.preventDefault();   // default would be a no-op since hash is unchanged
+        showMenu();           // re-render tiles
+      }
+    },
+    { capture: false, passive: false }
+  );
 
   // deep link once then normalize
   (() => {
@@ -151,10 +173,14 @@ z
   })();
 
   // audio unlock on first touch
-  canvas.addEventListener("pointerdown", () => {
-    core.audio.unlock();
-    core.audio.setEnabled(!core.store.getBool("muted", true));
-  }, { once: true, passive: true });
+  canvas.addEventListener(
+    "pointerdown",
+    () => {
+      core.audio.unlock();
+      core.audio.setEnabled(!core.store.getBool("muted", true));
+    },
+    { once: true, passive: true }
+  );
 
   return root;
 }

@@ -7,7 +7,7 @@
   --cream: #fff6fb;
   --ink: #2a2230;
 
-  --bg: #a466bd;
+  --bg: #ebacf7;
   --text: var(--ink);
   --accent: var(--pink-mid);
   --accent-strong: var(--pink-strong);
@@ -129,7 +129,11 @@ body {
   padding-block: 12px;
   padding-inline: calc(20px + var(--sa-left)) calc(20px + var(--sa-right));
   border-bottom: 3px solid var(--accent-strong);
+
+  /* add spacing below the nav */
+  margin-bottom: 10px;            /* or margin-block-end: 10px; */
 }
+
 
 .topnav a {
   font-family: 'VT323', monospace;
@@ -309,3 +313,4 @@ body::before {
   0%   { transform: translateY(0) }
   100% { transform: translateY(-12px) }
 }
+

@@ -1,21 +1,20 @@
 import type { Core } from "./core/loop";
 
-type Ob = { x: number; y: number; w: number; h: number; type: 0 }; // walls only
+type Ob = { x: number; y: number; w: number; h: number; type: 0; counted?: boolean }; // walls only
 
 function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: number, bw: number, bh: number) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-// Tunables
-const INITIAL_BUFFER = 2.0;         // seconds before the first wall, same on every start
-const BASE_SPEED = 80;              // px/s
-const MAX_SPEED = 220;              // px/s cap
-const RAMP_PER_SEC = 8;             // px/s^2 (gentle)
-const GAP = 320;                    // vertical opening
-const WALL_THICK = 28;              // px
-const SPAWN_MIN = 2.2;              // slowest spawn
-const SPAWN_MAX = 2.8;              // initial spawn
-const LEAD_IN_X = 280;              // walls spawn this far off-screen to the right
+// Tunables in CSS px units (not device pixels)
+const INITIAL_BUFFER = 0.9;   // seconds to first spawn
+const BASE_SPEED = 120;       // CSS px/s
+const MAX_SPEED = 260;        // CSS px/s cap
+const RAMP_PER_SEC = 18;      // CSS px/s^2
+const GAP = 340;              // vertical opening
+const WALL_THICK = 28;        // CSS px
+const SPAWN_MAX = 2.2;        // initial spawn interval (s)
+const SPAWN_MIN = 1.6;        // fastest spawn interval (s)
 
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
@@ -23,14 +22,15 @@ const game = {
   _core: null as Core | null,
   _ob: [] as Ob[],
   _playerY: 0,
-  _vy: 0,
+  _vy: 0,             // CSS px/s
   _running: false,
   _dead: false,
-  _speed: BASE_SPEED,
+  _speed: BASE_SPEED, // CSS px/s
   _spawnTimer: INITIAL_BUFFER,
   _spawnInterval: SPAWN_MAX,
-  _dist: 0,             // distance in px for scoring
+  _score: 0,
   _best: 0,
+
   // input
   _kbdDown: false,
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
@@ -50,7 +50,7 @@ const game = {
     this._speed = BASE_SPEED;
     this._spawnTimer = INITIAL_BUFFER;
     this._spawnInterval = SPAWN_MAX;
-    this._dist = 0;
+    this._score = 0;
     this._kbdDown = false;
   },
 
@@ -69,64 +69,74 @@ const game = {
     window.addEventListener("keyup", this._onKeyUp);
 
     const step = (dt: number) => {
-      const H = core.canvas.height;
-      const W = core.canvas.width;
-
-      // early out if we ever stop without cleaning rAF (safety)
+      if (this._dead) return;        // hard stop after game over
       if (!this._running) return;
 
-      // hold to rise, release to fall (no dash, no charge)
+      const H = core.canvas.height;  // device px
+      const W = core.canvas.width;
+      const dpr = core.dpr;
+
+      // input
       const p = core.input.p;
       const hold = p.down || this._kbdDown;
-      const upAccel = 1700;   // strong lift
-      const gravity = 1200;   // gentle fall
+
+      // accelerations scaled into device px/s^2
+      const upAccel = 1600 * dpr;
+      const gravity = 1100 * dpr;
 
       if (hold) this._vy -= upAccel * dt;
       else this._vy += gravity * dt;
 
       // integrate and clamp
-      const pupH = 60;
+      const pupH = 60 * dpr; // device px
       this._playerY += this._vy * dt;
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // spawn scheduling (consistent first wall and spacing)
+      // spawn at right edge, consistent buffer independent of canvas size
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {
         this._spawnTimer = this._spawnInterval;
-        // interval eases down slightly with score but never below SPAWN_MIN
-        this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - (this.scoreInt() / 150)); // very gentle
-        // pick a safe center for the gap
-        const cy = 140 + Math.random() * (H - 280);
-        // spawn top and bottom walls well off-screen
-        const x = W + LEAD_IN_X;
-        const hTop = Math.max(0, cy - GAP * 0.5);
-        const hBotY = cy + GAP * 0.5;
+        // interval eases down a touch with score but never below SPAWN_MIN
+        this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - this._score * 0.05);
+
+        const gap = GAP * dpr;
+        const thickness = WALL_THICK * dpr;
+        const cy = 140 * dpr + Math.random() * (H - 280 * dpr);
+        const x = W + 2; // just off-screen
+        const hTop = Math.max(0, cy - gap * 0.5);
+        const hBotY = cy + gap * 0.5;
         const hBot = Math.max(0, H - hBotY);
-        this._ob.push({ x, y: 0, w: WALL_THICK, h: hTop, type: 0 });
-        this._ob.push({ x, y: hBotY, w: WALL_THICK, h: hBot, type: 0 });
+        // mark top wall with counted=false to score once when passed
+        this._ob.push({ x, y: 0, w: thickness, h: hTop, type: 0, counted: false });
+        this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // move walls and prune
-      const vx = this._speed * dt;
+      // move walls with CSS speed converted to device px/s
+      const vx = this._speed * dpr * dt;
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
-      this._ob = this._ob.filter(o => o.x + o.w > -40);
+      this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
-      // collisions
-      const px = 120, py = this._playerY - pupH * 0.5, pw = 72, ph = pupH;
+      // collisions and scoring
+      const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
+
       for (const o of this._ob) {
+        // score when the top wall's right edge passes player x
+        if (o.y === 0 && o.type === 0 && !o.counted && o.x + o.w < px) {
+          o.counted = true;
+          this._score += 1;
+        }
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) {
           this.gameOver();
           return;
         }
       }
 
-      // distance and speed ramp
-      this._dist += this._speed * dt;                   // accumulate exact
+      // visible speed ramp
       this._speed = Math.min(MAX_SPEED, this._speed + RAMP_PER_SEC * dt);
 
       // draw
-      ctx.clearRect(0, 0, core.canvas.width, core.canvas.height);
+      ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = "#ffe6f3"; ctx.fillRect(0, 0, W, H);
 
       ctx.fillStyle = "#ffc3e4";
@@ -135,25 +145,23 @@ const game = {
       // player
       ctx.fillStyle = "white"; ctx.fillRect(px, py, pw, ph);
 
-      // HUD boxes
-      const score = this.scoreInt();
-      const pad = 8;
-      // score pill
-      const sText = `Score ${score}`;
-      const bText = `Best ${this._best}`;
-      ctx.font = "bold 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+      // HUD
+      const pad = 8 * dpr;
+      ctx.font = `${20 * dpr}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
       ctx.textBaseline = "top"; ctx.textAlign = "left";
-      // crude width estimate without measureText to stay cheap
-      const w1 = 12 * sText.length + pad * 2;
-      const w2 = 12 * bText.length + pad * 2;
 
-      // score pill
-      roundRect(ctx, 12, 10, w1, 28, 10, "rgba(255,255,255,0.9)");
-      ctx.fillStyle = "#ff4f98"; ctx.fillText(sText, 12 + pad, 14);
+      const sText = `Score ${this._score}`;
+      const bText = `Best ${this._best}`;
+      // fast width estimate to avoid measureText
+      const est = (t: string) => (12 * dpr) * t.length + pad * 2;
+      const w1 = est(sText);
+      const w2 = est(bText);
 
-      // best pill with extra spacing below
-      roundRect(ctx, 12, 44, w2, 28, 10, "rgba(255,255,255,0.9)");
-      ctx.fillStyle = "#ff4f98"; ctx.fillText(bText, 12 + pad, 48);
+      roundRect(ctx, 12 * dpr, 10 * dpr, w1, 28 * dpr, 10 * dpr, "rgba(255,255,255,0.9)");
+      ctx.fillStyle = "#ff4f98"; ctx.fillText(sText, 12 * dpr + pad, 14 * dpr);
+
+      roundRect(ctx, 12 * dpr, 46 * dpr, w2, 28 * dpr, 10 * dpr, "rgba(255,255,255,0.9)");
+      ctx.fillStyle = "#ff4f98"; ctx.fillText(bText, 12 * dpr + pad, 50 * dpr);
     };
 
     const draw = () => {};
@@ -180,26 +188,21 @@ const game = {
     this._dead = true;
     this.stop();
 
-    // save best using integer score
-    const s = this.scoreInt();
-    this._best = Math.max(this._best, s);
+    // update best
+    this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
     // persistent overlay, no auto-retry
     const ctx = core.ctx;
+    const W = core.canvas.width, H = core.canvas.height;
     ctx.fillStyle = "rgba(0,0,0,0.40)";
-    ctx.fillRect(0, 0, core.canvas.width, core.canvas.height);
+    ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "white";
-    ctx.font = "bold 32px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.font = `bold ${32 * core.dpr}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("Game Over", core.canvas.width / 2, core.canvas.height / 2 - 18);
-    ctx.font = "bold 18px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-    ctx.fillText("Press Retry or Back", core.canvas.width / 2, core.canvas.height / 2 + 18);
-  },
-
-  scoreInt() {
-    // map px → points; bigger divisor = slower scoring
-    return Math.floor(this._dist / 6);
+    ctx.fillText("Game Over", W / 2, H / 2 - 18 * core.dpr);
+    ctx.font = `bold ${18 * core.dpr}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    ctx.fillText("Press Retry or Back", W / 2, H / 2 + 18 * core.dpr);
   }
 };
 

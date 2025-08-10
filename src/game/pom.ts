@@ -168,17 +168,15 @@ const game = {
         if (o.y === 0 && !o.counted && o.x + o.w < px) { o.counted = true; this._score += 1; }
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
-
-      // background - pixelated cover draw
+      // draw
+      ctx.clearRect(0, 0, W, H);                // <— put this here
+      
       if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
       else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
+      
+      for (const o of this._ob) drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0); // pillars
+      // then player, ground, HUD...
 
-      ctx.clearRect(0, 0, W, H);
-// … after background draw …
-
-      for (const o of this._ob) {
-      drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0);
-      }
 
       
       // player stays pure white
@@ -251,17 +249,17 @@ const game = {
     const r  = 16 * dpr;
     
     // rounded fill + rounded stroke in one path
-    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#74a6b8", 2 * dpr);
+    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#c6d9ff", 2 * dpr);
     
     // title
-    ctx.fillStyle = "#74a6b8";
+    ctx.fillStyle = "#c6d9ff";
     ctx.font = hudFont(34, dpr);              // bigger title
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
     
     // scores - centered
-    ctx.fillStyle = "#74a6b8";                // VT323 style aqua
+    ctx.fillStyle = "#c6d9ff";                // VT323 style aqua
     ctx.font = hudFont(22, dpr);
     ctx.fillText(`Score: ${this._score}`, cx + cardW / 2, cy + 64 * dpr);
     ctx.fillText(`Best:  ${this._best}`,  cx + cardW / 2, cy + 92 * dpr);
@@ -270,7 +268,7 @@ const game = {
     const btnW = Math.round(180 * dpr), btnH = Math.round(40 * dpr);
     const bx = Math.round(cx + cardW / 2 - btnW / 2);
     const by = Math.round(cy + cardH - btnH - 16 * dpr);
-    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#74a6b8", "#74a6b8", 1); // filled pill
+    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#c6d9ff", "#c6d9ff", 1); // filled pill
     ctx.fillStyle = "#ffffff";
     ctx.font = hudFont(22, dpr);
     ctx.textAlign = "center";

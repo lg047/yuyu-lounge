@@ -198,7 +198,7 @@ const game = {
       if (this._vy < -VY_MAX_UP) this._vy = -VY_MAX_UP;
       if (this._vy > VY_MAX_DOWN) this._vy = VY_MAX_DOWN;
 
-      const pupH = 60 * dpr;
+      const pupH = 90 * dpr;
       this._playerY += this._vy * dt;
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
@@ -230,7 +230,7 @@ const game = {
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
       // score and collisions
-      const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
+      const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 108 * dpr, ph = pupH;
       for (const o of this._ob) {
         if (o.y === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;
@@ -258,7 +258,7 @@ const game = {
       ctx.fillStyle = "#a87939"; // dark beige-tan, background equivalent to #eef3ff
       ctx.fillRect(0, gy, W, gh);
       
-      ctx.fillStyle = "#d2b48c"; // medium tan, equivalent to #cfdcff
+      ctx.fillStyle = "#693f08"; // medium tan, equivalent to #cfdcff
 
       const tile = Math.round(GROUND_TILE * dpr);
       for (let x = -tile; x < W + tile; x += tile) {

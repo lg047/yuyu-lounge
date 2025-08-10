@@ -101,7 +101,7 @@ export default function GameView(): HTMLElement {
 
     overlay.innerHTML = `
       <div class="icons-row">
-        ${tile("pom",  "Pom Dash",   "assets/game/icons/pom-tile.png")}
+        ${tile("pom",  "Pom Dash",   "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
         ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
       </div>

@@ -8,17 +8,17 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 }
 
 /* Assets */
-const BG_IMG_PATH    = "assets/game/bg/treat-rain-bg.png";
+const BG_IMG_PATH    = "assets/game/bg/NEWtreat-rain-bg.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
-const POM_IMG_PATH   = "assets/game/sprites/pom.png";
+const POM_IMG_PATH   = "assets/game/sprites/NEWpom.png";
 const BONE_IMG_PATH  = "assets/game/sprites/treat-bone.png";
 const STAR_IMG_PATH  = "assets/game/sprites/treat-star.png";
 
 /* Theme + layout */
-const BG_COLOR     = "#0a0c1a";
-const HUD_AQUA     = "#aeeaff";
-const PINK         = "#ff4f98";
-const ICE_STROKE   = "#c6d9ff";
+const BG_COLOR     = "#87ceeb"; // sky blue as a fallback behind the sky image
+const HUD_AQUA     = "#0b3a75"; // primary HUD text (dark blue)
+const PINK         = "#1f6feb"; // button and accent (blue)
+const ICE_STROKE   = "#0b3a75"; // card border (dark blue)
 const GROUND_H_CSS = 18;
 const HUD_PAD_CSS  = 12;
 
@@ -260,18 +260,10 @@ const game = {
       ctx.fillRect(0, 0, W, H);
       drawCover(ctx, this._bgImg, W, H);
 
+      // plain green ground (no ticks/stripes)
       const gh = Math.round(GROUND_H_CSS * dpr);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#3cb043"; // grass green
       ctx.fillRect(0, H - gh, W, gh);
-      ctx.strokeStyle = "#e5e7eb";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      const tickH = Math.round(8 * dpr);
-      for (let x = 0; x < W; x += Math.round(12 * dpr)) {
-        ctx.moveTo(x + 0.5, H - gh);
-        ctx.lineTo(x + 0.5, H - gh + tickH);
-      }
-      ctx.stroke();
 
       // treats
       for (let i = 0; i < this._treats.length; i++) {
@@ -303,9 +295,9 @@ const game = {
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
       ctx.font = hudFont(24, dpr);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = HUD_AQUA; // dark blue
       ctx.fillText(`Score ${this._score}`, Math.round(HUD_PAD_CSS * dpr), Math.round(HUD_PAD_CSS * dpr));
-      ctx.fillStyle = HUD_AQUA;
+      ctx.fillStyle = "#1f6feb"; // mid blue for Best
       ctx.fillText(`Best ${this._best}`, Math.round(HUD_PAD_CSS * dpr), Math.round((HUD_PAD_CSS + 26) * dpr));
 
       const r = Math.round(8 * dpr);
@@ -318,7 +310,7 @@ const game = {
         ctx.fillStyle = i < 3 - this._misses ? "#ffffff" : "rgba(255,255,255,0)";
         ctx.fill();
         ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
-        ctx.strokeStyle = PINK;
+        ctx.strokeStyle = HUD_AQUA; // circle outline dark blue
         ctx.stroke();
         cx += r * 2 + gap;
       }
@@ -347,8 +339,8 @@ const game = {
   _spawnOne() {
     const core = this._core!;
     const dpr = core.dpr;
-    const kind: 0 | 1 = 0;
-    const baseH = 44 * dpr;
+    const kind: 0 | 1 = 0; // bones only
+    const baseH = 44 * dpr; // larger bones
     const im = kind === 0 ? this._boneImg! : this._starImg!;
     const aspect = (im.naturalWidth || im.width) / (im.naturalHeight || im.height) || 1;
     const w = Math.round(baseH * aspect);
@@ -369,7 +361,8 @@ const game = {
     const y = Math.round(H / 2 - cardH / 2) + 0.5;
     const r = Math.round(12 * dpr);
 
-    ctx.fillStyle = "#ffffff";
+    // light sky card with dark blue border
+    ctx.fillStyle = "#e6f3ff";
     roundRect(ctx, x, y, cardW, cardH, r);
     ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
     ctx.strokeStyle = ICE_STROKE;
@@ -377,12 +370,12 @@ const game = {
 
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#0a0c1a";
+    ctx.fillStyle = HUD_AQUA; // dark blue text
     ctx.font = hudFont(28, dpr);
     ctx.fillText("Game Over", x + cardW / 2, y + Math.round(40 * dpr));
     ctx.font = hudFont(22, dpr);
     ctx.fillText(`Score ${this._score}`, x + cardW / 2, y + Math.round(80 * dpr));
-    ctx.fillStyle = "#4b5563";
+    ctx.fillStyle = "#1f6feb";
     ctx.fillText(`Best ${this._best}`, x + cardW / 2, y + Math.round(108 * dpr));
 
     const bw = Math.round(120 * dpr);
@@ -390,9 +383,9 @@ const game = {
     const bx = Math.round(x + (cardW - bw) / 2);
     const by = Math.round(y + cardH - bh - Math.round(24 * dpr));
 
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = PINK;      // blue button
     roundRect(ctx, bx, by, bw, bh, Math.round(8 * dpr));
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#ffffff"; // white label
     ctx.font = hudFont(20, dpr);
     ctx.textBaseline = "middle";
     ctx.fillText("Play Again", bx + bw / 2, by + bh / 2 + 1);

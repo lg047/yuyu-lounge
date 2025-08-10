@@ -1,14 +1,13 @@
-// src/main.ts
 import "./styles.css";
 import { initRouter } from "./router";
-import TopNav from "./components/topnav";
+import TopNav from "./components/topnav"; // must match filename exactly
 
-// --- PWA Install button wiring ---
+// Install button wiring
 let deferredPrompt: unknown = null;
-
 const installBtn = document.getElementById("installBtn") as HTMLButtonElement | null;
+
 window.addEventListener("beforeinstallprompt", (e: Event) => {
-  // @ts-ignore - BeforeInstallPromptEvent is not in TS lib
+  // @ts-ignore
   e.preventDefault?.();
   deferredPrompt = e;
   if (installBtn) installBtn.hidden = false;
@@ -22,40 +21,32 @@ installBtn?.addEventListener("click", async () => {
   if (installBtn) installBtn.hidden = true;
 });
 
-// --- Mount Top Nav ---
-const topnavHost = document.getElementById("topnav") as HTMLElement | null;
-if (topnavHost) {
-  topnavHost.replaceChildren(TopNav());
-}
+// Mount Top Nav
+const topnavHost = document.getElementById("topnav");
+if (topnavHost) topnavHost.replaceChildren(TopNav());
 
+// Highlight active link on route changes
 function currentPath(): string {
   const hash = location.hash || "#/reels";
   return hash.replace(/^#/, "");
 }
-
 function updateTopNavActive(path: string): void {
-  const links = document.querySelectorAll<HTMLAnchorElement>(".topnav a[href^='#/']");
-  links.forEach((a) => {
+  document.querySelectorAll<HTMLAnchorElement>(".topnav a[href^='#/']").forEach((a) => {
     const hrefPath = a.getAttribute("href")?.replace(/^#/, "") ?? "";
     a.classList.toggle("active", hrefPath === path);
   });
+  document.title = `Yuyu Lounge • ${path.slice(1)}`;
 }
-
 function onRouteChange(): void {
-  const path = currentPath();
-  updateTopNavActive(path);
-  document.title = `Yuyu Lounge • ${path.replace("/", "")}`;
+  updateTopNavActive(currentPath());
 }
-
-// Initial paint
 onRouteChange();
 window.addEventListener("hashchange", onRouteChange);
 
-
-// --- Router bootstrap (keeps existing view/overlay behaviour) ---
+// Router bootstrap
 initRouter();
 
-// --- Service Worker for PWA/offline ---
+// SW
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);

@@ -52,16 +52,13 @@ export default function GameView(): HTMLElement {
     const top = root.getBoundingClientRect().top;
     const h = Math.max(320, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
-  
-    // back buffer in device pixels
+    // ensure back buffer in device pixels
     const dpr = core.dpr || window.devicePixelRatio || 1;
     const r = canvas.getBoundingClientRect();
-    canvas.width  = Math.max(1, Math.floor(r.width  * dpr));
+    canvas.width = Math.max(1, Math.floor(r.width * dpr));
     canvas.height = Math.max(1, Math.floor(r.height * dpr));
-  
     core.resize();
   }
-
 
   requestAnimationFrame(fitRootHeight);
   window.addEventListener("resize", fitRootHeight);
@@ -129,33 +126,27 @@ export default function GameView(): HTMLElement {
     }
   }
 
-
-
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
-    
-      // show stage so clientWidth/clientHeight are nonzero
+
     viewport.style.display = "block";
     controls.style.display = "flex";
-    
-      // wait one frame for layout, then size the backing store
-     await new Promise(requestAnimationFrame);
-     fitRootHeight();
-    
-      // import named exports
-     const m = await loaders[id]();
-     const mod: GameModule = { meta: m.meta, init: m.init, start: m.start, stop: m.stop, destroy: m.destroy };
-    
-      // init and first paint
-     await mod.init(canvas, core);
-     mod.start();
-     current = mod;
-  }
 
-    // init may load assets and does a first draw
+    // wait one frame so canvas has CSS size, then set backing store
+    await new Promise(requestAnimationFrame);
+    fitRootHeight();
+
+    // import named exports
+    const m = await loaders[id]();
+    const mod: GameModule = {
+      meta: m.meta,
+      init: m.init,
+      start: m.start,
+      stop: m.stop,
+      destroy: m.destroy,
+    };
+
     await mod.init(canvas, core);
-
-    // start loop
     mod.start();
     current = mod;
   }
@@ -181,7 +172,6 @@ export default function GameView(): HTMLElement {
     { capture: false, passive: false }
   );
 
-  // deep link
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -195,7 +185,6 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
-  // audio unlock on first touch
   canvas.addEventListener(
     "pointerdown",
     () => {

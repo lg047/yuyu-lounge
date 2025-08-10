@@ -131,8 +131,8 @@ export default function GameView(): HTMLElement {
     viewport.style.display = "block";
     controls.style.display = "flex";
     const mod = (await loaders[id]()).default as GameModule;
-    mod.init(canvas, core); // init draws first frame
-    mod.start(); // start game loop
+    await mod.init(canvas, core); // wait for async asset + size setup
+    mod.start();                  // then start the loop
     current = mod;
     fitRootHeight();
   }

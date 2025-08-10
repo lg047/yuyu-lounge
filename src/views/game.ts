@@ -126,13 +126,13 @@ export default function GameView(): HTMLElement {
 
   backBtn.onclick = () => showMenu();
 
-  // Clicking the Mini Game tab while already on #/game returns to tiles
-  function onNavClick(e: MouseEvent) {
-    const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
-    if (!a) return;
-    showMenu();
-  }
-  window.addEventListener("click", onNavClick, true);
+  window.addEventListener("hashchange", () => {
+    const path = location.hash.split("?")[0];
+    if (path === "#/game") {
+      showMenu(); // ensure tiles mount if you navigate back later
+    }
+  });
+
 
   // deep link once then normalize
   (() => {

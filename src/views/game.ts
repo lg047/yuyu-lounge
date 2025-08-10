@@ -72,15 +72,12 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
-  function tile(id: string, title: string, iconRel: string) {
-    const key = `best.${id}`;
-    const best = core.store.getNumber(key, 0);
-    const iconUrl = asset(iconRel);
-    return `<div class="arcade-tile" data-g="${id}">
-      <img alt="" src="${iconUrl}">
-      <div class="title">${title}</div>
-      <div class="best">${best > 0 ? `Best: ${best}` : "No score yet"}</div>
-    </div>`;
+  function tile(id: string, label: string, imgRel: string) {
+    const imgUrl = asset(imgRel);
+    // image-only, no text
+    return `<button class="arcade-tile image-only" data-g="${id}" aria-label="${label}">
+              <img src="${imgUrl}" alt="" decoding="async" loading="eager">
+            </button>`;
   }
 
   function showMenu() {
@@ -92,9 +89,9 @@ export default function GameView(): HTMLElement {
     overlay.className = "arcade-menu";
     overlay.innerHTML = `
       <div class="grid">
-        ${tile("pom", "Pom Dash", "assets/game/icons/pom.svg")}
-        ${tile("rain", "Treat Rain", "assets/game/icons/rain.svg")}
-        ${tile("hop", "Cloud Hop", "assets/game/icons/hop.svg")}
+        ${tile("pom",  "Pom Dash",   "assets/game/icons/pom-tile.png")}
+        ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
+        ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
       </div>
     `;
     overlay.onclick = async (e) => {

@@ -1,13 +1,11 @@
-/* Game root stays inside your normal content area */
 #game-root {
   position: relative;
   width: 100%;
-  min-height: 100dvh; /* covers the viewport below your header */
+  /* height set by JS (fitRootHeight) */
   background: transparent;
   z-index: 0;
 }
 
-/* Canvas fills the root box */
 #game-canvas {
   width: 100%;
   height: 100%;
@@ -15,16 +13,17 @@
   touch-action: none;
 }
 
-/* Menu overlay inside the root, above the canvas */
+/* Menu overlay inside the root, top-aligned */
 .arcade-menu {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  align-content: start;     /* <-- top, not center */
+  justify-items: center;
   padding: 24px;
+  padding-top: calc(env(safe-area-inset-top) + 24px);
 }
 
-/* Card grid */
 .arcade-menu .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -42,17 +41,8 @@
   user-select: none;
 }
 
-.arcade-tile img {
-  width: 96px;
-  height: 96px;
-  display: block;
-  margin: 6px auto 8px;
-}
-
-.arcade-tile .title {
-  font-weight: 700;
-  color: #ff4f98;
-}
+.arcade-tile img { width: 96px; height: 96px; display: block; margin: 6px auto 8px; }
+.arcade-tile .title { font-weight: 700; color: #ff4f98; }
 
 .hud {
   position: absolute;
@@ -88,6 +78,4 @@
   cursor: pointer;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  /* reserved */
-}
+@media (prefers-reduced-motion: reduce) { }

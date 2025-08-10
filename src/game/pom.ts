@@ -1,19 +1,19 @@
 import type { Core } from "./core/loop";
 
-type Ob = { x: number; y: number; w: number; h: number; type: 0; counted?: boolean }; // walls only
+type Ob = { x: number; y: number; w: number; h: number; type: 0; counted?: boolean };
 
 function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: number, bw: number, bh: number) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
 // Tunables in CSS px
-const INITIAL_BUFFER = 0.9;   // seconds to first spawn
+const INITIAL_BUFFER = 0.9;
 const BASE_SPEED = 120;       // CSS px/s
-const MAX_SPEED = 280;        // CSS px/s cap
-const GAP = 300;              // vertical opening (smaller than before)
-const WALL_THICK = 28;        // CSS px
-const SPAWN_MAX = 2.2;        // initial spawn interval (s)
-const SPAWN_MIN = 1.6;        // fastest spawn interval (s)
+const MAX_SPEED  = 520;       // higher cap so it keeps getting harder
+const GAP        = 300;       // opening
+const WALL_THICK = 28;
+const SPAWN_MAX  = 2.2;       // s
+const SPAWN_MIN  = 1.3;       // lower min so late game is busier
 
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
@@ -21,17 +21,16 @@ const game = {
   _core: null as Core | null,
   _ob: [] as Ob[],
   _playerY: 0,
-  _vy: 0,             // CSS px/s scaled by dpr in integration
+  _vy: 0,
   _running: false,
   _dead: false,
-  _speed: BASE_SPEED, // CSS px/s
-  _time: 0,           // seconds since start for ramp
+  _speed: BASE_SPEED,
+  _time: 0,
   _spawnTimer: INITIAL_BUFFER,
   _spawnInterval: SPAWN_MAX,
   _score: 0,
   _best: 0,
 
-  // input
   _kbdDown: false,
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
   _onKeyUp: null as ((e: KeyboardEvent) => void) | null,
@@ -41,7 +40,6 @@ const game = {
     core.resize();
     this._best = core.store.getNumber(this.meta.bestKey, 0);
 
-    // reset state
     this._ob = [];
     this._playerY = core.canvas.height * 0.5;
     this._vy = 0;
@@ -59,7 +57,6 @@ const game = {
     const core = this._core!;
     const ctx = core.ctx;
 
-    // keyboard hold = Space or ArrowUp
     this._onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowUp") { this._kbdDown = true; e.preventDefault(); }
     };
@@ -80,10 +77,9 @@ const game = {
       this._time += dt;
 
       // input
-      const p = core.input.p;
-      const hold = p.down || this._kbdDown;
+      const hold = core.input.p.down || this._kbdDown;
 
-      // accelerations scaled into device px/s^2
+      // accelerations (device px/s^2)
       const upAccel = 1600 * dpr;
       const gravity = 1100 * dpr;
 
@@ -96,17 +92,17 @@ const game = {
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // spawn at right edge, consistent buffer
+      // spawn
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {
         this._spawnTimer = this._spawnInterval;
-        // interval eases down with score, never below SPAWN_MIN
-        this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - this._score * 0.05);
+        // interval reduces with score, capped by SPAWN_MIN
+        this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - this._score * 0.06);
 
         const gap = GAP * dpr;
         const thickness = WALL_THICK * dpr;
         const cy = 140 * dpr + Math.random() * (H - 280 * dpr);
-        const x = W + 2; // just off-screen
+        const x = W + 2;
         const hTop = Math.max(0, cy - gap * 0.5);
         const hBotY = cy + gap * 0.5;
         const hBot = Math.max(0, H - hBotY);
@@ -114,16 +110,14 @@ const game = {
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // move walls with CSS speed converted to device px/s
+      // move walls (CSS speed -> device px/s)
       const vx = this._speed * dpr * dt;
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
       // collisions and scoring
       const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
-
       for (const o of this._ob) {
-        // score once when the top wall pair passes player x
         if (o.y === 0 && o.type === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;
           this._score += 1;
@@ -134,11 +128,12 @@ const game = {
         }
       }
 
-      // non linear ramp that starts early
-      // target speed = BASE + 16*t + 3*t^2, clamped
-      const target = Math.min(MAX_SPEED, BASE_SPEED + 16 * this._time + 3 * this._time * this._time);
-      // small smoothing to avoid jumps on slow frames
-      this._speed += (target - this._speed) * Math.min(1, dt * 4);
+      // non linear speed ramp that keeps growing
+      // target = BASE + a*t + b*t^2, then smoothed and clamped
+      const a = 28;      // linear term
+      const b = 6;       // quadratic term
+      const target = Math.min(MAX_SPEED, BASE_SPEED + a * this._time + b * this._time * this._time);
+      this._speed += (target - this._speed) * Math.min(1, dt * 5);
 
       // draw
       ctx.clearRect(0, 0, W, H);
@@ -192,11 +187,9 @@ const game = {
     this._dead = true;
     this.stop();
 
-    // update best
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
-    // persistent overlay
     const ctx = core.ctx;
     const W = core.canvas.width, H = core.canvas.height;
     ctx.fillStyle = "rgba(0,0,0,0.40)";

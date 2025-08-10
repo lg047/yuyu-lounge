@@ -7,18 +7,20 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 }
 
 /* Tunables in CSS px */
-const INITIAL_BUFFER = 0.6;        // quicker first spawn
-const BASE_SPEED     = 420;        // start at the “good” speed
-const GAP            = 300;        // vertical opening
+// Tunables in CSS px
+const INITIAL_BUFFER = 0.6;
+const BASE_SPEED     = 420;   // unchanged
+const GAP            = 300;
 const WALL_THICK     = 28;
 
-/* Exponential speed ramp: speed(t) = BASE * exp(K * t) */
-const K = 0.060;                   // growth rate
+// Exponential speed ramp: speed(t) = BASE * exp(K * t)
+const K = 0.045;              // was 0.060
 
-/* Target horizontal spacing between pairs in CSS px, shrinks over time */
-const SPACING_START  = 320;
-const SPACING_END    = 180;
-const SPACING_DECAY  = 0.060;      // faster early shrink
+// Target horizontal spacing between pairs in CSS px
+const SPACING_START  = 330;   // was 320
+const SPACING_END    = 210;   // was 180
+const SPACING_DECAY  = 0.045; // was 0.060
+
 
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
@@ -101,7 +103,7 @@ const game = {
 
       // spacing driven spawn
       const spacingPx = SPACING_END + (SPACING_START - SPACING_END) * Math.exp(-SPACING_DECAY * this._time);
-      const spawnInterval = Math.max(0.28, spacingPx / this._speed);
+      const spawnInterval = Math.max(0.32, spacingPx / this._speed);
 
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {

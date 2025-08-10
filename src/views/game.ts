@@ -3,7 +3,7 @@ import { makeCore } from "../game/core/loop";
 
 type GameModule = {
   meta: { id: string; title: string; bestKey: string };
-  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void;
+  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => Promise<void> | void;
   start: () => void;
   stop: () => void;
   destroy: () => void;
@@ -72,17 +72,15 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
+  function teardownCurrent() {
+    if (!current) return;
+    try { current.stop(); } catch {}
+    try { current.destroy(); } catch {}
+    current = null;
+  }
+
   function showMenu() {
-    // stop and clean current game if any
-    if (current) {
-      try {
-        current.stop();
-      } catch {}
-      try {
-        current.destroy();
-      } catch {}
-      current = null;
-    }
+    teardownCurrent();
 
     viewport.style.display = "none";
     controls.style.display = "none";
@@ -125,12 +123,26 @@ export default function GameView(): HTMLElement {
 
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+
+    // show the stage before init so first draw is visible
     viewport.style.display = "block";
     controls.style.display = "flex";
-    const mod = (await loaders[id]()).default as GameModule;
-    mod.init(canvas, core);
+
+    // use named exports, not .default
+    const modAny = await loaders[id]();
+    const mod: GameModule = {
+      meta: modAny.meta,
+      init: modAny.init,
+      start: modAny.start,
+      stop: modAny.stop,
+      destroy: modAny.destroy,
+    };
+
+    // await init so assets load and first paint happens
+    await mod.init(canvas, core);
     mod.start();
     current = mod;
+
     fitRootHeight();
   }
 
@@ -138,12 +150,9 @@ export default function GameView(): HTMLElement {
 
   window.addEventListener("hashchange", () => {
     const path = location.hash.split("?")[0];
-    if (path === "#/game") {
-      showMenu(); // ensure tiles mount if you navigate back later
-    }
+    if (path === "#/game") showMenu();
   });
 
-  // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
   document.addEventListener(
     "click",
     (e) => {
@@ -151,14 +160,14 @@ export default function GameView(): HTMLElement {
       if (!a) return;
       const path = location.hash.split("?")[0];
       if (path === "#/game") {
-        e.preventDefault();   // default would be a no-op since hash is unchanged
-        showMenu();           // re-render tiles
+        e.preventDefault();
+        showMenu();
       }
     },
     { capture: false, passive: false }
   );
 
-  // deep link once then normalize
+  // deep link support
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {

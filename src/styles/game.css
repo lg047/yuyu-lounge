@@ -50,35 +50,38 @@
   user-select: none;
 }
 
-/* Menu overlay for the launcher */
-.arcade-menu {
-  position: absolute;
-  inset: 0;
+/* image-only menu */
+.arcade-menu { background: transparent; box-shadow: none; }
+
+/* kill any old card styles */
+.arcade-menu .arcade-tile { display: none !important; }
+
+.icons-row {
   display: grid;
-  align-content: start;     /* top aligned */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0;           /* no extra white */
+  align-items: start;
   justify-items: center;
-  padding: 24px;
-  padding-top: calc(env(safe-area-inset-top) + 24px);
 }
 
-.arcade-menu .grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-  gap: 28px;
-  width: min(980px, 100%);
-}
-
-.arcade-tile {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-  padding: 18px;
-  text-align: center;
+.game-icon {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
   cursor: pointer;
-  user-select: none;
 }
 
-.arcade-tile img { width: 96px; height: 96px; display: block; margin: 6px auto 8px; }
-.arcade-tile .title { font-weight: 700; color: #ff4f98; }
+.game-icon img {
+  display: block;
+  height: 160px;        /* uniform size, keeps aspect ratio */
+  width: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
 
 @media (prefers-reduced-motion: reduce) { }

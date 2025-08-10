@@ -42,23 +42,34 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Site header: title centered with flanking gifs --- */
+/* header sits below notch and paints the safe area */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding-top: calc(18px + var(--sa-top));
-  min-height: 80px;  
+  /* increase top padding by safe area + extra */
+  padding: calc(24px + var(--sa-top)) calc(14px + var(--sa-right)) 12px calc(14px + var(--sa-left));
   background: var(--pink-mid);
   border-bottom: 3px solid var(--accent-strong);
 
   display: flex;
-  flex-direction: row;      /* key change */
+  flex-direction: row;
   align-items: center;
-  justify-content: center;  /* center the trio (left gif, title, right gif) */
-  gap: 20px;                /* spacing title ↔ gifs */
-  min-height: 72px;         /* headroom for ornaments */
+  justify-content: center;
+  gap: 12px;
+  min-height: 88px;
 }
+
+/* paint the safe area above the header too */
+.site-header::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: var(--sa-top);
+  background: var(--pink-mid);
+  pointer-events: none;
+}
+
 
 .site-title {
   order: 1;
@@ -112,12 +123,15 @@ body {
 }
 
 /* Small screens: shrink or hide ornaments */
-@media (max-width: 420px) {
-  .header-ornament { width: 36px; height: 36px; }
+
+@media (max-width: 480px) {
+  .site-header {
+    padding-top: calc(26px + var(--sa-top));
+    min-height: 92px;
+    gap: 10px;
+  }
 }
-@media (max-width: 340px) {
-  .header-ornament { display: none; }
-}
+
 
 /* --- Top nav --- */
 .topnav {

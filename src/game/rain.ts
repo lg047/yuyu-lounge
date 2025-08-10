@@ -24,9 +24,9 @@ const HUD_PAD_CSS  = 12;
 
 /* Difficulty ramps */
 const SPAWN_START_S = 0.9;
-const SPAWN_END_S   = 0.35;   // by ~30 s
-const FALL_START    = 260;    // px/s
-const FALL_END      = 520;    // by ~45 s
+const SPAWN_END_S   = 0.35;
+const FALL_START    = 260;
+const FALL_END      = 520;
 
 /* Helpers */
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
@@ -160,7 +160,6 @@ const game = {
       const y = (e.clientY - rect.top) * (core.canvas.height / rect.height);
       if (x >= this._rbx && x <= this._rbx + this._rbw && y >= this._rby && y <= this._rby + this._rbh) {
         if (core.audio.enabled) core.audio.beep(520, 80);
-        // Prevent stacked listeners and ensure a clean loop restart
         canvas.removeEventListener("click", this._onClick!);
         this.stop();
         this.init(core.canvas, core).then(() => this.start());
@@ -179,70 +178,69 @@ const game = {
       let dt = (now - this._lastNow) / 1000;
       this._lastNow = now;
 
-      // Never skip drawing. On warm-up or big resumes, zero out dt for update only.
+      // Never skip drawing. If warmup or resume spike, zero dt for update only.
       if (this._warmup > 0 || dt > 0.2) {
         if (this._warmup > 0) this._warmup--;
         dt = 0;
       }
 
       dt = Math.max(0, Math.min(dt, 0.035));
-      // Keep drawing even if not running to allow overlay/UI visibility
-      if (this._running) {
+
+      // Update only if running and not over
+      if (this._running && !this._over) {
         const dpr = core.dpr;
         const W = core.canvas.width;
         const H = core.canvas.height;
 
-        if (!this._over) {
-          this._time += dt;
-          this._spawnIv  = lerp(SPAWN_START_S, SPAWN_END_S, smooth01(this._time / 30));
-          this._fallBase = lerp(FALL_START,    FALL_END,    smooth01(this._time / 45));
+        this._time += dt;
+        this._spawnIv  = lerp(SPAWN_START_S, SPAWN_END_S, smooth01(this._time / 30));
+        this._fallBase = lerp(FALL_START,    FALL_END,    smooth01(this._time / 45));
 
-          if (this._targetX != null) {
-            const k = 26;
-            const dx = this._targetX - (this._px + this._pw * 0.5);
-            this._vx += k * dx * dt;
+        if (this._targetX != null) {
+          const k = 26;
+          const dx = this._targetX - (this._px + this._pw * 0.5);
+          this._vx += k * dx * dt;
+        }
+        this._vx *= Math.exp(-8 * dt);
+        this._px += this._vx * dt;
+        this._px = clamp(this._px, 0, W - this._pw);
+
+        this._spawnAcc += dt;
+        if (this._treats.length === 0 || this._spawnAcc >= this._spawnIv) {
+          this._spawnAcc = 0;
+          this._spawnOne();
+        }
+
+        const groundY = H - Math.round(GROUND_H_CSS * dpr);
+        const hx = this._px + this._pw * 0.15;
+        const hy = this._py + this._ph * 0.10;
+        const hw = this._pw * 0.70;
+        const hh = this._ph * 0.75;
+
+        for (let i = this._treats.length - 1; i >= 0; i--) {
+          const o = this._treats[i];
+          o.y += o.vy * dt;
+
+          if (aabb(hx, hy, hw, hh, o.x, o.y, o.w, o.h)) {
+            this._streak += 1;
+            this._bonus = Math.floor(this._streak / 5);
+            this._score += 1 + this._bonus;
+            this._treats.splice(i, 1);
+            if (core.audio.enabled) core.audio.beep(900, 40);
+            continue;
           }
-          this._vx *= Math.exp(-8 * dt);
-          this._px += this._vx * dt;
-          this._px = clamp(this._px, 0, W - this._pw);
-
-          this._spawnAcc += dt;
-          if (this._treats.length === 0 || this._spawnAcc >= this._spawnIv) {
-            this._spawnAcc = 0;
-            this._spawnOne();
-          }
-
-          const groundY = H - Math.round(GROUND_H_CSS * dpr);
-          const hx = this._px + this._pw * 0.15;
-          const hy = this._py + this._ph * 0.10;
-          const hw = this._pw * 0.70;
-          const hh = this._ph * 0.75;
-
-          for (let i = this._treats.length - 1; i >= 0; i--) {
-            const o = this._treats[i];
-            o.y += o.vy * dt;
-
-            if (aabb(hx, hy, hw, hh, o.x, o.y, o.w, o.h)) {
-              this._streak += 1;
-              this._bonus = Math.floor(this._streak / 5);
-              this._score += 1 + this._bonus;
-              this._treats.splice(i, 1);
-              if (core.audio.enabled) core.audio.beep(900, 40);
-              continue;
-            }
-            if (o.y > groundY) {
-              this._treats.splice(i, 1);
-              this._misses += 1;
-              this._streak = 0;
-              this._bonus = 0;
-              if (core.audio.enabled) core.audio.beep(240, 80);
-              if (this._misses >= 3) {
-                this._over = true;
-                this._best = Math.max(this._best, this._score);
-                core.store.setNumber(this.meta.bestKey, this._best);
-                if (core.audio.enabled) core.audio.beep(180, 180);
-                break;
-              }
+          if (o.y > groundY) {
+            this._treats.splice(i, 1);
+            this._misses += 1;
+            this._streak = 0;
+            this._bonus = 0;
+            if (core.audio.enabled) core.audio.beep(240, 80);
+            if (this._misses >= 3) {
+              this._over = true;
+              this._best = Math.max(this._best, this._score);
+              core.store.setNumber(this.meta.bestKey, this._best);
+              if (core.audio.enabled) core.audio.beep(180, 180);
+              break;
             }
           }
         }
@@ -270,24 +268,35 @@ const game = {
       }
       ctx.stroke();
 
+      // treats
       for (let i = 0; i < this._treats.length; i++) {
         const o = this._treats[i];
         const im = o.kind === 0 ? this._boneImg! : this._starImg!;
-        if (im && (im.complete || im.naturalWidth)) {
+        if (im && im.naturalWidth > 0) {
           const prev = ctx.imageSmoothingEnabled;
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(im, o.x | 0, o.y | 0, o.w | 0, o.h | 0);
           ctx.imageSmoothingEnabled = prev;
+        } else {
+          // placeholder while sprite loads
+          ctx.fillStyle = o.kind === 0 ? "#ffd39b" : "#e6e6ff";
+          ctx.fillRect(o.x | 0, o.y | 0, o.w | 0, o.h | 0);
         }
       }
 
-      if (this._pomImg && (this._pomImg.complete || this._pomImg.naturalWidth)) {
+      // player
+      if (this._pomImg && this._pomImg.naturalWidth > 0) {
         const prev = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(this._pomImg, this._px | 0, this._py | 0, this._pw | 0, this._ph | 0);
         ctx.imageSmoothingEnabled = prev;
+      } else {
+        // placeholder like pom.ts
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(this._px | 0, this._py | 0, this._pw | 0, this._ph | 0);
       }
 
+      // HUD
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
       ctx.font = hudFont(24, dpr);
@@ -396,11 +405,8 @@ const game = {
 };
 
 function drawCover(ctx: CanvasRenderingContext2D, im: HTMLImageElement | null, W: number, H: number) {
-  if (!im || !(im.complete || im.naturalWidth)) return;
-  const ih = im.naturalHeight || im.height || 0;
-  const iw = im.naturalWidth  || im.width  || 0;
-  if (!iw || !ih) return; // guard broken assets
-  const aspect = iw / ih;
+  if (!im || im.naturalWidth <= 0 || im.naturalHeight <= 0) return;
+  const aspect = im.naturalWidth / im.naturalHeight;
   const targetH = W / aspect;
   if (targetH >= H) {
     ctx.drawImage(im, 0, (H - targetH) / 2, W, targetH);

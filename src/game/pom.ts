@@ -20,15 +20,15 @@ const SPACING_DECAY  = 0.045;
 const GROUND_H_CSS   = 14;
 const GROUND_TILE    = 32;
 
-const BG_IMG_PATH    = "assets/game/bg/stars.png";
+const BG_IMG_PATH    = "assets/game/bg/roo-bg.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
-const POM_IMG_PATH   = "assets/game/sprites/pom.png";
+const POM_IMG_PATH   = "assets/game/sprites/roo_hop.png";
 
 /* Soft pillar palette */
-const PILLAR_MAIN      = "#dbe7ff";
-const PILLAR_EDGE      = "#c1d2ff";
-const PILLAR_SHADOW    = "#aabfff";
-const PILLAR_HIGHLIGHT = "#ffffff";
+const PILLAR_MAIN      = "#8B5A2B"; // main medium brown
+const PILLAR_EDGE      = "#A0522D"; // slightly lighter red-brown for edges
+const PILLAR_SHADOW    = "#5C3A21"; // darker shadow brown
+const PILLAR_HIGHLIGHT = "#F5DEB3"; // light wheat highlight
 
 /* VT323 font helper */
 function hudFont(px: number, dpr: number) {
@@ -254,11 +254,12 @@ const game = {
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
-
-      ctx.fillStyle = "#eef3ff";
+     
+      ctx.fillStyle = "#f2e9dd"; // light beige-tan, background equivalent to #eef3ff
       ctx.fillRect(0, gy, W, gh);
+      
+      ctx.fillStyle = "#d2b48c"; // medium tan, equivalent to #cfdcff
 
-      ctx.fillStyle = "#cfdcff";
       const tile = Math.round(GROUND_TILE * dpr);
       for (let x = -tile; x < W + tile; x += tile) {
         const rx = Math.round(x - this._groundOff);
@@ -361,17 +362,17 @@ const game = {
     const cx = Math.round(W / 2 - cardW / 2);
     const cy = Math.round(H / 2 - cardH / 2);
     const r  = 16 * dpr;
-    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#c6d9ff", 2 * dpr);
+    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#f2eadf", "#8b6f47", 2 * dpr);
 
     // title
-    ctx.fillStyle = "#c6d9ff";
+    ctx.fillStyle = "#3f5d3a";
     ctx.font = hudFont(34, dpr);
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
 
     // scores
-    ctx.fillStyle = "#c6d9ff";
+    ctx.fillStyle = "#3f5d3a";
     ctx.font = hudFont(22, dpr);
     ctx.fillText(`Score: ${this._score}`, cx + cardW / 2, cy + 64 * dpr);
     ctx.fillText(`Best:  ${this._best}`,  cx + cardW / 2, cy + 92 * dpr);
@@ -380,8 +381,8 @@ const game = {
     const btnW = Math.round(180 * dpr), btnH = Math.round(40 * dpr);
     const bx = Math.round(cx + cardW / 2 - btnW / 2);
     const by = Math.round(cy + cardH - btnH - 16 * dpr);
-    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#c6d9ff", "#c6d9ff", 1);
-    ctx.fillStyle = "#ffffff";
+    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#6b8f3a", "#6b8f3a", 1);
+    ctx.fillStyle = "#f7f3e8";
     ctx.font = hudFont(22, dpr);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";

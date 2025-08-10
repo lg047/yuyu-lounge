@@ -34,6 +34,8 @@ const PILLAR_EDGE = "#c1d2ff";
 const PILLAR_SHADOW = "#aabfff";
 const PILLAR_HIGHLIGHT = "#ffffff";
 
+const POM_IMG_PATH = "assets/game/sprites/pom.png";
+
 
 /* VT323-like font helper */
 function hudFont(px: number, dpr: number) {
@@ -58,6 +60,8 @@ const game = {
   // visuals
   _bgImg: null as HTMLImageElement | null,
   _groundOff: 0,
+
+  _pomImg: null as HTMLImageElement | null,
 
   // input
   _kbdDown: false,
@@ -89,6 +93,15 @@ const game = {
       img.src = (base.endsWith("/") ? base : base + "/") + BG_IMG_PATH;
       this._bgImg = img;
     }
+
+    if (!this._pomImg) {
+      const img = new Image();
+      const base = (import.meta as any).env.BASE_URL as string;
+      img.decoding = "async";
+      img.src = (base.endsWith("/") ? base : base + "/") + POM_IMG_PATH;
+      this._pomImg = img;
+    }
+
 
     // load VT323 locally so canvas can use it offline
     try {
@@ -169,7 +182,17 @@ const game = {
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
       // draw
-      ctx.clearRect(0, 0, W, H);                // <— put this here
+      // player sprite (fallback to rect until loaded)
+      if (this._pomImg && this._pomImg.complete) {
+        const smoothingPrev = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false; // crisp pixels
+        ctx.drawImage(this._pomImg, Math.round(px), Math.round(py), Math.round(pw), Math.round(ph));
+        ctx.imageSmoothingEnabled = smoothingPrev;
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(px, py, pw, ph);
+      }
+
       
       if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
       else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
@@ -177,11 +200,7 @@ const game = {
       for (const o of this._ob) drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0); // pillars
       // then player, ground, HUD...
 
-
-      
-      // player stays pure white
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(px, py, pw, ph);
+  
       
       // moving ground
       const gh = Math.round(GROUND_H_CSS * dpr);

@@ -72,12 +72,15 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
+  function teardownCurrent() {
+    if (!current) return;
+    try { current.stop(); } catch {}
+    try { current.destroy(); } catch {}
+    current = null;
+  }
+
   function showMenu() {
-    if (current) {
-      try { current.stop(); } catch {}
-      try { current.destroy(); } catch {}
-      current = null;
-    }
+    teardownCurrent();
 
     viewport.style.display = "none";
     controls.style.display = "none";
@@ -120,24 +123,33 @@ export default function GameView(): HTMLElement {
 
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+
+    // reveal stage so CSS size is correct
     viewport.style.display = "block";
     controls.style.display = "flex";
 
+    // wait one frame for layout, then size via core
+    await new Promise(requestAnimationFrame);
+    fitRootHeight();
+
+    // clear any previous frame to avoid ghosting between games
+    core.ctx.clearRect(0, 0, core.canvas.width, core.canvas.height);
+
+    // import module and support both default and named exports
     const loaded = await loaders[id]();
     const mod: GameModule =
       "default" in loaded
         ? (loaded.default as GameModule)
-        : {
-            meta: loaded.meta,
-            init: loaded.init,
-            start: loaded.start,
-            stop: loaded.stop,
-            destroy: loaded.destroy,
-          };
+        : { meta: loaded.meta, init: loaded.init, start: loaded.start, stop: loaded.stop, destroy: loaded.destroy };
 
+    // allow async init
     await mod.init(canvas, core);
+
+    // start loop
     mod.start();
     current = mod;
+
+    // final safety pass to keep size synced on entry
     fitRootHeight();
   }
 
@@ -162,6 +174,7 @@ export default function GameView(): HTMLElement {
     { capture: false, passive: false }
   );
 
+  // deep link once then normalize
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -175,6 +188,7 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
+  // audio unlock
   canvas.addEventListener(
     "pointerdown",
     () => {

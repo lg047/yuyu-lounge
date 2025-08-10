@@ -130,8 +130,8 @@ const game = {
 
       // input and physics (snappier vertical control)
       const hold = core.input.p.down || this._kbdDown;
-      const upAccel = 2600 * dpr;  // was 1900
-      const gravity = 1800 * dpr;  // was 1200
+      const upAccel = 3100 * dpr;  // was 1900
+      const gravity = 2100 * dpr;  // was 1200
       const VY_MAX_UP = 1400 * dpr;
       const VY_MAX_DOWN = 1600 * dpr;
 

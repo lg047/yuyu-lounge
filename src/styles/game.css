@@ -1,9 +1,22 @@
+/* Root sized by JS to fit below your header */
 #game-root {
   position: relative;
   width: 100%;
-  /* height set by JS (fitRootHeight) */
   background: transparent;
+  padding-bottom: env(safe-area-inset-bottom);
   z-index: 0;
+}
+
+/* When playing: canvas lives inside a smaller viewport box */
+.game-viewport {
+  position: relative;
+  width: min(900px, 95%);
+  height: clamp(320px, 60vh, 540px);
+  margin: 12px auto 8px;
+  border-radius: 12px;
+  overflow: hidden; /* no scroll, clip edges */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  background: transparent;
 }
 
 #game-canvas {
@@ -13,12 +26,36 @@
   touch-action: none;
 }
 
-/* Menu overlay inside the root, top-aligned */
+/* Controls sit BELOW the canvas, not overlaying it */
+.game-controls {
+  width: min(900px, 95%);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
+}
+
+.game-btn {
+  background: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 64px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  cursor: pointer;
+  font-weight: 600;
+  color: #ff4f98;
+  user-select: none;
+}
+
+/* Menu overlay for the launcher */
 .arcade-menu {
   position: absolute;
   inset: 0;
   display: grid;
-  align-content: start;     /* <-- top, not center */
+  align-content: start;     /* top aligned */
   justify-items: center;
   padding: 24px;
   padding-top: calc(env(safe-area-inset-top) + 24px);
@@ -43,39 +80,5 @@
 
 .arcade-tile img { width: 96px; height: 96px; display: block; margin: 6px auto 8px; }
 .arcade-tile .title { font-weight: 700; color: #ff4f98; }
-
-.hud {
-  position: absolute;
-  left: 12px;
-  top: calc(env(safe-area-inset-top) + 8px);
-  font-weight: 700;
-  color: #ff4f98;
-  text-shadow: 0 1px 0 white;
-}
-
-.hud.btn {
-  right: 12px;
-  left: auto;
-  background: white;
-  border-radius: 12px;
-  padding: 10px 14px;
-  min-width: 44px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  cursor: pointer;
-}
-
-.back-btn {
-  position: absolute;
-  left: 12px;
-  top: calc(env(safe-area-inset-top) + 8px);
-  background: white;
-  border-radius: 12px;
-  padding: 10px 14px;
-  min-width: 44px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  cursor: pointer;
-}
 
 @media (prefers-reduced-motion: reduce) { }

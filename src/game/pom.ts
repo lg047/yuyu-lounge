@@ -6,12 +6,11 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-// Tunables in CSS px units (not device pixels)
+// Tunables in CSS px
 const INITIAL_BUFFER = 0.9;   // seconds to first spawn
 const BASE_SPEED = 120;       // CSS px/s
-const MAX_SPEED = 260;        // CSS px/s cap
-const RAMP_PER_SEC = 18;      // CSS px/s^2
-const GAP = 340;              // vertical opening
+const MAX_SPEED = 280;        // CSS px/s cap
+const GAP = 300;              // vertical opening (smaller than before)
 const WALL_THICK = 28;        // CSS px
 const SPAWN_MAX = 2.2;        // initial spawn interval (s)
 const SPAWN_MIN = 1.6;        // fastest spawn interval (s)
@@ -22,10 +21,11 @@ const game = {
   _core: null as Core | null,
   _ob: [] as Ob[],
   _playerY: 0,
-  _vy: 0,             // CSS px/s
+  _vy: 0,             // CSS px/s scaled by dpr in integration
   _running: false,
   _dead: false,
   _speed: BASE_SPEED, // CSS px/s
+  _time: 0,           // seconds since start for ramp
   _spawnTimer: INITIAL_BUFFER,
   _spawnInterval: SPAWN_MAX,
   _score: 0,
@@ -48,6 +48,7 @@ const game = {
     this._running = false;
     this._dead = false;
     this._speed = BASE_SPEED;
+    this._time = 0;
     this._spawnTimer = INITIAL_BUFFER;
     this._spawnInterval = SPAWN_MAX;
     this._score = 0;
@@ -69,12 +70,14 @@ const game = {
     window.addEventListener("keyup", this._onKeyUp);
 
     const step = (dt: number) => {
-      if (this._dead) return;        // hard stop after game over
+      if (this._dead) return;
       if (!this._running) return;
 
-      const H = core.canvas.height;  // device px
+      const H = core.canvas.height;
       const W = core.canvas.width;
       const dpr = core.dpr;
+
+      this._time += dt;
 
       // input
       const p = core.input.p;
@@ -88,16 +91,16 @@ const game = {
       else this._vy += gravity * dt;
 
       // integrate and clamp
-      const pupH = 60 * dpr; // device px
+      const pupH = 60 * dpr;
       this._playerY += this._vy * dt;
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // spawn at right edge, consistent buffer independent of canvas size
+      // spawn at right edge, consistent buffer
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {
         this._spawnTimer = this._spawnInterval;
-        // interval eases down a touch with score but never below SPAWN_MIN
+        // interval eases down with score, never below SPAWN_MIN
         this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - this._score * 0.05);
 
         const gap = GAP * dpr;
@@ -107,7 +110,6 @@ const game = {
         const hTop = Math.max(0, cy - gap * 0.5);
         const hBotY = cy + gap * 0.5;
         const hBot = Math.max(0, H - hBotY);
-        // mark top wall with counted=false to score once when passed
         this._ob.push({ x, y: 0, w: thickness, h: hTop, type: 0, counted: false });
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
@@ -121,7 +123,7 @@ const game = {
       const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
 
       for (const o of this._ob) {
-        // score when the top wall's right edge passes player x
+        // score once when the top wall pair passes player x
         if (o.y === 0 && o.type === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;
           this._score += 1;
@@ -132,8 +134,11 @@ const game = {
         }
       }
 
-      // visible speed ramp
-      this._speed = Math.min(MAX_SPEED, this._speed + RAMP_PER_SEC * dt);
+      // non linear ramp that starts early
+      // target speed = BASE + 16*t + 3*t^2, clamped
+      const target = Math.min(MAX_SPEED, BASE_SPEED + 16 * this._time + 3 * this._time * this._time);
+      // small smoothing to avoid jumps on slow frames
+      this._speed += (target - this._speed) * Math.min(1, dt * 4);
 
       // draw
       ctx.clearRect(0, 0, W, H);
@@ -152,7 +157,6 @@ const game = {
 
       const sText = `Score ${this._score}`;
       const bText = `Best ${this._best}`;
-      // fast width estimate to avoid measureText
       const est = (t: string) => (12 * dpr) * t.length + pad * 2;
       const w1 = est(sText);
       const w2 = est(bText);
@@ -192,7 +196,7 @@ const game = {
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
-    // persistent overlay, no auto-retry
+    // persistent overlay
     const ctx = core.ctx;
     const W = core.canvas.width, H = core.canvas.height;
     ctx.fillStyle = "rgba(0,0,0,0.40)";

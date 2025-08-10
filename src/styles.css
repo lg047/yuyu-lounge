@@ -384,3 +384,7 @@ body::before {
   .site-title { transform: translateY(-2px); } /* tiny lift */
 }
 
+/* Remove the X close button */
+.clip-overlay-close { display: none !important; }
+
+

@@ -117,7 +117,8 @@ export default function GameView(): HTMLElement {
   root.appendChild(loader);
 
   const core = makeCore(canvas);
-
+  ;(window as any).__core = core; // TEMP: diagnostics
+  
   function fitRootHeight() {
     const top = root.getBoundingClientRect().top;
     const h = Math.max(320, Math.round(window.innerHeight - top));

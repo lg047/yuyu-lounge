@@ -16,7 +16,8 @@ const loaders = {
 } as const;
 
 const base = (import.meta as any).env.BASE_URL as string;
-const asset = (p: string) => (base.endsWith("/") ? base : base + "/") + p.replace(/^\//, "");
+const asset = (p: string) =>
+  (base.endsWith("/") ? base : base + "/") + p.replace(/^\//, "");
 
 export default function GameView(): HTMLElement {
   const root = document.createElement("div");
@@ -72,22 +73,23 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
-  function showMenu() {
-    // stop and clean current game if any
+  function cleanupCurrent() {
     if (current) {
-      try {
-        current.stop();
-      } catch {}
-      try {
-        current.destroy();
-      } catch {}
+      try { current.stop(); } catch {}
+      try { current.destroy(); } catch {}
+      // hard clear canvas to avoid ghost frames
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       current = null;
     }
+  }
 
+  function showMenu() {
+    cleanupCurrent();
     viewport.style.display = "none";
     controls.style.display = "none";
 
-    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+    root.querySelectorAll(".arcade-menu").forEach((n) => n.remove());
 
     const overlay = document.createElement("div");
     overlay.className = "arcade-menu";
@@ -101,9 +103,9 @@ export default function GameView(): HTMLElement {
 
     overlay.innerHTML = `
       <div class="icons-row">
-        ${tile("pom",  "Pom Dash",   "assets/game/icons/roos-hundred-acre-hop.png")}
+        ${tile("pom", "Pom Dash", "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
-        ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
+        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tile.png")}
       </div>
     `;
 
@@ -124,12 +126,13 @@ export default function GameView(): HTMLElement {
   }
 
   async function loadGame(id: keyof typeof loaders) {
-    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+    cleanupCurrent(); // stop the old game before loading new
+    root.querySelectorAll(".arcade-menu").forEach((n) => n.remove());
     viewport.style.display = "block";
     controls.style.display = "flex";
     const mod = (await loaders[id]()).default as GameModule;
-    mod.init(canvas, core);
-    mod.start();
+    mod.init(canvas, core); // init draws first frame
+    mod.start(); // start game loop
     current = mod;
     fitRootHeight();
   }
@@ -139,11 +142,10 @@ export default function GameView(): HTMLElement {
   window.addEventListener("hashchange", () => {
     const path = location.hash.split("?")[0];
     if (path === "#/game") {
-      showMenu(); // ensure tiles mount if you navigate back later
+      showMenu();
     }
   });
 
-  // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
   document.addEventListener(
     "click",
     (e) => {
@@ -151,14 +153,13 @@ export default function GameView(): HTMLElement {
       if (!a) return;
       const path = location.hash.split("?")[0];
       if (path === "#/game") {
-        e.preventDefault();   // default would be a no-op since hash is unchanged
-        showMenu();           // re-render tiles
+        e.preventDefault();
+        showMenu();
       }
     },
     { capture: false, passive: false }
   );
 
-  // deep link once then normalize
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -172,7 +173,6 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
-  // audio unlock on first touch
   canvas.addEventListener(
     "pointerdown",
     () => {

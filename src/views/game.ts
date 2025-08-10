@@ -126,18 +126,10 @@ export default function GameView(): HTMLElement {
 
   backBtn.onclick = () => showMenu();
 
-  retryBtn.onclick = () => {
-    if (!current) return;
-    current.stop();
-    current.init(canvas, core);
-    current.start();
-  };
-
-  // Clicking the "Mini Game" tab while already on #/game returns to tiles
+  // Clicking the Mini Game tab while already on #/game returns to tiles
   function onNavClick(e: MouseEvent) {
     const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
     if (!a) return;
-    // Do not block the site nav. Just show our menu.
     showMenu();
   }
   window.addEventListener("click", onNavClick, true);

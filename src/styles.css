@@ -7,7 +7,7 @@
   --cream: #fff6fb;
   --ink: #2a2230;
 
-  --bg: var(--pink-light);
+  --bg: #a466bd;
   --text: var(--ink);
   --accent: var(--pink-mid);
   --accent-strong: var(--pink-strong);
@@ -22,7 +22,14 @@
 html, body, #app { height: 100%; margin: 0; }
 
 /* Keep app above the decorative body::before layer */
-#app { position: relative; z-index: 1; }
+#app {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto auto 1fr; /* header, topnav, content grows */
+  min-height: 100svh;                /* fill mobile viewport */
+}
+
 
 body {
   font-family: 'Atkinson Hyperlegible', ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -153,16 +160,14 @@ body {
 /* --- View container --- */
 .view {
   padding: 14px 14px calc(14px + var(--sa-bottom));
-
-  /* subtle swirl behind page content only */
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(rgba(255,246,251,0.60), rgba(255,246,251,0.60)), /* soft wash */
-    url('/yuyu-lounge/assets/swirl.png');
-  background-repeat: no-repeat, repeat;
-  background-position: top center, top left;
-  background-size: auto, 320px 320px; /* adjust tile size to taste */
+  background-color: var(--bg);                         /* #a466bd */
+  background-image: url('/yuyu-lounge/assets/swirl.png');
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: 320px 320px;                        /* tweak if you want larger/smaller */
+  min-height: 0;                                       /* allow the grid cell to size correctly */
 }
+
 
 
 /* --- Reels grid --- */

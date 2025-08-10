@@ -17,56 +17,60 @@ const loaders = {
 
 // GitHub Pages safe asset helper
 const base = (import.meta as any).env.BASE_URL as string;
-function asset(p: string) {
-  const b = base.endsWith("/") ? base : base + "/";
-  return b + p.replace(/^\//, "");
-}
+const asset = (p: string) => (base.endsWith("/") ? base : base + "/") + p.replace(/^\//, "");
 
 export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
 
+  // Small viewport box for the canvas
+  const viewport = document.createElement("div");
+  viewport.className = "game-viewport";
+  viewport.style.display = "none"; // hidden while in menu
+  root.appendChild(viewport);
+
   const canvas = document.createElement("canvas");
   canvas.id = "game-canvas";
-  root.appendChild(canvas);
+  viewport.appendChild(canvas);
+
+  // Controls row under the canvas
+  const controls = document.createElement("div");
+  controls.className = "game-controls";
+  controls.style.display = "none";
+  const backBtn = document.createElement("div");
+  backBtn.className = "game-btn";
+  backBtn.textContent = "Back";
+  const muteBtn = document.createElement("div");
+  muteBtn.className = "game-btn";
+  controls.appendChild(backBtn);
+  controls.appendChild(muteBtn);
+  root.appendChild(controls);
 
   const core = makeCore(canvas);
 
-    // ...after: const core = makeCore(canvas);
-
+  // Fit the root to the visible viewport below your header
   function fitRootHeight() {
-    // distance from top of viewport to top of game root = header height
     const top = root.getBoundingClientRect().top;
     const h = Math.max(360, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
-    core.resize(); // match canvas to new box
+    core.resize();
   }
-  // run after the view is attached to DOM
   requestAnimationFrame(fitRootHeight);
   window.addEventListener("resize", fitRootHeight);
 
-
   // Mute toggle
-  const hudBtn = document.createElement("div");
-  hudBtn.className = "hud btn";
-  const muted = core.store.getBool("muted", true);
-  hudBtn.textContent = muted ? "Unmute" : "Mute";
-  hudBtn.onclick = () => {
+  const updateMuteLabel = () => {
+    const muted = core.store.getBool("muted", true);
+    muteBtn.textContent = muted ? "Unmute" : "Mute";
+  };
+  updateMuteLabel();
+  muteBtn.onclick = () => {
     const was = core.store.getBool("muted", true);
     core.store.setBool("muted", !was);
     core.audio.setEnabled(was);
-    hudBtn.textContent = !was ? "Unmute" : "Mute";
+    updateMuteLabel();
     if (core.audio.enabled) core.audio.beep(660, 60);
   };
-  root.appendChild(hudBtn);
-
-  // Back button
-  const backBtn = document.createElement("div");
-  backBtn.className = "back-btn";
-  backBtn.textContent = "Back";
-  backBtn.style.display = "none";
-  backBtn.onclick = () => showMenu();
-  root.appendChild(backBtn);
 
   let current: GameModule | null = null;
 
@@ -88,7 +92,9 @@ export default function GameView(): HTMLElement {
 
   function showMenu() {
     if (current) { current.stop(); current.destroy(); current = null; }
-    backBtn.style.display = "none";
+    viewport.style.display = "none";
+    controls.style.display = "none";
+
     const overlay = document.createElement("div");
     overlay.className = "arcade-menu";
     overlay.innerHTML = `
@@ -115,15 +121,18 @@ export default function GameView(): HTMLElement {
 
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
-    backBtn.style.display = "block";
+    viewport.style.display = "block";
+    controls.style.display = "flex";
     const mod = (await loaders[id]()).default as GameModule;
     mod.init(canvas, core);
     mod.start();
     current = mod;
-    // keep hash as "#/game"
+    fitRootHeight();
   }
 
-  // Deep link once, then normalize the hash
+  backBtn.onclick = () => showMenu();
+
+  // deep link once then normalize
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -138,8 +147,7 @@ export default function GameView(): HTMLElement {
   })();
 
   // audio unlock on first touch
-  canvas.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
+  canvas.addEventListener("pointerdown", () => {
     core.audio.unlock();
     core.audio.setEnabled(!core.store.getBool("muted", true));
   }, { once: true, passive: true });

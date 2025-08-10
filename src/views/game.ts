@@ -52,6 +52,10 @@ export default function GameView(): HTMLElement {
     const top = root.getBoundingClientRect().top;
     const h = Math.max(320, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
+    // ensure canvas has device pixel size
+    const dpr = core.dpr || window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
     core.resize();
   }
   requestAnimationFrame(fitRootHeight);
@@ -109,7 +113,6 @@ export default function GameView(): HTMLElement {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
       if (!el) return;
       e.preventDefault();
-      e.stopPropagation();
       const id = el.dataset.g as keyof typeof loaders;
       await loadGame(id);
     };
@@ -124,26 +127,29 @@ export default function GameView(): HTMLElement {
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
 
-    // show the stage before init so first draw is visible
+    // reveal stage first so first paint is visible
     viewport.style.display = "block";
     controls.style.display = "flex";
 
-    // use named exports, not .default
-    const modAny = await loaders[id]();
+    // size canvas in device pixels before init
+    fitRootHeight();
+
+    // import named exports
+    const m = await loaders[id]();
     const mod: GameModule = {
-      meta: modAny.meta,
-      init: modAny.init,
-      start: modAny.start,
-      stop: modAny.stop,
-      destroy: modAny.destroy,
+      meta: m.meta,
+      init: m.init,
+      start: m.start,
+      stop: m.stop,
+      destroy: m.destroy,
     };
 
-    // await init so assets load and first paint happens
+    // init may load assets and does a first draw
     await mod.init(canvas, core);
+
+    // start loop
     mod.start();
     current = mod;
-
-    fitRootHeight();
   }
 
   backBtn.onclick = () => showMenu();
@@ -167,7 +173,7 @@ export default function GameView(): HTMLElement {
     { capture: false, passive: false }
   );
 
-  // deep link support
+  // deep link
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {

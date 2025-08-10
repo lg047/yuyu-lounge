@@ -318,6 +318,10 @@ const game = {
       if (this._over) this._drawGameOver();
     };
 
+    this._lastNow = performance.now();
+    this._warmup = Math.max(this._warmup, 2);
+
+
     core.run(step, () => {});
   },
 

@@ -60,6 +60,10 @@ const game = {
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
   _onKeyUp: null as ((e: KeyboardEvent) => void) | null,
 
+  // resume and first tick handling
+  _onVis: null as (() => void) | null,
+  _warmup: 0,
+
   async init(canvas: HTMLCanvasElement, core: Core) {
     this._core = core;
     core.resize();
@@ -77,6 +81,7 @@ const game = {
     this._score = 0;
     this._groundOff = 0;
     this._kbdDown = false;
+    this._warmup = 2; // discard first two ticks after route change
 
     // load background once
     if (!this._bgImg) {
@@ -118,10 +123,26 @@ const game = {
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
 
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        this._warmup = Math.max(this._warmup, 2);
+      }
+    };
+    this._onVis = onVis;
+    document.addEventListener("visibilitychange", onVis, { passive: true });
+
     const step = (dtRaw: number) => {
-      const dt = Math.max(0, Math.min(dtRaw, 0.035)); // clamp big first frame
-      if (this._dead) return;
-      if (!this._running) return;
+      // Normalize units. If an ms spike arrives on first frame, convert to seconds.
+      const raw = dtRaw > 1 ? dtRaw / 1000 : dtRaw;
+
+      // Throw away first few frames and any absurd resume spikes
+      if (this._warmup > 0 || raw > 0.2) {
+        if (this._warmup > 0) this._warmup--;
+        return;
+      }
+
+      const dt = Math.max(0, Math.min(raw, 0.035));
+      if (this._dead || !this._running) return;
 
       const H = core.canvas.height;
       const W = core.canvas.width;
@@ -169,8 +190,8 @@ const game = {
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // move world
-      const vx = this._speed * dpr * dt;
+      // world motion with a hard cap to hide any residual blip
+      const vx = Math.min(this._speed * dpr * dt, W * 0.5);
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
@@ -199,6 +220,9 @@ const game = {
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
+      ctx.fillStyle = "#eef3ff";
+      ctx.fillRect(0, 0, W, H);
+      ctx.clearRect(0, 0, W, gy); // keep sky area clear
       ctx.fillStyle = "#eef3ff";
       ctx.fillRect(0, gy, W, gh);
       ctx.fillStyle = "#cfdcff";
@@ -231,6 +255,12 @@ const game = {
 
     const draw = () => {};
     this._running = true;
+
+    // ideal if you control core: reset its clock before first rAF
+    if (typeof (core as any).resetClock === "function") {
+      (core as any).resetClock();
+    }
+
     core.run(step, draw);
   }, // keep comma
 
@@ -240,8 +270,10 @@ const game = {
     this._running = false;
     if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
     if (this._onKeyUp) window.removeEventListener("keyup", this._onKeyUp);
+    if (this._onVis) document.removeEventListener("visibilitychange", this._onVis);
     this._onKeyDown = null;
     this._onKeyUp = null;
+    this._onVis = null;
     this._kbdDown = false;
   },
 
@@ -257,7 +289,7 @@ const game = {
     this._dead = true;
     this.stop();
 
-    if (core.audio.enabled) core.audio.beep(180, 180); // crash tone
+    if (core.audio.enabled) core.audio.beep(180, 180);
 
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
@@ -304,7 +336,7 @@ const game = {
       const x = (e.clientX - rect.left) * dpr;
       const y = (e.clientY - rect.top) * dpr;
       if (x >= bx && x <= bx + btnW && y >= by && y <= by + btnH) {
-        if (core.audio.enabled) core.audio.beep(520, 80); // click tone
+        if (core.audio.enabled) core.audio.beep(520, 80);
         core.canvas.removeEventListener("pointerdown", onTap);
         this._dead = false;
         this.init(core.canvas, core);

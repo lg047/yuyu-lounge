@@ -352,13 +352,17 @@ const game = {
     const x = Math.round(Math.random() * Math.max(1, core.canvas.width - w));
     const vy = this._fallBase * (0.9 + Math.random() * 0.2);
     // Detect iOS (iPhone/iPad/iPod)
-    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const H = this._core!.canvas.height;
     
-    // Spawn slightly lower on iOS so first catch is quicker
-    const startY = isiOS ? -h / 15 : -h;
+      // default just above the top
+      let startY = -h;
     
-    this._treats.push({ x, y: startY, w, h, vy, kind });
-
+      // on iOS, for the first 2 spawns, start ~15% down the screen so they arrive fast
+      if (isiOS && this._spawnCount < 2) startY = Math.round(H * 0.15) - h;
+    
+      this._spawnCount++;
+      this._treats.push({ x, y: startY, w, h, vy, kind });
   },
 
   _drawGameOver() {

@@ -15,7 +15,7 @@ const loaders = {
   hop: () => import("../game/hop.ts"),
 } as const;
 
-// Safe asset helper for GitHub Pages subpaths
+// GitHub Pages safe asset helper
 const base = (import.meta as any).env.BASE_URL as string;
 function asset(p: string) {
   const b = base.endsWith("/") ? base : base + "/";
@@ -25,6 +25,9 @@ function asset(p: string) {
 export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
+
+  // Stop clicks from bubbling to any global handlers that switch tabs
+  root.addEventListener("click", e => e.stopPropagation(), { capture: true });
 
   const canvas = document.createElement("canvas");
   canvas.id = "game-canvas";
@@ -87,12 +90,18 @@ export default function GameView(): HTMLElement {
     overlay.onclick = async (e) => {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
       if (!el) return;
+      e.preventDefault();
+      e.stopPropagation(); // do not let global nav handlers run
       const id = el.dataset.g as keyof typeof loaders;
       await loadGame(id);
     };
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
     root.appendChild(overlay);
-    location.hash = "#/game";
+    // Keep hash exactly "#/game". Do not append "?g=" or the router will switch view.
+    // history.replaceState avoids triggering hashchange if someone deep-linked earlier.
+    if (location.hash !== "#/game") {
+      history.replaceState(null, "", location.pathname + location.search + "#/game");
+    }
   }
 
   async function loadGame(id: keyof typeof loaders) {
@@ -102,20 +111,29 @@ export default function GameView(): HTMLElement {
     mod.init(canvas, core);
     mod.start();
     current = mod;
-    location.hash = `#/game?g=${id}`;
+    // Keep hash as "#/game" to satisfy your router
   }
 
-  // deep link
-  const params = new URLSearchParams((location.hash.split("?")[1]) || "");
-  const g = params.get("g") as keyof typeof loaders | null;
-  if (g && g in loaders) loadGame(g);
-  else showMenu();
+  // deep link support once, without changing router key
+  (() => {
+    const [path, query] = location.hash.split("?");
+    if (path === "#/game" && query) {
+      const g = new URLSearchParams(query).get("g") as keyof typeof loaders | null;
+      if (g && g in loaders) {
+        loadGame(g);
+        history.replaceState(null, "", location.pathname + location.search + "#/game");
+        return;
+      }
+    }
+    showMenu();
+  })();
 
   // audio unlock on first touch
-  canvas.addEventListener("pointerdown", () => {
+  canvas.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
     core.audio.unlock();
     core.audio.setEnabled(!core.store.getBool("muted", true));
-  }, { once: true });
+  }, { once: true, passive: true });
 
   return root;
 }

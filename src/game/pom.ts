@@ -24,6 +24,11 @@ const GROUND_TILE    = 32;      // stripe repeat (CSS px)
 const BG_IMG_PATH    = "assets/game/bg/stars.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
 
+const WALL_COL      = "#dbe7ff";   // soft ice blue
+const GROUND_MAIN   = "#eef3ff";   // ground band
+const GROUND_BAR    = "#cfdcff";   // moving bars
+
+
 /* VT323-like font helper */
 function hudFont(px: number, dpr: number) {
   return `bold ${Math.round(px * dpr)}px "VT323", ui-monospace, Menlo, Consolas, monospace`;
@@ -223,43 +228,45 @@ const game = {
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
-    // backdrop
+// backdrop
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillRect(0, 0, W, H);
-
-    // card - crisp, no glow
+    
+    // card geometry
     const cardW = Math.round(320 * dpr);
     const cardH = Math.round(200 * dpr);
     const cx = Math.round(W / 2 - cardW / 2);
     const cy = Math.round(H / 2 - cardH / 2);
-    ctx.fillStyle = "#ffffff";
-    roundRect(ctx, cx, cy, cardW, cardH, 16 * dpr, "#ffffff");
-    // border
-    ctx.strokeStyle = "#ff4f98"; ctx.lineWidth = 2 * dpr;
-    ctx.strokeRect(cx + 1 * dpr, cy + 1 * dpr, cardW - 2 * dpr, cardH - 2 * dpr);
-
+    const r  = 16 * dpr;
+    
+    // rounded fill + rounded stroke in one path
+    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#ff4f98", 2 * dpr);
+    
+    // title
     ctx.fillStyle = "#ff4f98";
-    ctx.font = hudFont(28, dpr);
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.font = hudFont(34, dpr);              // bigger title
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
-
-    // scores
+    
+    // scores - centered
+    ctx.fillStyle = "#1be0ff";                // VT323 style aqua
     ctx.font = hudFont(22, dpr);
-    ctx.textAlign = "left";
-    ctx.fillText(`Score: ${this._score}`, cx + 18 * dpr, cy + 60 * dpr);
-    ctx.fillText(`Best:  ${this._best}`, cx + 18 * dpr, cy + 86 * dpr);
-
+    ctx.fillText(`Score: ${this._score}`, cx + cardW / 2, cy + 64 * dpr);
+    ctx.fillText(`Best:  ${this._best}`,  cx + cardW / 2, cy + 92 * dpr);
+    
     // retry button
     const btnW = Math.round(180 * dpr), btnH = Math.round(40 * dpr);
     const bx = Math.round(cx + cardW / 2 - btnW / 2);
     const by = Math.round(cy + cardH - btnH - 16 * dpr);
-    roundRect(ctx, bx, by, btnW, btnH, 10 * dpr, "#ff4f98");
+    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#ff4f98", "#ff4f98", 1); // filled pill
     ctx.fillStyle = "#ffffff";
     ctx.font = hudFont(22, dpr);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText("Retry", bx + btnW / 2, by + btnH / 2);
-
-    // click-to-retry once
+    
+    // click to retry
     const onTap = (e: PointerEvent) => {
       const rect = core.canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * dpr;
@@ -272,6 +279,7 @@ const game = {
       }
     };
     core.canvas.addEventListener("pointerdown", onTap, { passive: true });
+
   }
 };
 
@@ -300,5 +308,24 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, W: numb
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, 0, 0, iw, ih, dx, dy, dw, dh);
 }
+
+function roundedFillStroke(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+  r: number, fill: string, stroke: string, sw: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = sw;
+  ctx.stroke();
+}
+
 
 export default game;

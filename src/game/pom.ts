@@ -8,17 +8,17 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 
 /* Tunables */
 const INITIAL_BUFFER = 0.6;
-const BASE_SPEED     = 420;     // CSS px/s start
-const K              = 0.045;   // exp ramp
-const GAP            = 300;     // CSS px opening
+const BASE_SPEED     = 420;
+const K              = 0.045;
+const GAP            = 300;
 const WALL_THICK     = 28;
 
-const SPACING_START  = 330;     // px between pairs at t=0
-const SPACING_END    = 210;     // late game
+const SPACING_START  = 330;
+const SPACING_END    = 210;
 const SPACING_DECAY  = 0.045;
 
-const GROUND_H_CSS   = 14;      // ground height (CSS px)
-const GROUND_TILE    = 32;      // stripe repeat (CSS px)
+const GROUND_H_CSS   = 14;
+const GROUND_TILE    = 32;
 
 const BG_IMG_PATH    = "assets/game/bg/stars.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
@@ -93,7 +93,7 @@ const game = {
       img.src = (base.endsWith("/") ? base : base + "/") + POM_IMG_PATH;
       this._pomImg = img;
     }
-    // load VT323 so canvas can use it offline
+    // load VT323 for canvas
     try {
       if (!document.fonts.check('12px "VT323"')) {
         const base = (import.meta as any).env.BASE_URL as string;
@@ -130,8 +130,8 @@ const game = {
 
       // input and physics (snappier vertical control)
       const hold = core.input.p.down || this._kbdDown;
-      const upAccel = 3100 * dpr;  // was 1900
-      const gravity = 2100 * dpr;  // was 1200
+      const upAccel = 3100 * dpr;
+      const gravity = 2100 * dpr;
       const VY_MAX_UP = 1400 * dpr;
       const VY_MAX_DOWN = 1600 * dpr;
 
@@ -176,7 +176,11 @@ const game = {
       // score and collisions
       const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
       for (const o of this._ob) {
-        if (o.y === 0 && !o.counted && o.x + o.w < px) { o.counted = true; this._score += 1; }
+        if (o.y === 0 && !o.counted && o.x + o.w < px) {
+          o.counted = true;
+          this._score += 1;
+          if (core.audio.enabled) core.audio.beep(880, 30);
+        }
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
 
@@ -227,7 +231,7 @@ const game = {
     const draw = () => {};
     this._running = true;
     core.run(step, draw);
-  }, // <-- important comma
+  }, // keep comma
 
   stop() {
     if (!this._core || !this._running) return;
@@ -251,6 +255,8 @@ const game = {
 
     this._dead = true;
     this.stop();
+
+    if (core.audio.enabled) core.audio.beep(180, 180); // crash tone
 
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
@@ -297,6 +303,7 @@ const game = {
       const x = (e.clientX - rect.left) * dpr;
       const y = (e.clientY - rect.top) * dpr;
       if (x >= bx && x <= bx + btnW && y >= by && y <= by + btnH) {
+        if (core.audio.enabled) core.audio.beep(520, 80); // click tone
         core.canvas.removeEventListener("pointerdown", onTap);
         this._dead = false;
         this.init(core.canvas, core);

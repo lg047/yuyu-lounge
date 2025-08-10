@@ -10,7 +10,7 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 /* Assets */
 const BG_IMG_PATH    = "assets/game/bg/NEWtreat-rain-bg.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
-const POM_IMG_PATH   = "assets/game/sprites/NEWpom.png";
+const POM_IMG_PATH   = "assets/game/sprites/NEWpom1.png";
 const BONE_IMG_PATH  = "assets/game/sprites/treat-bone.png";
 const STAR_IMG_PATH  = "assets/game/sprites/treat-star.png";
 

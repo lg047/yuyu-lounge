@@ -43,12 +43,19 @@ body {
 }
 
 /* header sits below notch and paints the safe area */
+/* header sits below notch and paints the safe area */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 5;
-  /* increase top padding by safe area + extra */
-  padding: calc(24px + var(--sa-top)) calc(14px + var(--sa-right)) 12px calc(14px + var(--sa-left));
+
+  /* fallback for old iOS (constant), then env for modern */
+  padding-top: calc(24px + constant(safe-area-inset-top));
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-right: calc(14px + env(safe-area-inset-right));
+  padding-left:  calc(14px + env(safe-area-inset-left));
+  padding-bottom: 12px;
+
   background: var(--pink-mid);
   border-bottom: 3px solid var(--accent-strong);
 
@@ -59,6 +66,26 @@ body {
   gap: 12px;
   min-height: 88px;
 }
+
+/* paint the safe area above the header in the same pink */
+.site-header::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: env(safe-area-inset-top);
+  height: constant(safe-area-inset-top);
+  background: var(--pink-mid);
+  pointer-events: none;
+}
+
+/* Installed app: give it a bit more breathing room */
+@media (display-mode: standalone) {
+  .site-header {
+    padding-top: calc(30px + env(safe-area-inset-top));
+    min-height: 96px;
+  }
+}
+
 
 /* paint the safe area above the header too */
 .site-header::before {

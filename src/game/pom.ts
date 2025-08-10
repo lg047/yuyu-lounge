@@ -8,13 +8,13 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 
 /* Tunables */
 const INITIAL_BUFFER = 0.6;
-const BASE_SPEED     = 420;
-const K              = 0.045;
+const BASE_SPEED     = 360;
+const K              = 0.035;
 const GAP            = 300;
 const WALL_THICK     = 28;
 
-const SPACING_START  = 330;
-const SPACING_END    = 210;
+const SPACING_START  = 380;
+const SPACING_END    = 250;
 const SPACING_DECAY  = 0.045;
 
 const GROUND_H_CSS   = 14;
@@ -87,7 +87,7 @@ const game = {
     this._dead = false;
     this._speed = IS_IOS ? BASE_SPEED * 0.75 : BASE_SPEED; // slower start on iOS
     this._time = 0;
-    this._spawnTimer = IS_IOS ? INITIAL_BUFFER * 1.6 : INITIAL_BUFFER; // larger initial buffer on iOS
+    this._spawnTimer = IS_IOS ? INITIAL_BUFFER * 2 : INITIAL_BUFFER; // larger initial buffer on iOS
     this._score = 0;
     this._groundOff = 0;
     this._kbdDown = false;
@@ -207,8 +207,8 @@ const game = {
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
       // ramp and spacing
-      const speedScale = IS_IOS ? 0.75 : 1.0;     // slower across the early run on iOS
-      const kEff       = IS_IOS ? K * 0.7 : K;    // gentler ramp on iOS
+      const speedScale = IS_IOS ? 0.6 : 1.0;     // slower across the early run on iOS
+      const kEff       = IS_IOS ? K * 0.5 : K;    // gentler ramp on iOS
       const targetSpeed = (BASE_SPEED * speedScale) * Math.exp(kEff * this._time);
       this._speed += (targetSpeed - this._speed) * Math.min(1, dt * 4);
 
@@ -235,7 +235,7 @@ const game = {
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
       // score and collisions
-      const px = (IS_IOS ? 80 : 120) * dpr; // shift player further left on iOS for more foresight
+      const px = (IS_IOS ? 70 : 120) * dpr; // shift player further left on iOS for more foresight
       const py = this._playerY - pupH * 0.5, pw = 108 * dpr, ph = pupH;
       for (const o of this._ob) {
         if (o.y === 0 && !o.counted && o.x + o.w < px) {

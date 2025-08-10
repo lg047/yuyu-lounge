@@ -29,6 +29,12 @@ const GROUND_MAIN   = "#eef3ff";   // ground band
 const GROUND_BAR    = "#cfdcff";   // moving bars
 
 
+const PILLAR_MAIN = "#dbe7ff";
+const PILLAR_EDGE = "#c1d2ff";
+const PILLAR_SHADOW = "#aabfff";
+const PILLAR_HIGHLIGHT = "#ffffff";
+
+
 /* VT323-like font helper */
 function hudFont(px: number, dpr: number) {
   return `bold ${Math.round(px * dpr)}px "VT323", ui-monospace, Menlo, Consolas, monospace`;
@@ -167,9 +173,13 @@ const game = {
       if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
       else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
 
-      // walls
-      ctx.fillStyle = WALL_COL;
-      for (const o of this._ob) ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.clearRect(0, 0, W, H);
+// … after background draw …
+
+      for (const o of this._ob) {
+      drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0);
+      }
+
       
       // player stays pure white
       ctx.fillStyle = "#ffffff";
@@ -327,6 +337,45 @@ function roundedFillStroke(
   ctx.lineWidth = sw;
   ctx.stroke();
 }
+
+function drawPillar(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dpr: number, isTop: boolean
+) {
+  const r = 6 * dpr;                 // corner radius
+  const capH = Math.min(18 * dpr, h * 0.18);
+
+  // body
+  ctx.fillStyle = PILLAR_MAIN;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fill();
+
+  // inner cap (rounded band at the gap side)
+  const cy = isTop ? y + h - capH : y;
+  ctx.fillStyle = PILLAR_EDGE;
+  ctx.beginPath();
+  ctx.moveTo(x + r, cy);
+  ctx.arcTo(x + w, cy, x + w, cy + capH, r);
+  ctx.arcTo(x + w, cy + capH, x, cy + capH, r);
+  ctx.arcTo(x, cy + capH, x, cy, r);
+  ctx.arcTo(x, cy, x + w, cy, r);
+  ctx.closePath();
+  ctx.fill();
+
+  // side shading
+  ctx.fillStyle = PILLAR_SHADOW;               // left shadow
+  ctx.fillRect(x, y, Math.max(2 * dpr, w * 0.12), h);
+  ctx.fillStyle = PILLAR_HIGHLIGHT;            // right highlight
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(x + w - Math.max(2 * dpr, w * 0.08), y + 2 * dpr, Math.max(2 * dpr, w * 0.08), h - 4 * dpr);
+  ctx.globalAlpha = 1;
+}
+
 
 
 export default game;

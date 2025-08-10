@@ -153,7 +153,17 @@ body {
 /* --- View container --- */
 .view {
   padding: 14px 14px calc(14px + var(--sa-bottom));
+
+  /* subtle swirl behind page content only */
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255,246,251,0.60), rgba(255,246,251,0.60)), /* soft wash */
+    url('/yuyu-lounge/assets/swirl.png');
+  background-repeat: no-repeat, repeat;
+  background-position: top center, top left;
+  background-size: auto, 320px 320px; /* adjust tile size to taste */
 }
+
 
 /* --- Reels grid --- */
 .clips-grid-wrap {

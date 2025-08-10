@@ -59,6 +59,9 @@ const game = {
   _kbdDown: false,
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
   _onKeyUp: null as ((e: KeyboardEvent) => void) | null,
+  _onPointerDown: null as ((e: PointerEvent) => void) | null,
+  _onPointerUp: null as ((e: PointerEvent) => void) | null,
+  _onBlur: null as (() => void) | null,
 
   // resume handling
   _onVis: null as (() => void) | null,
@@ -89,6 +92,9 @@ const game = {
     // discard first frames after route enter
     this._warmup = 2;
     this._lastNow = performance.now();
+
+    // improve touch input
+    core.canvas.style.touchAction = "none";
 
     // load background once
     if (!this._bgImg) {
@@ -121,6 +127,7 @@ const game = {
     const core = this._core!;
     const ctx = core.ctx;
 
+    // keyboard
     this._onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowUp") { this._kbdDown = true; e.preventDefault(); }
     };
@@ -129,6 +136,17 @@ const game = {
     };
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
+
+    // pointer as throttle input
+    const canvas = core.canvas;
+    this._onPointerDown = () => { this._kbdDown = true; };
+    this._onPointerUp = () => { this._kbdDown = false; };
+    this._onBlur = () => { this._kbdDown = false; };
+
+    canvas.addEventListener("pointerdown", this._onPointerDown, { passive: true });
+    window.addEventListener("pointerup", this._onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", this._onPointerUp, { passive: true });
+    window.addEventListener("blur", this._onBlur);
 
     // reset local clock on resumes and route re-entries
     const resetClock = () => {
@@ -145,7 +163,7 @@ const game = {
     window.addEventListener("pageshow", onPage, { passive: true });
     window.addEventListener("hashchange", onPage, { passive: true });
 
-    // do not trust dtRaw from core, compute our own
+    // compute our own dt
     const step = (_dtRaw: number) => {
       const now = performance.now();
       let dt = (now - this._lastNow) / 1000;
@@ -275,7 +293,6 @@ const game = {
     if (typeof (core as any).resetClock === "function") {
       (core as any).resetClock();
     } else {
-      // ensure our local clock starts fresh
       this._lastNow = performance.now();
     }
 
@@ -286,16 +303,32 @@ const game = {
     if (!this._core || !this._running) return;
     this._core.stop();
     this._running = false;
+
+    // keyboard
     if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
     if (this._onKeyUp) window.removeEventListener("keyup", this._onKeyUp);
+
+    // pointer
+    if (this._onPointerDown) this._core!.canvas.removeEventListener("pointerdown", this._onPointerDown);
+    if (this._onPointerUp) {
+      window.removeEventListener("pointerup", this._onPointerUp);
+      window.removeEventListener("pointercancel", this._onPointerUp);
+    }
+    if (this._onBlur) window.removeEventListener("blur", this._onBlur);
+
+    // visibility and page
     if (this._onVis) document.removeEventListener("visibilitychange", this._onVis);
     if (this._onPage) {
       window.removeEventListener("focus", this._onPage);
       window.removeEventListener("pageshow", this._onPage);
       window.removeEventListener("hashchange", this._onPage);
     }
+
     this._onKeyDown = null;
     this._onKeyUp = null;
+    this._onPointerDown = null;
+    this._onPointerUp = null;
+    this._onBlur = null;
     this._onVis = null;
     this._onPage = null;
     this._kbdDown = false;

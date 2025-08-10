@@ -264,4 +264,29 @@ html.clip-open .clips-grid { filter: brightness(0.7); }
   100% { transform: translateY(-16px) rotate(8deg); opacity: 1; }
 }
 
+/* Page decorative layer (under content, never over video) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;                /* below #app and overlays */
+  pointer-events: none;
+  background-image:
+    url("/yuyu-lounge/assets/sparkle.gif"),
+    url("/yuyu-lounge/assets/heart.gif");
+  background-repeat: no-repeat, no-repeat;
+  background-position:
+    left 4% top 12%,
+    right 8% bottom 16%;
+  background-size:
+    48px 48px,
+    56px 56px;
+  opacity: 0.9;
+  animation: yuyuDrift 14s ease-in-out infinite alternate;
+}
+
+@keyframes yuyuDrift {
+  0%   { transform: translateY(0) }
+  100% { transform: translateY(-12px) }
+}
 

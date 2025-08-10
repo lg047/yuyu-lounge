@@ -39,15 +39,10 @@ export default function GameView(): HTMLElement {
   backBtn.className = "game-btn";
   backBtn.textContent = "Back";
 
-  const retryBtn = document.createElement("div");
-  retryBtn.className = "game-btn";
-  retryBtn.textContent = "Retry";
-
   const muteBtn = document.createElement("div");
   muteBtn.className = "game-btn";
 
   controls.appendChild(backBtn);
-  controls.appendChild(retryBtn);
   controls.appendChild(muteBtn);
   root.appendChild(controls);
 

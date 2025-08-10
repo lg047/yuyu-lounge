@@ -241,17 +241,17 @@ const game = {
     const r  = 16 * dpr;
     
     // rounded fill + rounded stroke in one path
-    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#ff4f98", 2 * dpr);
+    roundedFillStroke(ctx, cx, cy, cardW, cardH, r, "#ffffff", "#aeeaff", 2 * dpr);
     
     // title
-    ctx.fillStyle = "#ff4f98";
+    ctx.fillStyle = "#aeeaff";
     ctx.font = hudFont(34, dpr);              // bigger title
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
     
     // scores - centered
-    ctx.fillStyle = "#ff4f98";                // VT323 style aqua
+    ctx.fillStyle = "#aeeaff";                // VT323 style aqua
     ctx.font = hudFont(22, dpr);
     ctx.fillText(`Score: ${this._score}`, cx + cardW / 2, cy + 64 * dpr);
     ctx.fillText(`Best:  ${this._best}`,  cx + cardW / 2, cy + 92 * dpr);
@@ -260,7 +260,7 @@ const game = {
     const btnW = Math.round(180 * dpr), btnH = Math.round(40 * dpr);
     const bx = Math.round(cx + cardW / 2 - btnW / 2);
     const by = Math.round(cy + cardH - btnH - 16 * dpr);
-    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#ff4f98", "#ff4f98", 1); // filled pill
+    roundedFillStroke(ctx, bx, by, btnW, btnH, 10 * dpr, "#aeeaff", "#aeeaff", 1); // filled pill
     ctx.fillStyle = "#ffffff";
     ctx.font = hudFont(22, dpr);
     ctx.textAlign = "center";

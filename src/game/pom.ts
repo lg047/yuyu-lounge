@@ -17,8 +17,9 @@ const game = {
   _running: false,
   _score: 0,
   _best: 0,
-  _speed: 180,
+  _speed: 110,        // slower base scroll
   _spawnT: 0,
+  _time: 0,
 
   // keyboard helpers
   _kbdDown: false,
@@ -36,11 +37,11 @@ const game = {
     this._vy = 0;
     this._charge = 0;
     this._score = 0;
-    this._speed = 180;
-    this._spawnT = 0;
+    this._speed = 110;
+    this._spawnT = 1.6;   // first obstacle after ~1.6 s
+    this._time = 0;
     this._ob = [];
 
-    // clear any leftover keyboard flags
     this._kbdDown = false;
     this._kbdJust = false;
   },
@@ -69,6 +70,7 @@ const game = {
     const step = (dt: number) => {
       const H = core.canvas.height;
       const W = core.canvas.width;
+      this._time += dt;
 
       // inputs
       const p = core.input.p;
@@ -76,8 +78,9 @@ const game = {
       const tap = p.justPressed || this._kbdJust;
       this._kbdJust = false;
 
-      const upAccel = 1100;
-      const gravity = 1400;
+      // easier vertical control
+      const upAccel = 1600;  // stronger lift
+      const gravity = 1300;  // slightly gentler fall
 
       if (hold) {
         this._vy -= upAccel * dt;
@@ -88,7 +91,7 @@ const game = {
       }
 
       if (tap && this._charge >= 0.6) {
-        this._vy -= 600;
+        this._vy -= 520;     // smaller dash
         this._charge = 0;
         if (core.audio.enabled) core.audio.beep(1100, 60);
       }
@@ -99,20 +102,22 @@ const game = {
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // spawn
+      // spawn after a buffer, slower frequency, wider gaps
       this._spawnT -= dt;
-      const spawnEvery = Math.max(0.45, 1.2 - (this._score / 2000));
-      if (this._spawnT <= 0) {
+      const spawnEvery = Math.max(0.9, 1.6 - (this._score / 2500));
+      if (this._time > 1.2 && this._spawnT <= 0) {
         this._spawnT = spawnEvery;
-        const gap = 180;
-        const cy = 100 + Math.random() * (H - 200);
-        const thickness = 36;
-        if (Math.random() < 0.7) {
-          this._ob.push({ x: W + 60, y: 0, w: thickness, h: cy - gap * 0.5, type: 0 });
-          this._ob.push({ x: W + 60, y: cy + gap * 0.5, w: thickness, h: H - (cy + gap * 0.5), type: 0 });
+        const gap = 240; // wider gap
+        const cy = 120 + Math.random() * (H - 240);
+        const thickness = 32;
+        if (Math.random() < 0.75) {
+          // poles
+          this._ob.push({ x: W + 200, y: 0, w: thickness, h: cy - gap * 0.5, type: 0 });
+          this._ob.push({ x: W + 200, y: cy + gap * 0.5, w: thickness, h: H - (cy + gap * 0.5), type: 0 });
         } else {
-          const by = 80 + Math.random() * (H - 160);
-          this._ob.push({ x: W + 60, y: by - 28, w: 56, h: 56, type: 1 });
+          // balloon obstacle
+          const by = 100 + Math.random() * (H - 200);
+          this._ob.push({ x: W + 200, y: by - 28, w: 56, h: 56, type: 1 });
         }
       }
 
@@ -132,7 +137,7 @@ const game = {
 
       // score and speed
       this._score += Math.floor(this._speed * dt * 0.1);
-      this._speed = Math.min(480, this._speed + 8 * dt);
+      this._speed = Math.min(300, this._speed + 4 * dt); // slower ramp and lower cap
 
       // draw
       ctx.clearRect(0, 0, core.canvas.width, core.canvas.height);
@@ -143,19 +148,18 @@ const game = {
         else { ctx.fillStyle = "#ff6fa5"; ctx.beginPath(); ctx.arc(o.x + o.w*0.5, o.y + o.h*0.5, o.w*0.5, 0, Math.PI*2); ctx.fill(); }
       }
 
-      // player
+      // player rectangle, no face dots
       ctx.fillStyle = "white"; ctx.fillRect(px, py, pw, ph);
-      ctx.fillStyle = "#333"; ctx.fillRect(px + 20, py + 20, 6, 6); ctx.fillRect(px + 46, py + 20, 6, 6);
 
       // HUD
       ctx.fillStyle = "#ff4f98";
-      ctx.font = "bold 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+      ctx.font = "bold 24px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
-      ctx.fillText(`Score ${this._score}`, 20, 18);
-      ctx.fillText(`Best ${this._best}`, 20, 50);
-      ctx.fillStyle = "#ffd1ec"; ctx.fillRect(20, 84, 120, 10);
-      ctx.fillStyle = "#ff6fa5"; ctx.fillRect(20, 84, 120 * this._charge, 10);
+      ctx.fillText(`Score ${this._score}`, 16, 12);
+      ctx.fillText(`Best ${this._best}`, 16, 40);
+      ctx.fillStyle = "#ffd1ec"; ctx.fillRect(16, 68, 120, 8);
+      ctx.fillStyle = "#ff6fa5"; ctx.fillRect(16, 68, 120 * this._charge, 8);
     };
 
     const draw = () => {};
@@ -175,9 +179,7 @@ const game = {
     this._kbdJust = false;
   },
 
-  destroy() {
-    // nothing persistent to free yet
-  },
+  destroy() {},
 
   gameOver() {
     const core = this._core!;
@@ -186,15 +188,26 @@ const game = {
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
+    // Persist the overlay until the user presses Back or taps to retry
     const ctx = core.ctx;
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, core.canvas.width, core.canvas.height);
     ctx.fillStyle = "white";
-    ctx.font = "bold 36px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.font = "bold 32px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Game Over", core.canvas.width / 2, core.canvas.height / 2 - 24);
-    ctx.fillText("Tap Back to Menu", core.canvas.width / 2, core.canvas.height / 2 + 24);
+    ctx.fillText("Game Over", core.canvas.width / 2, core.canvas.height / 2 - 18);
+    ctx.font = "bold 18px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+    ctx.fillText("Tap to retry or press Back", core.canvas.width / 2, core.canvas.height / 2 + 20);
+
+    // Optional quick retry
+    const onTap = () => {
+      core.canvas.removeEventListener("pointerdown", onTap);
+      // re-init and start a fresh run
+      this.init(core.canvas, core);
+      this.start();
+    };
+    core.canvas.addEventListener("pointerdown", onTap, { once: true, passive: true });
   }
 };
 

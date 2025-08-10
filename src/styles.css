@@ -21,21 +21,18 @@
 
 html, body, #app { height: 100%; margin: 0; }
 
+/* Keep app above the decorative body::before layer */
+#app { position: relative; z-index: 1; }
+
 body {
   font-family: 'Atkinson Hyperlegible', ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background-color: var(--bg);
-  background-image: url('assets/pixel-stars.png'); /* subtle motif */
+  /* absolute path so it works on GitHub Pages */
+  background-image: url('/yuyu-lounge/assets/pixel-stars.png');
   background-repeat: repeat;
   background-size: 128px 128px;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-}
-
-ç
-
-@keyframes floaty {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 0.8; }
-  100% { transform: translateY(-20px) rotate(10deg); opacity: 1; }
 }
 
 /* --- Site header --- */
@@ -97,7 +94,8 @@ body {
 
 .topnav a.active {
   color: var(--lilac);
-  background: url('assets/sparkle.gif') no-repeat bottom center/contain;
+  /* absolute path so it loads on Pages */
+  background: url('/yuyu-lounge/assets/sparkle.gif') no-repeat bottom center/contain;
   padding-bottom: 12px;
 }
 
@@ -220,37 +218,7 @@ body {
 /* Dim grid when open */
 html.clip-open .clips-grid { filter: brightness(0.7); }
 
-/* Decorative floating sparkle */
-.decoration.sparkle1 {
-  position: fixed;
-  top: 20%;
-  left: 10%;
-  width: 64px;
-  height: 64px;
-  background-image: url('/yuyu-lounge/assets/sparkle.gif');
-  background-size: contain;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  animation: sparkleFloat 6s ease-in-out infinite;
-  z-index: 9999;
-}
-
-
-@keyframes sparkleFloat {
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  50% { transform: translateY(-15px) rotate(15deg); opacity: 0.8; }
-  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
-}
-
-
-
-
-@keyframes floaty {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0.95; }
-  100% { transform: translateY(-16px) rotate(8deg); opacity: 1; }
-}
-
-/* Page decorative layer (under content, never over video) */
+/* --- Page decorative layer (under content) --- */
 body::before {
   content: "";
   position: fixed;
@@ -275,4 +243,3 @@ body::before {
   0%   { transform: translateY(0) }
   100% { transform: translateY(-12px) }
 }
-

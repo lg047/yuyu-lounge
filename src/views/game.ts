@@ -106,9 +106,11 @@ export default function GameView(): HTMLElement {
   };
   updateMuteLabel();
   muteBtn.onclick = () => {
+    // ensure AudioContext is running before toggling
+    core.audio.unlock();
     const was = core.store.getBool("muted", true);
     core.store.setBool("muted", !was);
-    core.audio.setEnabled(was);
+    core.audio.setEnabled(was); // enable when unmuting, disable when muting
     updateMuteLabel();
     if (core.audio.enabled) core.audio.beep(660, 60);
   };
@@ -282,14 +284,15 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
-  canvas.addEventListener(
-    "pointerdown",
-    () => {
-      core.audio.unlock();
-      core.audio.setEnabled(!core.store.getBool("muted", true));
-    },
-    { once: true, passive: true }
-  );
+  // unlock audio on the first user interaction anywhere
+  const unlockOnce = () => {
+    core.audio.unlock();
+    // respect the user's mute setting, just ensure the context is running
+    core.audio.setEnabled(!core.store.getBool("muted", true));
+  };
+  document.addEventListener("pointerdown", unlockOnce, { once: true, passive: true });
+  document.addEventListener("keydown", unlockOnce, { once: true });
+  document.addEventListener("touchstart", unlockOnce, { once: true, passive: true });
 
   return root;
 }

@@ -265,41 +265,42 @@ html.standalone .site-header {
   display: block;
 }
 
-/* Close + Prev/Next — true circles with masked SVG icons */
+/* Close + Prev/Next — compact true circles with centered masked icons */
 .clip-overlay-close,
 .clip-nav {
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;           /* equal sides => perfect circle */
+  display: block;
+  width: 48px;
+  height: 48px;               /* equal sides ⇒ circle */
   border-radius: 50%;
   border: 0;
-  background: #fff;       /* circle fill */
-  -webkit-appearance: none;
-  appearance: none;
-  -webkit-tap-highlight-color: transparent;
+  background: #fff;
   box-shadow:
     0 4px 14px rgba(0,0,0,0.16),
     inset 0 0 0 1px rgba(0,0,0,0.08);
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
   contain: layout paint size;
   backface-visibility: hidden;
-  /* remove any accidental text metrics interference */
+
+  /* kill any text metrics interference */
   font-size: 0;
   line-height: 1;
 }
 
-/* icon layer */
+/* icon layer — absolute, centered, bigger */
 .clip-overlay-close::before,
 .clip-nav::before {
   content: "";
-  width: 60%;
-  height: 60%;
-  background-color: #000; /* icon color */
-  display: block;
-  /* the mask defines the icon, not the circle */
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 58%;
+  height: 58%;
+  background-color: #000;          /* icon color */
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
@@ -308,30 +309,46 @@ html.standalone .site-header {
   mask-size: contain;
 }
 
-/* icons as masks (inline SVG, URL-encoded) */
+/* Big triangle masks so arrows are not tiny */
 .clip-nav-prev::before {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M14 6L8 12l6 6z'/></svg>");
-          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M14 6L8 12l6 6z'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<polygon points='16,5 16,19 4,12' fill='%23000'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<polygon points='16,5 16,19 4,12' fill='%23000'/></svg>");
 }
 .clip-nav-next::before {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M10 6l6 6-6 6z'/></svg>");
-          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M10 6l6 6-6 6z'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<polygon points='8,5 8,19 20,12' fill='%23000'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<polygon points='8,5 8,19 20,12' fill='%23000'/></svg>");
 }
+/* Thick X so it reads at a glance */
 .clip-overlay-close::before {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M18 7.41 16.59 6 12 10.59 7.41 6 6 7.41 10.59 12 6 16.59 7.41 18 12 13.41 16.59 18 18 16.59 13.41 12z'/></svg>");
-          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M18 7.41 16.59 6 12 10.59 7.41 6 6 7.41 10.59 12 6 16.59 7.41 18 12 13.41 16.59 18 18 16.59 13.41 12z'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<path d='M6 6l12 12M18 6L6 18' stroke='%23000' stroke-width='3.5' stroke-linecap='round'/>\
+</svg>");
+          mask-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<path d='M6 6l12 12M18 6L6 18' stroke='%23000' stroke-width='3.5' stroke-linecap='round'/>\
+</svg>");
 }
 
 /* positions — no transforms on the buttons themselves */
 .clip-overlay-close { top: 12px; right: 12px; }
-.clip-nav-prev      { left: 12px;  top: calc(50% - 28px); } /* 28 = 56/2 */
-.clip-nav-next      { right: 12px; top: calc(50% - 28px); }
+.clip-nav-prev      { left: 12px;  top: calc(50% - 24px); } /* 24 = 48/2 */
+.clip-nav-next      { right: 12px; top: calc(50% - 24px); }
 
-/* small screens */
+/* smaller on phones */
 @media (max-width: 430px) {
   .clip-overlay-close,
-  .clip-nav { width: 52px; height: 52px; }
-  .clip-nav-prev, .clip-nav-next { top: calc(50% - 26px); }
+  .clip-nav { width: 44px; height: 44px; }
+  .clip-nav-prev,
+  .clip-nav-next { top: calc(50% - 22px); }
 }
 
 /* press feedback */

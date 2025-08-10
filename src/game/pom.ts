@@ -241,6 +241,7 @@ const game = {
         if (o.y === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;
           this._score += 1;
+          console.log("[pom] pass wall, enabled=", core.audio.enabled);
           if (core.audio.enabled) core.audio.beep(880, 30);
         }
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
@@ -353,7 +354,9 @@ const game = {
     this._dead = true;
     this.stop();
 
+    console.log("[pom] gameOver, enabled=", core.audio.enabled);
     if (core.audio.enabled) core.audio.beep(180, 180);
+
 
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);

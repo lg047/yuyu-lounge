@@ -52,12 +52,17 @@ export default function GameView(): HTMLElement {
     const top = root.getBoundingClientRect().top;
     const h = Math.max(320, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
-    // ensure canvas has device pixel size
+  
+    // back buffer in device pixels
     const dpr = core.dpr || window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-    canvas.height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    const r = canvas.getBoundingClientRect();
+    canvas.width  = Math.max(1, Math.floor(r.width  * dpr));
+    canvas.height = Math.max(1, Math.floor(r.height * dpr));
+  
     core.resize();
   }
+
+
   requestAnimationFrame(fitRootHeight);
   window.addEventListener("resize", fitRootHeight);
 
@@ -124,25 +129,28 @@ export default function GameView(): HTMLElement {
     }
   }
 
+
+
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
-
-    // reveal stage first so first paint is visible
+    
+      // show stage so clientWidth/clientHeight are nonzero
     viewport.style.display = "block";
     controls.style.display = "flex";
-
-    // size canvas in device pixels before init
-    fitRootHeight();
-
-    // import named exports
-    const m = await loaders[id]();
-    const mod: GameModule = {
-      meta: m.meta,
-      init: m.init,
-      start: m.start,
-      stop: m.stop,
-      destroy: m.destroy,
-    };
+    
+      // wait one frame for layout, then size the backing store
+     await new Promise(requestAnimationFrame);
+     fitRootHeight();
+    
+      // import named exports
+     const m = await loaders[id]();
+     const mod: GameModule = { meta: m.meta, init: m.init, start: m.start, stop: m.stop, destroy: m.destroy };
+    
+      // init and first paint
+     await mod.init(canvas, core);
+     mod.start();
+     current = mod;
+  }
 
     // init may load assets and does a first draw
     await mod.init(canvas, core);

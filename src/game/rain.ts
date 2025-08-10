@@ -160,6 +160,9 @@ const game = {
       const y = (e.clientY - rect.top) * (core.canvas.height / rect.height);
       if (x >= this._rbx && x <= this._rbx + this._rbw && y >= this._rby && y <= this._rby + this._rbh) {
         if (core.audio.enabled) core.audio.beep(520, 80);
+        // Prevent stacked listeners and ensure a clean loop restart
+        canvas.removeEventListener("click", this._onClick!);
+        this.stop();
         this.init(core.canvas, core).then(() => this.start());
       }
     };
@@ -176,72 +179,79 @@ const game = {
       let dt = (now - this._lastNow) / 1000;
       this._lastNow = now;
 
+      // Never skip drawing. On warm-up or big resumes, zero out dt for update only.
       if (this._warmup > 0 || dt > 0.2) {
         if (this._warmup > 0) this._warmup--;
-        return;
+        dt = 0;
       }
 
       dt = Math.max(0, Math.min(dt, 0.035));
-      if (!this._running) return;
+      // Keep drawing even if not running to allow overlay/UI visibility
+      if (this._running) {
+        const dpr = core.dpr;
+        const W = core.canvas.width;
+        const H = core.canvas.height;
 
-      const dpr = core.dpr;
-      const W = core.canvas.width;
-      const H = core.canvas.height;
+        if (!this._over) {
+          this._time += dt;
+          this._spawnIv  = lerp(SPAWN_START_S, SPAWN_END_S, smooth01(this._time / 30));
+          this._fallBase = lerp(FALL_START,    FALL_END,    smooth01(this._time / 45));
 
-      if (!this._over) {
-        this._time += dt;
-        this._spawnIv  = lerp(SPAWN_START_S, SPAWN_END_S, smooth01(this._time / 30));
-        this._fallBase = lerp(FALL_START,    FALL_END,    smooth01(this._time / 45));
-
-        if (this._targetX != null) {
-          const k = 26;
-          const dx = this._targetX - (this._px + this._pw * 0.5);
-          this._vx += k * dx * dt;
-        }
-        this._vx *= Math.exp(-8 * dt);
-        this._px += this._vx * dt;
-        this._px = clamp(this._px, 0, W - this._pw);
-
-        this._spawnAcc += dt;
-        if (this._treats.length === 0 || this._spawnAcc >= this._spawnIv) {
-          this._spawnAcc = 0;
-          this._spawnOne();
-        }
-
-        const groundY = H - Math.round(GROUND_H_CSS * dpr);
-        const hx = this._px + this._pw * 0.15;
-        const hy = this._py + this._ph * 0.10;
-        const hw = this._pw * 0.70;
-        const hh = this._ph * 0.75;
-
-        for (let i = this._treats.length - 1; i >= 0; i--) {
-          const o = this._treats[i];
-          o.y += o.vy * dt;
-
-          if (aabb(hx, hy, hw, hh, o.x, o.y, o.w, o.h)) {
-            this._streak += 1;
-            this._bonus = Math.floor(this._streak / 5);
-            this._score += 1 + this._bonus;
-            this._treats.splice(i, 1);
-            if (core.audio.enabled) core.audio.beep(900, 40);
-            continue;
+          if (this._targetX != null) {
+            const k = 26;
+            const dx = this._targetX - (this._px + this._pw * 0.5);
+            this._vx += k * dx * dt;
           }
-          if (o.y > groundY) {
-            this._treats.splice(i, 1);
-            this._misses += 1;
-            this._streak = 0;
-            this._bonus = 0;
-            if (core.audio.enabled) core.audio.beep(240, 80);
-            if (this._misses >= 3) {
-              this._over = true;
-              this._best = Math.max(this._best, this._score);
-              core.store.setNumber(this.meta.bestKey, this._best);
-              if (core.audio.enabled) core.audio.beep(180, 180);
-              break;
+          this._vx *= Math.exp(-8 * dt);
+          this._px += this._vx * dt;
+          this._px = clamp(this._px, 0, W - this._pw);
+
+          this._spawnAcc += dt;
+          if (this._treats.length === 0 || this._spawnAcc >= this._spawnIv) {
+            this._spawnAcc = 0;
+            this._spawnOne();
+          }
+
+          const groundY = H - Math.round(GROUND_H_CSS * dpr);
+          const hx = this._px + this._pw * 0.15;
+          const hy = this._py + this._ph * 0.10;
+          const hw = this._pw * 0.70;
+          const hh = this._ph * 0.75;
+
+          for (let i = this._treats.length - 1; i >= 0; i--) {
+            const o = this._treats[i];
+            o.y += o.vy * dt;
+
+            if (aabb(hx, hy, hw, hh, o.x, o.y, o.w, o.h)) {
+              this._streak += 1;
+              this._bonus = Math.floor(this._streak / 5);
+              this._score += 1 + this._bonus;
+              this._treats.splice(i, 1);
+              if (core.audio.enabled) core.audio.beep(900, 40);
+              continue;
+            }
+            if (o.y > groundY) {
+              this._treats.splice(i, 1);
+              this._misses += 1;
+              this._streak = 0;
+              this._bonus = 0;
+              if (core.audio.enabled) core.audio.beep(240, 80);
+              if (this._misses >= 3) {
+                this._over = true;
+                this._best = Math.max(this._best, this._score);
+                core.store.setNumber(this.meta.bestKey, this._best);
+                if (core.audio.enabled) core.audio.beep(180, 180);
+                break;
+              }
             }
           }
         }
       }
+
+      // Draw always
+      const dpr = core.dpr;
+      const W = core.canvas.width;
+      const H = core.canvas.height;
 
       ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, W, H);
@@ -264,8 +274,10 @@ const game = {
         const o = this._treats[i];
         const im = o.kind === 0 ? this._boneImg! : this._starImg!;
         if (im && (im.complete || im.naturalWidth)) {
+          const prev = ctx.imageSmoothingEnabled;
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(im, o.x | 0, o.y | 0, o.w | 0, o.h | 0);
+          ctx.imageSmoothingEnabled = prev;
         }
       }
 
@@ -385,7 +397,10 @@ const game = {
 
 function drawCover(ctx: CanvasRenderingContext2D, im: HTMLImageElement | null, W: number, H: number) {
   if (!im || !(im.complete || im.naturalWidth)) return;
-  const aspect = im.naturalWidth / im.naturalHeight;
+  const ih = im.naturalHeight || im.height || 0;
+  const iw = im.naturalWidth  || im.width  || 0;
+  if (!iw || !ih) return; // guard broken assets
+  const aspect = iw / ih;
   const targetH = W / aspect;
   if (targetH >= H) {
     ctx.drawImage(im, 0, (H - targetH) / 2, W, targetH);

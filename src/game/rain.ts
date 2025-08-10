@@ -355,7 +355,7 @@ const game = {
     const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
     // Spawn slightly lower on iOS so first catch is quicker
-    const startY = isiOS ? -h / 5 : -h;
+    const startY = isiOS ? -h / 15 : -h;
     
     this._treats.push({ x, y: startY, w, h, vy, kind });
 

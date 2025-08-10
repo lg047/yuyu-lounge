@@ -24,9 +24,9 @@ const HUD_PAD_CSS  = 12;
 
 /* Difficulty ramps */
 const SPAWN_START_S = 0.9;
-const SPAWN_END_S   = 0.35;
-const FALL_START    = 260;
-const FALL_END      = 520;
+const SPAWN_END_S   = 0.35;   // by ~30 s
+const FALL_START    = 260;    // px/s
+const FALL_END      = 520;    // by ~45 s
 
 /* Helpers */
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
@@ -103,7 +103,10 @@ const game = {
         const im = new Image();
         im.decoding = "async";
         im.onload = () => res(im);
-        im.onerror = () => res(im);
+        im.onerror = () => {
+          console.warn("[TreatRain] image failed to load:", url(p));
+          res(im);
+        };
         im.src = url(p);
       });
 
@@ -159,6 +162,8 @@ const game = {
       const x = (e.clientX - rect.left) * (core.canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (core.canvas.height / rect.height);
       if (x >= this._rbx && x <= this._rbx + this._rbw && y >= this._rby && y <= this._rby + this._rbh) {
+        e.preventDefault();
+        e.stopPropagation();
         if (core.audio.enabled) core.audio.beep(520, 80);
         canvas.removeEventListener("click", this._onClick!);
         this.stop();
@@ -178,7 +183,7 @@ const game = {
       let dt = (now - this._lastNow) / 1000;
       this._lastNow = now;
 
-      // Never skip drawing. If warmup or resume spike, zero dt for update only.
+      // do not skip drawing on warmup or resumes
       if (this._warmup > 0 || dt > 0.2) {
         if (this._warmup > 0) this._warmup--;
         dt = 0;
@@ -186,7 +191,6 @@ const game = {
 
       dt = Math.max(0, Math.min(dt, 0.035));
 
-      // Update only if running and not over
       if (this._running && !this._over) {
         const dpr = core.dpr;
         const W = core.canvas.width;
@@ -246,11 +250,12 @@ const game = {
         }
       }
 
-      // Draw always
+      // draw
       const dpr = core.dpr;
       const W = core.canvas.width;
       const H = core.canvas.height;
 
+      const ctx = core.ctx;
       ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, W, H);
       drawCover(ctx, this._bgImg, W, H);
@@ -278,7 +283,6 @@ const game = {
           ctx.drawImage(im, o.x | 0, o.y | 0, o.w | 0, o.h | 0);
           ctx.imageSmoothingEnabled = prev;
         } else {
-          // placeholder while sprite loads
           ctx.fillStyle = o.kind === 0 ? "#ffd39b" : "#e6e6ff";
           ctx.fillRect(o.x | 0, o.y | 0, o.w | 0, o.h | 0);
         }
@@ -291,7 +295,6 @@ const game = {
         ctx.drawImage(this._pomImg, this._px | 0, this._py | 0, this._pw | 0, this._ph | 0);
         ctx.imageSmoothingEnabled = prev;
       } else {
-        // placeholder like pom.ts
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(this._px | 0, this._py | 0, this._pw | 0, this._ph | 0);
       }

@@ -44,12 +44,13 @@ body {
 
 /* header sits below notch and paints the safe area */
 /* header sits below notch and paints the safe area */
+/* header sits below notch and paints the safe area */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 5;
 
-  /* fallback for old iOS (constant), then env for modern */
+  /* fallback then env, both with extra space */
   padding-top: calc(24px + constant(safe-area-inset-top));
   padding-top: calc(24px + env(safe-area-inset-top));
   padding-right: calc(14px + env(safe-area-inset-right));
@@ -60,12 +61,34 @@ body {
   border-bottom: 3px solid var(--accent-strong);
 
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 12px;
   min-height: 88px;
 }
+
+/* paint the notch strip the same pink */
+.site-header::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: env(safe-area-inset-top);
+  height: constant(safe-area-inset-top);
+  background: var(--pink-mid);
+  pointer-events: none;
+}
+
+/* Installed PWA on iOS: add +40px on top of the safe area */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .site-header {
+      padding-top: calc(40px + constant(safe-area-inset-top));
+      padding-top: calc(40px + env(safe-area-inset-top));
+      min-height: 110px;
+    }
+  }
+}
+
 
 /* paint the safe area above the header in the same pink */
 .site-header::before {

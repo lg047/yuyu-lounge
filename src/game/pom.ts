@@ -3,29 +3,30 @@ import type { Core } from "./core/loop";
 type Ob = { x: number; y: number; w: number; h: number; type: 0; counted?: boolean };
 
 function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: number, bw: number, bh: number) {
-  return ax < bx + bw && ax + aw > bx && ay + ah > by + 0;
+  // proper AABB check
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
 /* Tunables */
 const INITIAL_BUFFER = 0.6;
 const BASE_SPEED     = 420;     // start speed (CSS px/s)
-const K              = 0.045;   // exponential ramp rate
-const GAP            = 300;     // vertical opening (CSS px)
-const WALL_THICK     = 28;      // CSS px
+const K              = 0.045;   // exponential ramp
+const GAP            = 300;     // opening (CSS px)
+const WALL_THICK     = 28;
 
 const SPACING_START  = 330;     // CSS px between pairs at t=0
-const SPACING_END    = 210;     // CSS px late game
+const SPACING_END    = 210;     // late game
 const SPACING_DECAY  = 0.045;
 
-const GROUND_H_CSS   = 14;      // ground stripe height (CSS px)
+const GROUND_H_CSS   = 14;      // ground strip height (CSS px)
 const GROUND_TILE    = 32;      // stripe repeat (CSS px)
 
-/* Your star background */
 const BG_IMG_PATH    = "assets/game/bg/stars.png";
+const FONT_PATH      = "assets/game/fonts/VT323.woff2";
 
-/* Y2K font + glow */
+/* VT323-like font helper */
 function hudFont(px: number, dpr: number) {
-  return `bold ${Math.round(px * dpr)}px "Trebuchet MS", Verdana, system-ui, -apple-system, sans-serif`;
+  return `bold ${Math.round(px * dpr)}px "VT323", ui-monospace, Menlo, Consolas, monospace`;
 }
 
 const game = {
@@ -52,11 +53,12 @@ const game = {
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
   _onKeyUp: null as ((e: KeyboardEvent) => void) | null,
 
-  init(canvas: HTMLCanvasElement, core: Core) {
+  async init(canvas: HTMLCanvasElement, core: Core) {
     this._core = core;
     core.resize();
     this._best = core.store.getNumber(this.meta.bestKey, 0);
 
+    // reset
     this._ob = [];
     this._playerY = core.canvas.height * 0.5;
     this._vy = 0;
@@ -69,13 +71,24 @@ const game = {
     this._groundOff = 0;
     this._kbdDown = false;
 
-    // load background once
+    // load star background once
     if (!this._bgImg) {
       const img = new Image();
       const base = (import.meta as any).env.BASE_URL as string;
       img.src = (base.endsWith("/") ? base : base + "/") + BG_IMG_PATH;
       this._bgImg = img;
     }
+
+    // load VT323 locally so canvas can use it offline
+    try {
+      if (!document.fonts.check('12px "VT323"')) {
+        const base = (import.meta as any).env.BASE_URL as string;
+        const url = (base.endsWith("/") ? base : base + "/") + FONT_PATH;
+        const ff = new FontFace("VT323", `url(${url}) format("woff2")`);
+        const face = await ff.load();
+        document.fonts.add(face);
+      }
+    } catch { /* ignore */ }
   },
 
   start() {
@@ -112,7 +125,7 @@ const game = {
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // ramp and spawn interval derived from spacing
+      // ramp and spacing
       const targetSpeed = BASE_SPEED * Math.exp(K * this._time);
       this._speed += (targetSpeed - this._speed) * Math.min(1, dt * 4);
 
@@ -133,7 +146,7 @@ const game = {
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // move world
+      // move
       const vx = this._speed * dpr * dt;
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
@@ -145,54 +158,38 @@ const game = {
         if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
 
-      // draw star background - pixelated cover
-      if (this._bgImg && this._bgImg.complete) {
-        drawCover(ctx, this._bgImg, W, H);
-      } else {
-        ctx.fillStyle = "#0a0c1a"; // fallback
-        ctx.fillRect(0, 0, W, H);
-      }
+      // background - pixelated cover draw
+      if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
+      else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
 
-      // walls - pink that reads well on dark stars
-      ctx.fillStyle = "#ffb6dd";
+      // walls - white
+      ctx.fillStyle = "#ffffff";
       for (const o of this._ob) ctx.fillRect(o.x, o.y, o.w, o.h);
 
-      // player
-      ctx.fillStyle = "white";
+      // player - white
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(px, py, pw, ph);
 
-      // moving ground strip
+      // moving ground - white band with light gray bars
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
-      ctx.fillStyle = "#ff79bc";
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, gy, W, gh);
-      ctx.fillStyle = "#ff5eae";
+      ctx.fillStyle = "#e6e6e6";
       const tile = Math.round(GROUND_TILE * dpr);
       for (let x = -tile; x < W + tile; x += tile) {
         const rx = Math.round(x - this._groundOff);
         ctx.fillRect(rx, gy, Math.round(tile * 0.5), gh);
       }
 
-      // HUD pills with neon glow - hot pink text on white pills
-      const pad = 8 * dpr;
-      ctx.font = hudFont(20, dpr);
+      // HUD - no haze, no pills
+      ctx.font = hudFont(28, dpr);
       ctx.textBaseline = "top"; ctx.textAlign = "left";
-      ctx.shadowColor = "rgba(255,79,152,0.7)";
-      ctx.shadowBlur = 8 * dpr;
-
-      const sText = `Score ${this._score}`;
-      const bText = `Best ${this._best}`;
-      const est = (t: string) => (12 * dpr) * t.length + pad * 2;
-      const w1 = est(sText), w2 = est(bText);
-
-      roundRect(ctx, 12 * dpr, 10 * dpr, w1, 28 * dpr, 10 * dpr, "rgba(255,255,255,0.96)");
-      ctx.fillStyle = "#ff4f98"; ctx.fillText(sText, 12 * dpr + pad, 14 * dpr);
-
-      roundRect(ctx, 12 * dpr, 46 * dpr, w2, 28 * dpr, 10 * dpr, "rgba(255,255,255,0.96)");
-      ctx.fillStyle = "#ff4f98"; ctx.fillText(bText, 12 * dpr + pad, 50 * dpr);
-
-      ctx.shadowBlur = 0; // reset
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`Score ${this._score}`, 12 * dpr, 10 * dpr);
+      ctx.fillStyle = "#aeeaff";
+      ctx.fillText(`Best ${this._best}`, 12 * dpr, 44 * dpr);
     };
 
     const draw = () => {};
@@ -226,35 +223,39 @@ const game = {
     this._best = Math.max(this._best, this._score);
     core.store.setNumber(this.meta.bestKey, this._best);
 
-    // backdrop (keeps stars visible)
+    // backdrop
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillRect(0, 0, W, H);
 
-    // card
+    // card - crisp, no glow
     const cardW = Math.round(320 * dpr);
     const cardH = Math.round(200 * dpr);
     const cx = Math.round(W / 2 - cardW / 2);
     const cy = Math.round(H / 2 - cardH / 2);
-    roundRect(ctx, cx, cy, cardW, cardH, 16 * dpr, "rgba(255,255,255,0.96)");
+    ctx.fillStyle = "#ffffff";
+    roundRect(ctx, cx, cy, cardW, cardH, 16 * dpr, "#ffffff");
+    // border
+    ctx.strokeStyle = "#ff4f98"; ctx.lineWidth = 2 * dpr;
+    ctx.strokeRect(cx + 1 * dpr, cy + 1 * dpr, cardW - 2 * dpr, cardH - 2 * dpr);
 
     ctx.fillStyle = "#ff4f98";
-    ctx.font = hudFont(24, dpr);
+    ctx.font = hudFont(28, dpr);
     ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
 
     // scores
-    ctx.font = hudFont(18, dpr);
+    ctx.font = hudFont(22, dpr);
     ctx.textAlign = "left";
-    ctx.fillText(`Score: ${this._score}`, cx + 18 * dpr, cy + 58 * dpr);
-    ctx.fillText(`Best:  ${this._best}`, cx + 18 * dpr, cy + 82 * dpr);
+    ctx.fillText(`Score: ${this._score}`, cx + 18 * dpr, cy + 60 * dpr);
+    ctx.fillText(`Best:  ${this._best}`, cx + 18 * dpr, cy + 86 * dpr);
 
     // retry button
     const btnW = Math.round(180 * dpr), btnH = Math.round(40 * dpr);
     const bx = Math.round(cx + cardW / 2 - btnW / 2);
     const by = Math.round(cy + cardH - btnH - 16 * dpr);
-    roundRect(ctx, bx, by, btnW, btnH, 12 * dpr, "#ff4f98");
-    ctx.fillStyle = "white";
-    ctx.font = hudFont(18, dpr);
+    roundRect(ctx, bx, by, btnW, btnH, 10 * dpr, "#ff4f98");
+    ctx.fillStyle = "#ffffff";
+    ctx.font = hudFont(22, dpr);
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("Retry", bx + btnW / 2, by + btnH / 2);
 
@@ -288,7 +289,6 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, W: number, H: number) {
-  // pixel-perfect "cover" draw without smoothing
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (!iw || !ih) return;

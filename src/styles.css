@@ -48,7 +48,7 @@ body {
   flex-direction: row;      /* key change */
   align-items: center;
   justify-content: center;  /* center the trio (left gif, title, right gif) */
-  gap: 10px;                /* spacing title ↔ gifs */
+  gap: 20px;                /* spacing title ↔ gifs */
   min-height: 72px;         /* headroom for ornaments */
 }
 

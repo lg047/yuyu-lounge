@@ -3,7 +3,7 @@ import { makeCore } from "../game/core/loop";
 
 type GameModule = {
   meta: { id: string; title: string; bestKey: string };
-  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => Promise<void> | void;
+  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void;
   start: () => void;
   stop: () => void;
   destroy: () => void;
@@ -52,14 +52,8 @@ export default function GameView(): HTMLElement {
     const top = root.getBoundingClientRect().top;
     const h = Math.max(320, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
-    // ensure back buffer in device pixels
-    const dpr = core.dpr || window.devicePixelRatio || 1;
-    const r = canvas.getBoundingClientRect();
-    canvas.width = Math.max(1, Math.floor(r.width * dpr));
-    canvas.height = Math.max(1, Math.floor(r.height * dpr));
     core.resize();
   }
-
   requestAnimationFrame(fitRootHeight);
   window.addEventListener("resize", fitRootHeight);
 
@@ -78,15 +72,17 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
-  function teardownCurrent() {
-    if (!current) return;
-    try { current.stop(); } catch {}
-    try { current.destroy(); } catch {}
-    current = null;
-  }
-
   function showMenu() {
-    teardownCurrent();
+    // stop and clean current game if any
+    if (current) {
+      try {
+        current.stop();
+      } catch {}
+      try {
+        current.destroy();
+      } catch {}
+      current = null;
+    }
 
     viewport.style.display = "none";
     controls.style.display = "none";
@@ -98,23 +94,24 @@ export default function GameView(): HTMLElement {
 
     function tile(id: string, label: string, imgRel: string) {
       const imgUrl = asset(imgRel);
-      return `<button class="game-icon" data-g="${id}" aria-label="${label}">
+      return <button class="game-icon" data-g="${id}" aria-label="${label}">
                 <img src="${imgUrl}" alt="" decoding="async">
-              </button>`;
+              </button>;
     }
 
-    overlay.innerHTML = `
+    overlay.innerHTML = 
       <div class="icons-row">
         ${tile("pom",  "Pom Dash",   "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
         ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
       </div>
-    `;
+    ;
 
     overlay.onclick = async (e) => {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
       if (!el) return;
       e.preventDefault();
+      e.stopPropagation();
       const id = el.dataset.g as keyof typeof loaders;
       await loadGame(id);
     };
@@ -128,36 +125,25 @@ export default function GameView(): HTMLElement {
 
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
-
     viewport.style.display = "block";
     controls.style.display = "flex";
-
-    // wait one frame so canvas has CSS size, then set backing store
-    await new Promise(requestAnimationFrame);
-    fitRootHeight();
-
-    // import named exports
-    const m = await loaders[id]();
-    const mod: GameModule = {
-      meta: m.meta,
-      init: m.init,
-      start: m.start,
-      stop: m.stop,
-      destroy: m.destroy,
-    };
-
-    await mod.init(canvas, core);
+    const mod = (await loaders[id]()).default as GameModule;
+    mod.init(canvas, core);
     mod.start();
     current = mod;
+    fitRootHeight();
   }
 
   backBtn.onclick = () => showMenu();
 
   window.addEventListener("hashchange", () => {
     const path = location.hash.split("?")[0];
-    if (path === "#/game") showMenu();
+    if (path === "#/game") {
+      showMenu(); // ensure tiles mount if you navigate back later
+    }
   });
 
+  // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
   document.addEventListener(
     "click",
     (e) => {
@@ -165,13 +151,14 @@ export default function GameView(): HTMLElement {
       if (!a) return;
       const path = location.hash.split("?")[0];
       if (path === "#/game") {
-        e.preventDefault();
-        showMenu();
+        e.preventDefault();   // default would be a no-op since hash is unchanged
+        showMenu();           // re-render tiles
       }
     },
     { capture: false, passive: false }
   );
 
+  // deep link once then normalize
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -185,6 +172,7 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
+  // audio unlock on first touch
   canvas.addEventListener(
     "pointerdown",
     () => {

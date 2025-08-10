@@ -13,20 +13,19 @@ type Treat = {
 };
 
 type Images = {
-  bg: HTMLImageElement;
+  bg: HTMLImageElement | null;
   pom: HTMLImageElement;
   bone: HTMLImageElement;
   star: HTMLImageElement;
 };
 
 type State = {
-  startedAt: number;
   time: number;
   score: number;
   best: number;
   misses: number;
-  streak: number; // consecutive catches
-  bonusLevel: number; // floor(streak / 5)
+  streak: number;
+  bonusLevel: number;
   over: boolean;
   spawnAcc: number;
   spawnIv: number;
@@ -60,11 +59,12 @@ let state: State;
 
 let reduceMotion = false;
 
-// Layout
-const GROUND_H = 36; // device px on canvas
+// layout
+const GROUND_H = 36;
 const HUD_PAD = 12;
+const BG_COLOR = "#0a0c1a"; // deep navy
 
-// Drawing helpers reuse scratch objects
+// scratch
 const _rect = { x: 0, y: 0, w: 0, h: 0 };
 
 function basePath(p: string) {
@@ -75,17 +75,21 @@ function basePath(p: string) {
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const im = new Image();
-    im.onload = () => resolve(im);
-    im.onerror = reject;
-    // pixel art
     (im as any).decoding = "async";
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error("image load failed: " + src));
     im.src = src;
   });
 }
 
 async function loadAssets(): Promise<Images> {
-  const [bg, pom, bone, star] = await Promise.all([
-    loadImage(basePath("assets/game/bg/stars.png")),
+  let bg: HTMLImageElement | null = null;
+  try {
+    bg = await loadImage(basePath("assets/game/bg/stars.png"));
+  } catch {
+    bg = null;
+  }
+  const [pom, bone, star] = await Promise.all([
     loadImage(basePath("assets/game/sprites/pom-front.png")),
     loadImage(basePath("assets/game/sprites/treat-bone.png")),
     loadImage(basePath("assets/game/sprites/treat-star.png")),
@@ -129,12 +133,10 @@ function smooth01(t: number) {
 function bgCoverPixelated(im: HTMLImageElement) {
   const w = canvas.width;
   const h = canvas.height;
-  // Disable smoothing just for draw call
   const prev = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
 
   const scale = Math.max(w / im.width, h / im.height);
-  // Snap to next integer to avoid shimmering on iOS
   const intScale = Math.max(1, Math.ceil(scale));
   const dw = im.width * intScale;
   const dh = im.height * intScale;
@@ -155,7 +157,6 @@ function resetState() {
   const pomH = pomTargetHeight;
 
   state = {
-    startedAt: core.store.get<number>(meta.bestKey + ".t0") ?? performance.now(),
     time: 0,
     score: 0,
     best: core.store.get<number>(meta.bestKey) ?? 0,
@@ -164,8 +165,8 @@ function resetState() {
     bonusLevel: 0,
     over: false,
     spawnAcc: 0,
-    spawnIv: 0.9, // start interval
-    fallBase: 260, // px/s start
+    spawnIv: 0.9,
+    fallBase: 260,
     treats: [],
     pom: {
       x: (W - pomW) * 0.5,
@@ -179,9 +180,8 @@ function resetState() {
 }
 
 function updateDifficulty(t: number) {
-  // t is elapsed seconds since start
-  const sI = smooth01(t / 30); // spawn interval ramp by 30 s
-  const sV = smooth01(t / 45); // fall speed ramp by 45 s
+  const sI = smooth01(t / 30);
+  const sV = smooth01(t / 45);
   state.spawnIv = lerp(0.9, 0.35, sI);
   state.fallBase = lerp(260, 520, sV);
 }
@@ -194,45 +194,34 @@ function spawnTreat() {
   const w = Math.round(baseH * aspect);
   const h = Math.round(baseH);
   const x = Math.round(Math.random() * (canvas.width - w));
-  // fall speed with slight variance
   const vy = state.fallBase * (0.9 + Math.random() * 0.2);
   state.treats.push({ x, y: -h, vy, w, h, kind });
 }
 
 function step(dtRaw: number) {
-  const dt = Math.max(0, Math.min(dtRaw, 0.035)); // clamp
+  const dt = Math.max(0, Math.min(dtRaw, 0.035));
   if (state.over) return;
 
   state.time += dt;
   updateDifficulty(state.time);
 
-  // Input
-  const accel = 2200 * dpr; // px/s^2
+  const accel = 2200 * dpr;
   let ax = 0;
   if (core.input?.keys?.has?.("ArrowLeft") || core.input?.keys?.get?.("ArrowLeft")) ax -= accel;
   if (core.input?.keys?.has?.("ArrowRight") || core.input?.keys?.get?.("ArrowRight")) ax += accel;
 
-  // Pointer drag to set targetX
-  // We attach our own handlers in init to track targetX
-  // Move pom
   const p = state.pom;
-  // spring toward target when dragging
   if (p.targetX != null) {
-    const k = 26; // spring coeff
+    const k = 26;
     const dx = p.targetX - (p.x + p.w * 0.5);
     p.vx += k * dx * dt;
   }
-  // keyboard acceleration
   p.vx += ax * dt;
-  // damping
   const damp = Math.exp(-8 * dt);
   p.vx *= damp;
-
   p.x += p.vx * dt;
-  // bounds
   p.x = clamp(p.x, 0, canvas.width - p.w);
 
-  // Spawn
   state.spawnAcc += dt;
   const iv = state.spawnIv;
   while (state.spawnAcc >= iv) {
@@ -240,11 +229,9 @@ function step(dtRaw: number) {
     spawnTreat();
   }
 
-  // Treats update and collision
   const H = canvas.height;
   const groundY = H - GROUND_H;
 
-  // Pom hitbox slightly inset
   const px = p.x + p.w * 0.15;
   const py = p.y + p.h * 0.1;
   const pw = p.w * 0.7;
@@ -254,7 +241,6 @@ function step(dtRaw: number) {
     const o = state.treats[i];
     o.y += o.vy * dt;
 
-    // catch
     if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) {
       state.streak += 1;
       state.bonusLevel = Math.floor(state.streak / 5);
@@ -265,7 +251,6 @@ function step(dtRaw: number) {
       continue;
     }
 
-    // miss
     if (o.y > groundY) {
       state.treats.splice(i, 1);
       state.misses += 1;
@@ -286,16 +271,21 @@ function step(dtRaw: number) {
 }
 
 function draw() {
-  // Background
-  bgCoverPixelated(images.bg);
-
   const W = canvas.width;
   const H = canvas.height;
 
-  // Ground
+  // hard fill so the canvas is never transparent
+  ctx.fillStyle = BG_COLOR;
+  ctx.fillRect(0, 0, W, H);
+
+  // background texture if available
+  if (images.bg) {
+    bgCoverPixelated(images.bg);
+  }
+
+  // ground
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, H - GROUND_H, W, GROUND_H);
-  // ticks
   ctx.strokeStyle = "#e5e7eb";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -306,12 +296,12 @@ function draw() {
   }
   ctx.stroke();
 
-  // Pom
+  // pom
   const p = state.pom;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(images.pom, p.x | 0, p.y | 0, p.w | 0, p.h | 0);
 
-  // Treats
+  // treats
   for (let i = 0; i < state.treats.length; i++) {
     const o = state.treats[i];
     const im = o.kind === 0 ? images.bone : images.star;
@@ -322,15 +312,13 @@ function draw() {
   ctx.textBaseline = "top";
   ctx.font = `${Math.round(24 * dpr)}px VT323, monospace`;
 
-  // Score
   ctx.fillStyle = "#ffffff";
   ctx.fillText(`Score ${state.score}`, HUD_PAD, HUD_PAD);
 
-  // Best
   ctx.fillStyle = "#aeeaff";
   ctx.fillText(`Best ${state.best}`, HUD_PAD, HUD_PAD + 26 * dpr);
 
-  // Lives top right: 3 small white circles with pink stroke
+  // lives
   const r = 8 * dpr;
   const gap = 8 * dpr;
   let x = W - HUD_PAD - 3 * r * 2 - 2 * gap + r;
@@ -346,10 +334,7 @@ function draw() {
     x += r * 2 + gap;
   }
 
-  // Game Over card
-  if (state.over) {
-    drawGameOverCard();
-  }
+  if (state.over) drawGameOverCard();
 }
 
 function drawGameOverCard() {
@@ -362,15 +347,12 @@ function drawGameOverCard() {
   const y = ((H - cardH) >> 1) + 0.5;
   const r = Math.round(12 * dpr);
 
-  // Card
   ctx.fillStyle = "#ffffff";
   roundRect(x, y, cardW, cardH, r, true, false);
-  // Stroke ice blue
   ctx.lineWidth = Math.max(1, Math.round(2 * dpr));
   ctx.strokeStyle = "#c6d9ff";
   roundRect(x, y, cardW, cardH, r, false, true);
 
-  // Text
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
 
@@ -383,7 +365,6 @@ function drawGameOverCard() {
   ctx.fillStyle = "#4b5563";
   ctx.fillText(`Best ${state.best}`, x + cardW / 2, y + 108 * dpr);
 
-  // Retry button
   const bw = Math.round(120 * dpr);
   const bh = Math.round(36 * dpr);
   const bx = Math.round(x + (cardW - bw) / 2);
@@ -395,13 +376,11 @@ function drawGameOverCard() {
   ctx.font = `${Math.round(22 * dpr)}px VT323, monospace`;
   ctx.fillText("Retry", bx + bw / 2, by + bh / 2 + 8 * dpr - Math.round(8 * dpr));
 
-  // Store hit region for retry
   _rect.x = bx;
   _rect.y = by;
   _rect.w = bw;
   _rect.h = bh;
 
-  // Reset align defaults
   ctx.textAlign = "start";
   ctx.textBaseline = "top";
 }
@@ -421,7 +400,7 @@ function roundRect(x: number, y: number, w: number, h: number, r: number, fill: 
   if (stroke) ctx.stroke();
 }
 
-// Pointer controls
+// input
 let onPointerDown: (e: PointerEvent) => void;
 let onPointerMove: (e: PointerEvent) => void;
 let onPointerUp: (e: PointerEvent) => void;
@@ -430,7 +409,6 @@ let onKeyUp: (e: KeyboardEvent) => void;
 let onClick: (e: MouseEvent) => void;
 
 function attachInput() {
-  // Track pointer movement along x within canvas to set pom.targetX
   onPointerDown = (e: PointerEvent) => {
     canvas.setPointerCapture?.(e.pointerId);
     setTargetFromEvent(e);
@@ -439,7 +417,7 @@ function attachInput() {
     if (e.pressure === 0 && e.pointerType !== "mouse") return;
     setTargetFromEvent(e);
   };
-  onPointerUp = (_e: PointerEvent) => {
+  onPointerUp = () => {
     state.pom.targetX = null;
   };
   onClick = (e: MouseEvent) => {
@@ -451,8 +429,6 @@ function attachInput() {
       restart();
     }
   };
-
-  // We still rely on core.input for Arrow keys, but add preventDefault to reduce scroll on iOS
   onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault();
   };
@@ -486,7 +462,6 @@ function restart() {
 }
 
 function onResize() {
-  // Keep pom at ground and within bounds on resize
   const p = state.pom;
   p.y = canvas.height - GROUND_H - p.h;
   p.x = clamp(p.x, 0, canvas.width - p.w);
@@ -495,16 +470,18 @@ function onResize() {
 export async function init(c: HTMLCanvasElement, ccore: Core) {
   core = ccore;
   canvas = c;
-  ctx = canvas.getContext("2d")!;
-  dpr = core.dpr;
+  // request opaque canvas so it never composites with page background
+  ctx = canvas.getContext("2d", { alpha: false }) as CanvasRenderingContext2D;
 
+  dpr = core.dpr;
   reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-  // Load assets and font in parallel
-  [images] = await Promise.all([loadAssets(), loadFont()]);
+  // CSS fallback color in case first frame is delayed
+  canvas.style.background = BG_COLOR;
+  canvas.style.imageRendering = "pixelated";
 
-  // Ensure background draws crisp
-  (ctx as any).imageSmoothingEnabled = false;
+  const [assets] = await Promise.all([loadAssets(), loadFont()]);
+  images = assets;
 
   resetState();
 
@@ -517,10 +494,10 @@ export async function init(c: HTMLCanvasElement, ccore: Core) {
 }
 
 export function start() {
-  // Zero the first dt
   core.run(
     (dt) => {
-      step(dt);
+      const clamped = Math.max(0, Math.min(dt, 0.035));
+      step(clamped);
     },
     () => {
       draw();
@@ -534,12 +511,8 @@ export function stop() {
 
 export function destroy() {
   detachInput();
-  // Nothing else to dispose
 }
 
-// Convenience for the game selector in your view
 export default function boot(coreCanvas: HTMLCanvasElement, ccore: Core) {
-  // Optional adapter if your loader expects default()
-  // Use explicit init/start in your view if you prefer
   init(coreCanvas, ccore).then(() => start());
 }

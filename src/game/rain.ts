@@ -10,7 +10,7 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
 /* Assets */
 const BG_IMG_PATH    = "assets/game/bg/NEWtreat-rain-bg.png";
 const FONT_PATH      = "assets/game/fonts/VT323.woff2";
-const POM_IMG_PATH   = "assets/game/sprites/NEWpom1.png";
+const POM_IMG_PATH   = "assets/game/sprites/NEWpom.png";
 const BONE_IMG_PATH  = "assets/game/sprites/treat-bone.png";
 const STAR_IMG_PATH  = "assets/game/sprites/treat-star.png";
 
@@ -25,8 +25,8 @@ const HUD_PAD_CSS  = 12;
 /* Difficulty ramps */
 const SPAWN_START_S = 0.9;
 const SPAWN_END_S   = 0.35;   // by ~30 s
-const FALL_START    = 260;    // px/s
-const FALL_END      = 520;    // by ~45 s
+const FALL_START    = 160;    // slower start fall
+const FALL_END      = 320;    // slower end fall
 
 /* Helpers */
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
@@ -131,8 +131,12 @@ const game = {
                    (this._pomImg!.naturalHeight || this._pomImg!.height) || 1;
     this._pw = Math.round(targetH * aspect);
     this._ph = targetH;
+
+    const gh = Math.round(GROUND_H_CSS * dpr);
+    const touchOverlap = Math.max(1, Math.round(2 * dpr)); // slight sink to remove visual gap
     this._px = Math.round((W - this._pw) * 0.5);
-    this._py = Math.round(H - Math.round(GROUND_H_CSS * dpr) - this._ph);
+    this._py = Math.round(H - gh - this._ph + touchOverlap);
+
     this._vx = 0;
     this._targetX = null;
 
@@ -260,7 +264,7 @@ const game = {
       ctx.fillRect(0, 0, W, H);
       drawCover(ctx, this._bgImg, W, H);
 
-      // plain green ground (no ticks/stripes)
+      // plain green ground
       const gh = Math.round(GROUND_H_CSS * dpr);
       ctx.fillStyle = "#3cb043"; // grass green
       ctx.fillRect(0, H - gh, W, gh);
@@ -317,10 +321,6 @@ const game = {
 
       if (this._over) this._drawGameOver();
     };
-
-    this._lastNow = performance.now();
-    this._warmup = Math.max(this._warmup, 2);
-
 
     core.run(step, () => {});
   },

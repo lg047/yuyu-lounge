@@ -126,7 +126,7 @@ const game = {
     const dpr = core.dpr;
     const H = core.canvas.height;
     const W = core.canvas.width;
-    const targetH = Math.round(56 * dpr);
+    const targetH = Math.round(96 * dpr);
     const aspect = (this._pomImg!.naturalWidth || this._pomImg!.width) /
                    (this._pomImg!.naturalHeight || this._pomImg!.height) || 1;
     this._pw = Math.round(targetH * aspect);
@@ -347,8 +347,8 @@ const game = {
   _spawnOne() {
     const core = this._core!;
     const dpr = core.dpr;
-    const kind: 0 | 1 = Math.random() < 0.5 ? 0 : 1;
-    const baseH = 24 * dpr;
+    const kind: 0 | 1 = 0;
+    const baseH = 44 * dpr;
     const im = kind === 0 ? this._boneImg! : this._starImg!;
     const aspect = (im.naturalWidth || im.width) / (im.naturalHeight || im.height) || 1;
     const w = Math.round(baseH * aspect);

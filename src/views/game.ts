@@ -1,5 +1,4 @@
 import "../styles/game.css";
-
 import { makeCore } from "../game/core/loop";
 
 type GameModule = {
@@ -16,6 +15,13 @@ const loaders = {
   hop: () => import("../game/hop.ts"),
 } as const;
 
+// Safe asset helper for GitHub Pages subpaths
+const base = (import.meta as any).env.BASE_URL as string;
+function asset(p: string) {
+  const b = base.endsWith("/") ? base : base + "/";
+  return b + p.replace(/^\//, "");
+}
+
 export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
@@ -26,9 +32,11 @@ export default function GameView(): HTMLElement {
 
   const core = makeCore(canvas);
 
+  // Mute toggle
   const hudBtn = document.createElement("div");
   hudBtn.className = "hud btn";
-  hudBtn.textContent = core.store.getBool("muted", true) ? "Unmute" : "Mute";
+  const muted = core.store.getBool("muted", true);
+  hudBtn.textContent = muted ? "Unmute" : "Mute";
   hudBtn.onclick = () => {
     const was = core.store.getBool("muted", true);
     core.store.setBool("muted", !was);
@@ -38,6 +46,7 @@ export default function GameView(): HTMLElement {
   };
   root.appendChild(hudBtn);
 
+  // Back button
   const backBtn = document.createElement("div");
   backBtn.className = "back-btn";
   backBtn.textContent = "Back";
@@ -47,34 +56,11 @@ export default function GameView(): HTMLElement {
 
   let current: GameModule | null = null;
 
-  function showMenu() {
-    if (current) { current.stop(); current.destroy(); current = null; }
-    backBtn.style.display = "none";
-    const overlay = document.createElement("div");
-    overlay.className = "arcade-menu";
-    overlay.innerHTML = `
-      <div class="grid">
-        ${tile("pom", "Pom Dash", "/assets/game/icons/pom.svg")}
-        ${tile("rain", "Treat Rain", "/assets/game/icons/rain.svg")}
-        ${tile("hop", "Cloud Hop", "/assets/game/icons/hop.svg")}
-      </div>
-    `;
-    overlay.onclick = async (e) => {
-      const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
-      if (!el) return;
-      const id = el.dataset.g as keyof typeof loaders;
-      await loadGame(id);
-    };
-    // Remove any previous menu
-    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
-    root.appendChild(overlay);
-    location.hash = "#/game";
-  }
-
-  function tile(id: string, title: string, icon: string) {
+  function tile(id: string, title: string, iconRel: string) {
     const best = getBestLabel(id);
+    const iconUrl = asset(iconRel);
     return `<div class="arcade-tile" data-g="${id}">
-      <img alt="" src="${icon}">
+      <img alt="" src="${iconUrl}">
       <div class="title">${title}</div>
       <div class="best">${best}</div>
     </div>`;
@@ -86,6 +72,29 @@ export default function GameView(): HTMLElement {
     return n > 0 ? `Best: ${n}` : "No score yet";
   }
 
+  function showMenu() {
+    if (current) { current.stop(); current.destroy(); current = null; }
+    backBtn.style.display = "none";
+    const overlay = document.createElement("div");
+    overlay.className = "arcade-menu";
+    overlay.innerHTML = `
+      <div class="grid">
+        ${tile("pom", "Pom Dash", "assets/game/icons/pom.svg")}
+        ${tile("rain", "Treat Rain", "assets/game/icons/rain.svg")}
+        ${tile("hop", "Cloud Hop", "assets/game/icons/hop.svg")}
+      </div>
+    `;
+    overlay.onclick = async (e) => {
+      const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
+      if (!el) return;
+      const id = el.dataset.g as keyof typeof loaders;
+      await loadGame(id);
+    };
+    root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
+    root.appendChild(overlay);
+    location.hash = "#/game";
+  }
+
   async function loadGame(id: keyof typeof loaders) {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
     backBtn.style.display = "block";
@@ -93,25 +102,16 @@ export default function GameView(): HTMLElement {
     mod.init(canvas, core);
     mod.start();
     current = mod;
-    // deep link
     location.hash = `#/game?g=${id}`;
   }
 
-  // deep link support
-  const hash = location.hash || "#/game";
-  const params = new URLSearchParams(hash.split("?")[1] || "");
+  // deep link
+  const params = new URLSearchParams((location.hash.split("?")[1]) || "");
   const g = params.get("g") as keyof typeof loaders | null;
   if (g && g in loaders) loadGame(g);
   else showMenu();
 
-  window.addEventListener("hashchange", () => {
-    if (!location.hash.startsWith("#/game")) return;
-    const params2 = new URLSearchParams(location.hash.split("?")[1] || "");
-    const g2 = params2.get("g") as keyof typeof loaders | null;
-    if (g2 && g2 in loaders) loadGame(g2);
-  });
-
-  // honor stored mute on first tap to unlock audio context
+  // audio unlock on first touch
   canvas.addEventListener("pointerdown", () => {
     core.audio.unlock();
     core.audio.setEnabled(!core.store.getBool("muted", true));

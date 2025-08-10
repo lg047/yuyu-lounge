@@ -55,32 +55,27 @@
 
 /* kill any old card styles */
 .arcade-menu .arcade-tile { display: none !important; }
-
+/* stack the three tiles vertically and make them large */
 .icons-row {
-  display: grid;
-  grid-template-columns: repeat(3, max-content); /* shrink columns to image width */
-  justify-content: center;  /* center the trio */
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;                  /* tighter spacing */
+  gap: 24px;                 /* space between tiles */
+  padding: 8px 0;
 }
 
-
 .game-icon {
-  appearance: none;
-  background: transparent;
-  border: 0;
   padding: 0;
-  margin: 0;
-  line-height: 0;
-  cursor: pointer;
+  border: 0;
+  background: transparent;
 }
 
 .game-icon img {
   display: block;
-  height: 160px;        /* uniform size, keeps aspect ratio */
-  width: auto;
-  max-width: 100%;
+  width: min(92vw, 720px);   /* fills the page, capped on desktop */
+  height: auto;              /* keep original aspect ratio */
   image-rendering: pixelated;
+  border-radius: 16px;
 }
 
 

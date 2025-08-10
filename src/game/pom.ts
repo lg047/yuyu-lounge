@@ -60,9 +60,13 @@ const game = {
   _onKeyDown: null as ((e: KeyboardEvent) => void) | null,
   _onKeyUp: null as ((e: KeyboardEvent) => void) | null,
 
-  // resume and first tick handling
+  // resume handling
   _onVis: null as (() => void) | null,
+  _onPage: null as ((e: Event) => void) | null,
   _warmup: 0,
+
+  // local monotonic clock
+  _lastNow: 0,
 
   async init(canvas: HTMLCanvasElement, core: Core) {
     this._core = core;
@@ -81,7 +85,10 @@ const game = {
     this._score = 0;
     this._groundOff = 0;
     this._kbdDown = false;
-    this._warmup = 2; // discard first two ticks after route change
+
+    // discard first frames after route enter
+    this._warmup = 2;
+    this._lastNow = performance.now();
 
     // load background once
     if (!this._bgImg) {
@@ -123,25 +130,34 @@ const game = {
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
 
-    const onVis = () => {
-      if (document.visibilityState === "visible") {
-        this._warmup = Math.max(this._warmup, 2);
-      }
+    // reset local clock on resumes and route re-entries
+    const resetClock = () => {
+      this._lastNow = performance.now();
+      this._warmup = Math.max(this._warmup, 2);
     };
+    const onVis = () => { if (document.visibilityState === "visible") resetClock(); };
+    const onPage = () => resetClock();
+
     this._onVis = onVis;
+    this._onPage = onPage;
     document.addEventListener("visibilitychange", onVis, { passive: true });
+    window.addEventListener("focus", onPage, { passive: true });
+    window.addEventListener("pageshow", onPage, { passive: true });
+    window.addEventListener("hashchange", onPage, { passive: true });
 
-    const step = (dtRaw: number) => {
-      // Normalize units
-      const raw = dtRaw > 1 ? dtRaw / 1000 : dtRaw;
+    // do not trust dtRaw from core, compute our own
+    const step = (_dtRaw: number) => {
+      const now = performance.now();
+      let dt = (now - this._lastNow) / 1000;
+      this._lastNow = now;
 
-      // Throw away first frames and resume spikes
-      if (this._warmup > 0 || raw > 0.2) {
+      // throw away first frames and any large resumes
+      if (this._warmup > 0 || dt > 0.2) {
         if (this._warmup > 0) this._warmup--;
         return;
       }
 
-      const dt = Math.max(0, Math.min(raw, 0.035));
+      dt = Math.max(0, Math.min(dt, 0.035));
       if (this._dead || !this._running) return;
 
       const H = core.canvas.height;
@@ -216,7 +232,7 @@ const game = {
       // pillars
       for (const o of this._ob) drawPillar(ctx, o.x, o.y, o.w, o.h, dpr, o.y === 0);
 
-      // moving ground strip only, do not touch sky
+      // moving ground strip only
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
@@ -255,9 +271,12 @@ const game = {
     const draw = () => {};
     this._running = true;
 
-    // reset core clock if available
+    // best effort if core exposes a reset
     if (typeof (core as any).resetClock === "function") {
       (core as any).resetClock();
+    } else {
+      // ensure our local clock starts fresh
+      this._lastNow = performance.now();
     }
 
     core.run(step, draw);
@@ -270,9 +289,15 @@ const game = {
     if (this._onKeyDown) window.removeEventListener("keydown", this._onKeyDown);
     if (this._onKeyUp) window.removeEventListener("keyup", this._onKeyUp);
     if (this._onVis) document.removeEventListener("visibilitychange", this._onVis);
+    if (this._onPage) {
+      window.removeEventListener("focus", this._onPage);
+      window.removeEventListener("pageshow", this._onPage);
+      window.removeEventListener("hashchange", this._onPage);
+    }
     this._onKeyDown = null;
     this._onKeyUp = null;
     this._onVis = null;
+    this._onPage = null;
     this._kbdDown = false;
   },
 

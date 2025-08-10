@@ -242,22 +242,8 @@ html.clip-open .clips-grid { filter: brightness(0.7); }
   100% { transform: translateY(0) rotate(0deg); opacity: 1; }
 }
 
-/* Hardening for floating decorations */
-.decoration {
-  position: fixed;
-  width: 64px;
-  height: 64px;
-  pointer-events: none;
-  z-index: 10000;                 /* above everything */
-  animation: floaty 10s ease-in-out infinite alternate;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: contain !important;
-}
 
-/* positions; animation offsets */
-.decoration.heart1 { top: 12%; left: 6%; animation-delay: 0s; }
-.decoration.sparkle1 { bottom: 15%; right: 8%; animation-delay: 3s; }
+
 
 @keyframes floaty {
   0% { transform: translateY(0) rotate(0deg); opacity: 0.95; }

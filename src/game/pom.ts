@@ -6,20 +6,19 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-// Tunables (CSS px)
-const INITIAL_BUFFER = 0.9;
-const BASE_SPEED = 120;         // CSS px/s at t=0
-const GAP = 300;                // vertical opening
-const WALL_THICK = 28;
+/* Tunables in CSS px */
+const INITIAL_BUFFER = 0.6;        // quicker first spawn
+const BASE_SPEED     = 420;        // start at the “good” speed
+const GAP            = 300;        // vertical opening
+const WALL_THICK     = 28;
 
-// Exponential speed ramp: speed(t) = BASE * exp(K * t)
-const K = 0.055;                // growth rate; raise to go harder
+/* Exponential speed ramp: speed(t) = BASE * exp(K * t) */
+const K = 0.060;                   // growth rate
 
-// Target horizontal spacing between wall pairs (in CSS px)
-// spacing(t) → shrinks from START to END with an exponential decay
-const SPACING_START = 380;
-const SPACING_END   = 220;
-const SPACING_DECAY = 0.04;     // how fast spacing shrinks
+/* Target horizontal spacing between pairs in CSS px, shrinks over time */
+const SPACING_START  = 320;
+const SPACING_END    = 180;
+const SPACING_DECAY  = 0.060;      // faster early shrink
 
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
@@ -30,9 +29,9 @@ const game = {
   _vy: 0,
   _running: false,
   _dead: false,
-  _speed: BASE_SPEED,   // CSS px/s
-  _time: 0,             // s since start
-  _spawnTimer: INITIAL_BUFFER, // s
+  _speed: BASE_SPEED,
+  _time: 0,
+  _spawnTimer: INITIAL_BUFFER,
   _score: 0,
   _best: 0,
 
@@ -83,9 +82,9 @@ const game = {
       // input
       const hold = core.input.p.down || this._kbdDown;
 
-      // accelerations (device px/s^2)
-      const upAccel = 1600 * dpr;
-      const gravity = 1100 * dpr;
+      // tuned for higher base speed
+      const upAccel = 1900 * dpr;
+      const gravity = 1200 * dpr;
 
       if (hold) this._vy -= upAccel * dt;
       else this._vy += gravity * dt;
@@ -96,22 +95,21 @@ const game = {
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // exponential speed ramp (CSS px/s), smoothed
+      // speed ramp
       const targetSpeed = BASE_SPEED * Math.exp(K * this._time);
       this._speed += (targetSpeed - this._speed) * Math.min(1, dt * 4);
 
-      // schedule next spawn by target pixel spacing
-      // spacing decays toward SPACING_END
+      // spacing driven spawn
       const spacingPx = SPACING_END + (SPACING_START - SPACING_END) * Math.exp(-SPACING_DECAY * this._time);
-      const spawnInterval = Math.max(0.35, spacingPx / this._speed); // seconds to next pair
+      const spawnInterval = Math.max(0.28, spacingPx / this._speed);
 
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {
-        this._spawnTimer += spawnInterval; // schedule based on current speed
+        this._spawnTimer += spawnInterval;
         const gap = GAP * dpr;
         const thickness = WALL_THICK * dpr;
         const cy = 140 * dpr + Math.random() * (H - 280 * dpr);
-        const x = W + 2; // just off-screen
+        const x = W + 2;
         const hTop = Math.max(0, cy - gap * 0.5);
         const hBotY = cy + gap * 0.5;
         const hBot = Math.max(0, H - hBotY);
@@ -119,7 +117,7 @@ const game = {
         this._ob.push({ x, y: hBotY, w: thickness, h: hBot, type: 0 });
       }
 
-      // move walls (CSS speed -> device px/s)
+      // move
       const vx = this._speed * dpr * dt;
       for (let i = 0; i < this._ob.length; i++) this._ob[i].x -= vx;
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
@@ -127,14 +125,8 @@ const game = {
       // collisions and scoring
       const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
       for (const o of this._ob) {
-        if (o.y === 0 && !o.counted && o.x + o.w < px) {
-          o.counted = true;
-          this._score += 1;
-        }
-        if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) {
-          this.gameOver();
-          return;
-        }
+        if (o.y === 0 && !o.counted && o.x + o.w < px) { o.counted = true; this._score += 1; }
+        if (aabb(px, py, pw, ph, o.x, o.y, o.w, o.h)) { this.gameOver(); return; }
       }
 
       // draw

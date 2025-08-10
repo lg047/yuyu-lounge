@@ -58,12 +58,12 @@
 
 .icons-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  padding: 0;           /* no extra white */
-  align-items: start;
-  justify-items: center;
+  grid-template-columns: repeat(3, max-content); /* shrink columns to image width */
+  justify-content: center;  /* center the trio */
+  align-items: center;
+  gap: 8px;                  /* tighter spacing */
 }
+
 
 .game-icon {
   appearance: none;

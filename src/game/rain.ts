@@ -470,32 +470,29 @@ function onResize() {
 export async function init(c: HTMLCanvasElement, ccore: Core) {
   core = ccore;
   canvas = c;
-  const d = core.dpr || window.devicePixelRatio || 1;
+
+  // device pixels from current CSS box
+  dpr = core.dpr || window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  if (canvas.width === 0 || canvas.height === 0) {
-    canvas.width  = Math.max(1, Math.floor(rect.width  * d));
-    canvas.height = Math.max(1, Math.floor(rect.height * d));
-}
-  // request opaque canvas so it never composites with page background
+  canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+
+  // opaque canvas
   ctx = canvas.getContext("2d", { alpha: false }) as CanvasRenderingContext2D;
 
-  dpr = core.dpr;
   reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-
-  // CSS fallback color in case first frame is delayed
   canvas.style.background = BG_COLOR;
   canvas.style.imageRendering = "pixelated";
 
-  const [assets] = await Promise.all([loadAssets(), loadFont()]);
+  const assets = await loadAssets();
   images = assets;
+  await loadFont();
 
   resetState();
-
-  draw();
+  draw(); // first paint
 
   core.resize(() => {
-    dpr = core.dpr;
-    // keep device pixel size in sync with CSS size
+    dpr = core.dpr || window.devicePixelRatio || 1;
     const r = canvas.getBoundingClientRect();
     canvas.width  = Math.max(1, Math.floor(r.width  * dpr));
     canvas.height = Math.max(1, Math.floor(r.height * dpr));
@@ -503,23 +500,13 @@ export async function init(c: HTMLCanvasElement, ccore: Core) {
     draw();
   });
 
-  core.resize(() => {
-    dpr = core.dpr;
-    onResize();
-  });
-
   attachInput();
 }
 
 export function start() {
   core.run(
-    (dt) => {
-      const clamped = Math.max(0, Math.min(dt, 0.035));
-      step(clamped);
-    },
-    () => {
-      draw();
-    }
+    (dt) => step(Math.max(0, Math.min(dt, 0.035))),
+    () => draw()
   );
 }
 
@@ -530,4 +517,5 @@ export function stop() {
 export function destroy() {
   detachInput();
 }
+
 

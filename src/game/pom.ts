@@ -118,7 +118,8 @@ const game = {
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
 
-    const step = (dt: number) => {
+    const step = (dtRaw: number) => {
+      const dt = Math.max(0, Math.min(dtRaw, 0.035)); // clamp big first frame
       if (this._dead) return;
       if (!this._running) return;
 
@@ -128,7 +129,7 @@ const game = {
 
       this._time += dt;
 
-      // input and physics (snappier vertical control)
+      // input and physics
       const hold = core.input.p.down || this._kbdDown;
       const upAccel = 3100 * dpr;
       const gravity = 2100 * dpr;

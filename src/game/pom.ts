@@ -255,7 +255,7 @@ const game = {
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
      
-      ctx.fillStyle = "#f2e9dd"; // light beige-tan, background equivalent to #eef3ff
+      ctx.fillStyle = "#a87939"; // dark beige-tan, background equivalent to #eef3ff
       ctx.fillRect(0, gy, W, gh);
       
       ctx.fillStyle = "#d2b48c"; // medium tan, equivalent to #cfdcff

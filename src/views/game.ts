@@ -32,6 +32,20 @@ export default function GameView(): HTMLElement {
 
   const core = makeCore(canvas);
 
+    // ...after: const core = makeCore(canvas);
+
+  function fitRootHeight() {
+    // distance from top of viewport to top of game root = header height
+    const top = root.getBoundingClientRect().top;
+    const h = Math.max(360, Math.round(window.innerHeight - top));
+    root.style.height = h + "px";
+    core.resize(); // match canvas to new box
+  }
+  // run after the view is attached to DOM
+  requestAnimationFrame(fitRootHeight);
+  window.addEventListener("resize", fitRootHeight);
+
+
   // Mute toggle
   const hudBtn = document.createElement("div");
   hudBtn.className = "hud btn";

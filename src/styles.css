@@ -47,7 +47,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: calc(10px + var(--sa-top)) 14px 10px;
+  padding-top: calc(18px + var(--sa-top));
+  min-height: 80px;  
   background: var(--pink-mid);
   border-bottom: 3px solid var(--accent-strong);
 
@@ -178,8 +179,10 @@ body {
 .clips-grid-wrap {
   max-width: 980px;
   margin: 0 auto;
-  padding: 0;
+  padding-left: calc(14px + var(--sa-left));
+  padding-right: calc(14px + var(--sa-right));
 }
+
 
 .clips-grid {
   display: grid;

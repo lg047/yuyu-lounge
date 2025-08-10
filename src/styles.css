@@ -387,4 +387,6 @@ body::before {
 /* Remove the X close button */
 .clip-overlay-close { display: none !important; }
 
+@import "./styles/game.css";
+
 

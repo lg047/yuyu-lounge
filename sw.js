@@ -1,7 +1,7 @@
 // sw.js — Yuyu Lounge PWA service worker
 // Cache shell for offline, network-first for clips.json and .mp4
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v5";
 const CACHE_NAME = `yuyu-${CACHE_VERSION}`;
 
 // Core shell kept small so it works across dev and Pages

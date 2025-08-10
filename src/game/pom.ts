@@ -167,26 +167,27 @@ const game = {
       if (this._bgImg && this._bgImg.complete) drawCover(ctx, this._bgImg, W, H);
       else { ctx.fillStyle = "#0a0c1a"; ctx.fillRect(0, 0, W, H); }
 
-      // walls - white
-      ctx.fillStyle = "#ffffff";
+      // walls
+      ctx.fillStyle = WALL_COL;
       for (const o of this._ob) ctx.fillRect(o.x, o.y, o.w, o.h);
-
-      // player - white
+      
+      // player stays pure white
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(px, py, pw, ph);
-
-      // moving ground - white band with light gray bars
+      
+      // moving ground
       const gh = Math.round(GROUND_H_CSS * dpr);
       const gy = H - gh;
       this._groundOff = (this._groundOff + vx) % Math.round(GROUND_TILE * dpr);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = GROUND_MAIN;
       ctx.fillRect(0, gy, W, gh);
-      ctx.fillStyle = "#e6e6e6";
+      ctx.fillStyle = GROUND_BAR;
       const tile = Math.round(GROUND_TILE * dpr);
       for (let x = -tile; x < W + tile; x += tile) {
         const rx = Math.round(x - this._groundOff);
         ctx.fillRect(rx, gy, Math.round(tile * 0.5), gh);
-      }
+}
+
 
       // HUD - no haze, no pills
       ctx.font = hudFont(28, dpr);
@@ -250,7 +251,7 @@ const game = {
     ctx.fillText("Game Over", cx + cardW / 2, cy + 14 * dpr);
     
     // scores - centered
-    ctx.fillStyle = "#1be0ff";                // VT323 style aqua
+    ctx.fillStyle = "#ff4f98";                // VT323 style aqua
     ctx.font = hudFont(22, dpr);
     ctx.fillText(`Score: ${this._score}`, cx + cardW / 2, cy + 64 * dpr);
     ctx.fillText(`Best:  ${this._best}`,  cx + cardW / 2, cy + 92 * dpr);

@@ -470,6 +470,12 @@ function onResize() {
 export async function init(c: HTMLCanvasElement, ccore: Core) {
   core = ccore;
   canvas = c;
+  const d = core.dpr || window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (canvas.width === 0 || canvas.height === 0) {
+    canvas.width  = Math.max(1, Math.floor(rect.width  * d));
+    canvas.height = Math.max(1, Math.floor(rect.height * d));
+}
   // request opaque canvas so it never composites with page background
   ctx = canvas.getContext("2d", { alpha: false }) as CanvasRenderingContext2D;
 
@@ -484,6 +490,18 @@ export async function init(c: HTMLCanvasElement, ccore: Core) {
   images = assets;
 
   resetState();
+
+  draw();
+
+  core.resize(() => {
+    dpr = core.dpr;
+    // keep device pixel size in sync with CSS size
+    const r = canvas.getBoundingClientRect();
+    canvas.width  = Math.max(1, Math.floor(r.width  * dpr));
+    canvas.height = Math.max(1, Math.floor(r.height * dpr));
+    onResize();
+    draw();
+  });
 
   core.resize(() => {
     dpr = core.dpr;
@@ -513,6 +531,3 @@ export function destroy() {
   detachInput();
 }
 
-export default function boot(coreCanvas: HTMLCanvasElement, ccore: Core) {
-  init(coreCanvas, ccore).then(() => start());
-}

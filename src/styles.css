@@ -265,20 +265,17 @@ html.standalone .site-header {
   display: block;
 }
 
-/* ---------- Close + Prev/Next — true circles, no warping ---------- */
+/* Close + Prev/Next — true circles with masked SVG icons */
 .clip-overlay-close,
 .clip-nav {
   position: absolute;
-  display: grid;          /* precise centering */
+  display: grid;
   place-items: center;
   width: 56px;
-  height: 56px;           /* equal sides => circle */
+  height: 56px;           /* equal sides => perfect circle */
   border-radius: 50%;
   border: 0;
-  background: #fff;
-  color: #000;
-  font-size: 28px;        /* glyph size only */
-  line-height: 1;         /* no vertical fudge */
+  background: #fff;       /* circle fill */
   -webkit-appearance: none;
   appearance: none;
   -webkit-tap-highlight-color: transparent;
@@ -287,27 +284,57 @@ html.standalone .site-header {
     inset 0 0 0 1px rgba(0,0,0,0.08);
   cursor: pointer;
   touch-action: manipulation;
-  contain: layout paint size;  /* avoids FF/WebKit shape glitches */
+  contain: layout paint size;
   backface-visibility: hidden;
+  /* remove any accidental text metrics interference */
+  font-size: 0;
+  line-height: 1;
 }
 
-/* positions — avoid transforms on the buttons themselves */
+/* icon layer */
+.clip-overlay-close::before,
+.clip-nav::before {
+  content: "";
+  width: 60%;
+  height: 60%;
+  background-color: #000; /* icon color */
+  display: block;
+  /* the mask defines the icon, not the circle */
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+/* icons as masks (inline SVG, URL-encoded) */
+.clip-nav-prev::before {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M14 6L8 12l6 6z'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M14 6L8 12l6 6z'/></svg>");
+}
+.clip-nav-next::before {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M10 6l6 6-6 6z'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M10 6l6 6-6 6z'/></svg>");
+}
+.clip-overlay-close::before {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M18 7.41 16.59 6 12 10.59 7.41 6 6 7.41 10.59 12 6 16.59 7.41 18 12 13.41 16.59 18 18 16.59 13.41 12z'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23000' d='M18 7.41 16.59 6 12 10.59 7.41 6 6 7.41 10.59 12 6 16.59 7.41 18 12 13.41 16.59 18 18 16.59 13.41 12z'/></svg>");
+}
+
+/* positions — no transforms on the buttons themselves */
 .clip-overlay-close { top: 12px; right: 12px; }
 .clip-nav-prev      { left: 12px;  top: calc(50% - 28px); } /* 28 = 56/2 */
 .clip-nav-next      { right: 12px; top: calc(50% - 28px); }
 
+/* small screens */
 @media (max-width: 430px) {
   .clip-overlay-close,
-  .clip-nav {
-    width: 52px;
-    height: 52px;
-    font-size: 24px;
-  }
-  .clip-nav-prev,
-  .clip-nav-next { top: calc(50% - 26px); }
+  .clip-nav { width: 52px; height: 52px; }
+  .clip-nav-prev, .clip-nav-next { top: calc(50% - 26px); }
 }
 
-/* tap feedback */
+/* press feedback */
 .clip-overlay-close:active,
 .clip-nav:active {
   transform: scale(0.98);
@@ -315,6 +342,7 @@ html.standalone .site-header {
     0 2px 10px rgba(0,0,0,0.22),
     inset 0 0 0 1px rgba(0,0,0,0.12);
 }
+
 
 /* Dim grid when open */
 html.clip-open .clips-grid { filter: brightness(0.7); }
@@ -344,3 +372,10 @@ body::before {
   0%   { transform: translateY(0) }
   100% { transform: translateY(-12px) }
 }
+
+/* Desktop-only tweak: raise the header content a bit */
+@media (hover: hover) and (pointer: fine) {
+  .site-header { padding-top: 18px; } /* was 24px */
+  .site-title { transform: translateY(-2px); } /* tiny lift */
+}
+

@@ -26,9 +26,6 @@ export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
 
-  // Stop clicks from bubbling to any global handlers that switch tabs
-  root.addEventListener("click", e => e.stopPropagation(), { capture: true });
-
   const canvas = document.createElement("canvas");
   canvas.id = "game-canvas";
   root.appendChild(canvas);
@@ -91,14 +88,12 @@ export default function GameView(): HTMLElement {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
       if (!el) return;
       e.preventDefault();
-      e.stopPropagation(); // do not let global nav handlers run
+      e.stopPropagation();
       const id = el.dataset.g as keyof typeof loaders;
       await loadGame(id);
     };
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
     root.appendChild(overlay);
-    // Keep hash exactly "#/game". Do not append "?g=" or the router will switch view.
-    // history.replaceState avoids triggering hashchange if someone deep-linked earlier.
     if (location.hash !== "#/game") {
       history.replaceState(null, "", location.pathname + location.search + "#/game");
     }
@@ -111,10 +106,10 @@ export default function GameView(): HTMLElement {
     mod.init(canvas, core);
     mod.start();
     current = mod;
-    // Keep hash as "#/game" to satisfy your router
+    // keep hash as "#/game"
   }
 
-  // deep link support once, without changing router key
+  // Deep link once, then normalize the hash
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {

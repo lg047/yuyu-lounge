@@ -35,6 +35,9 @@ function hudFont(px: number, dpr: number) {
   return `bold ${Math.round(px * dpr)}px "VT323", ui-monospace, Menlo, Consolas, monospace`;
 }
 
+/* Platform gate: iOS only adjustments */
+const IS_IOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
 
@@ -82,9 +85,9 @@ const game = {
     this._vy = 0;
     this._running = false;
     this._dead = false;
-    this._speed = BASE_SPEED;
+    this._speed = IS_IOS ? BASE_SPEED * 0.75 : BASE_SPEED; // slower start on iOS
     this._time = 0;
-    this._spawnTimer = INITIAL_BUFFER;
+    this._spawnTimer = IS_IOS ? INITIAL_BUFFER * 1.6 : INITIAL_BUFFER; // larger initial buffer on iOS
     this._score = 0;
     this._groundOff = 0;
     this._kbdDown = false;
@@ -204,7 +207,9 @@ const game = {
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
       // ramp and spacing
-      const targetSpeed = BASE_SPEED * Math.exp(K * this._time);
+      const speedScale = IS_IOS ? 0.75 : 1.0;     // slower across the early run on iOS
+      const kEff       = IS_IOS ? K * 0.7 : K;    // gentler ramp on iOS
+      const targetSpeed = (BASE_SPEED * speedScale) * Math.exp(kEff * this._time);
       this._speed += (targetSpeed - this._speed) * Math.min(1, dt * 4);
 
       const spacingPx = SPACING_END + (SPACING_START - SPACING_END) * Math.exp(-SPACING_DECAY * this._time);
@@ -230,7 +235,8 @@ const game = {
       this._ob = this._ob.filter(o => o.x + o.w > -40 * dpr);
 
       // score and collisions
-      const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 108 * dpr, ph = pupH;
+      const px = (IS_IOS ? 80 : 120) * dpr; // shift player further left on iOS for more foresight
+      const py = this._playerY - pupH * 0.5, pw = 108 * dpr, ph = pupH;
       for (const o of this._ob) {
         if (o.y === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;

@@ -3,7 +3,7 @@ import { makeCore } from "../game/core/loop";
 
 type GameModule = {
   meta: { id: string; title: string; bestKey: string };
-  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void;
+  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void | Promise<void>;
   start: () => void;
   stop: () => void;
   destroy: () => void;
@@ -73,14 +73,9 @@ export default function GameView(): HTMLElement {
   let current: GameModule | null = null;
 
   function showMenu() {
-    // stop and clean current game if any
     if (current) {
-      try {
-        current.stop();
-      } catch {}
-      try {
-        current.destroy();
-      } catch {}
+      try { current.stop(); } catch {}
+      try { current.destroy(); } catch {}
       current = null;
     }
 
@@ -94,18 +89,18 @@ export default function GameView(): HTMLElement {
 
     function tile(id: string, label: string, imgRel: string) {
       const imgUrl = asset(imgRel);
-      return <button class="game-icon" data-g="${id}" aria-label="${label}">
+      return `<button class="game-icon" data-g="${id}" aria-label="${label}">
                 <img src="${imgUrl}" alt="" decoding="async">
-              </button>;
+              </button>`;
     }
 
-    overlay.innerHTML = 
+    overlay.innerHTML = `
       <div class="icons-row">
         ${tile("pom",  "Pom Dash",   "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
         ${tile("hop",  "Cloud Hop",  "assets/game/icons/cloud-hop-tile.png")}
       </div>
-    ;
+    `;
 
     overlay.onclick = async (e) => {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
@@ -127,8 +122,20 @@ export default function GameView(): HTMLElement {
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
     viewport.style.display = "block";
     controls.style.display = "flex";
-    const mod = (await loaders[id]()).default as GameModule;
-    mod.init(canvas, core);
+
+    const loaded = await loaders[id]();
+    const mod: GameModule =
+      "default" in loaded
+        ? (loaded.default as GameModule)
+        : {
+            meta: loaded.meta,
+            init: loaded.init,
+            start: loaded.start,
+            stop: loaded.stop,
+            destroy: loaded.destroy,
+          };
+
+    await mod.init(canvas, core);
     mod.start();
     current = mod;
     fitRootHeight();
@@ -138,12 +145,9 @@ export default function GameView(): HTMLElement {
 
   window.addEventListener("hashchange", () => {
     const path = location.hash.split("?")[0];
-    if (path === "#/game") {
-      showMenu(); // ensure tiles mount if you navigate back later
-    }
+    if (path === "#/game") showMenu();
   });
 
-  // If user clicks the Mini Game tab while already on #/game, just refresh the tiles
   document.addEventListener(
     "click",
     (e) => {
@@ -151,14 +155,13 @@ export default function GameView(): HTMLElement {
       if (!a) return;
       const path = location.hash.split("?")[0];
       if (path === "#/game") {
-        e.preventDefault();   // default would be a no-op since hash is unchanged
-        showMenu();           // re-render tiles
+        e.preventDefault();
+        showMenu();
       }
     },
     { capture: false, passive: false }
   );
 
-  // deep link once then normalize
   (() => {
     const [path, query] = location.hash.split("?");
     if (path === "#/game" && query) {
@@ -172,7 +175,6 @@ export default function GameView(): HTMLElement {
     showMenu();
   })();
 
-  // audio unlock on first touch
   canvas.addEventListener(
     "pointerdown",
     () => {

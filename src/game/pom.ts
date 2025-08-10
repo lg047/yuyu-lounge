@@ -283,7 +283,7 @@ const game = {
       ctx.textAlign = "left";
       ctx.fillStyle = "#ffffff";
       ctx.fillText(`Score ${this._score}`, 12 * dpr, 10 * dpr);
-      ctx.fillStyle = "#aeeaff";
+      ctx.fillStyle = "#d4b36f";
       ctx.fillText(`Best ${this._best}`, 12 * dpr, 44 * dpr);
     };
 

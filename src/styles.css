@@ -35,7 +35,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* --- Site header --- */
+/* --- Site header: title centered with flanking gifs --- */
 .site-header {
   position: sticky;
   top: 0;
@@ -43,13 +43,17 @@ body {
   padding: calc(10px + var(--sa-top)) 14px 10px;
   background: var(--pink-mid);
   border-bottom: 3px solid var(--accent-strong);
+
   display: flex;
-  flex-direction: column;
+  flex-direction: row;      /* key change */
   align-items: center;
-  gap: 8px;
+  justify-content: center;  /* center the trio (left gif, title, right gif) */
+  gap: 10px;                /* spacing title ↔ gifs */
+  min-height: 72px;         /* headroom for ornaments */
 }
 
 .site-title {
+  order: 1;
   font-family: 'VT323', monospace;
   font-size: 40px;
   color: var(--cream);
@@ -59,7 +63,11 @@ body {
   text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
+/* Install stays pinned at top-right, not part of flex flow */
 .install {
+  position: absolute;
+  right: 12px;
+  top: calc(10px + var(--sa-top));
   font-size: 14px;
   padding: 6px 10px;
   border-radius: 8px;
@@ -67,6 +75,40 @@ body {
   background: var(--lilac);
   color: var(--ink);
   cursor: pointer;
+}
+
+/* Header ornaments now participate in flex layout */
+.header-ornament {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+}
+.header-ornament.left  { order: 0; }
+.header-ornament.right { order: 2; }
+
+.header-ornament img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 3px rgba(255,255,255,.8))
+          drop-shadow(0 0 6px rgba(255,79,163,.5));
+  animation: headerFloat 8s ease-in-out infinite alternate;
+}
+
+/* subtle wiggle without leaving the header */
+@keyframes headerFloat {
+  0%   { transform: translateY(-2px) rotate(0deg); }
+  100% { transform: translateY( 2px) rotate(6deg); }
+}
+
+/* Small screens: shrink or hide ornaments */
+@media (max-width: 420px) {
+  .header-ornament { width: 36px; height: 36px; }
+}
+@media (max-width: 340px) {
+  .header-ornament { display: none; }
 }
 
 /* --- Top nav --- */
@@ -243,45 +285,3 @@ body::before {
   0%   { transform: translateY(0) }
   100% { transform: translateY(-12px) }
 }
-
-/* Ornaments flanking the header title */
-.site-header { position: sticky; } /* already set, keep it */
-.site-header { position: sticky; top: 0; z-index: 5; }
-.site-header { position: sticky; } /* ensure positioned ancestor for absolute children */
-.site-header { min-height: 68px; } /* room for gifs */
-
-.header-ornament {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  pointer-events: none;
-  z-index: 2;           /* inside header, below video overlay which is z=1000 */
-}
-.header-ornament.left  { left: 12px; }
-.header-ornament.right { right: 12px; }
-
-.header-ornament img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 0 3px rgba(255,255,255,.8))
-          drop-shadow(0 0 6px rgba(255,79,163,.5));
-  animation: headerFloat 8s ease-in-out infinite alternate;
-}
-
-@keyframes headerFloat {
-  0%   { transform: translateY(-50%) translateX(0) rotate(0deg); }
-  100% { transform: translateY(-58%) translateX(0) rotate(6deg); }
-}
-
-/* Tighter layout on small screens */
-@media (max-width: 420px) {
-  .header-ornament { width: 36px; height: 36px; }
-}
-@media (max-width: 340px) {
-  .header-ornament { display: none; }
-}
-

@@ -3,7 +3,7 @@ import { makeCore } from "../game/core/loop";
 
 type GameModule = {
   meta: { id: string; title: string; bestKey: string };
-  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void;
+  init: (canvas: HTMLCanvasElement, core: ReturnType<typeof makeCore>) => void | Promise<void>;
   start: () => void;
   stop: () => void;
   destroy: () => void;
@@ -47,6 +47,48 @@ export default function GameView(): HTMLElement {
   controls.appendChild(muteBtn);
   root.appendChild(controls);
 
+  // loader overlay
+  const loader = document.createElement("div");
+  loader.style.cssText = [
+    "position:fixed",
+    "inset:0",
+    "display:none",
+    "align-items:center",
+    "justify-content:center",
+    "background:linear-gradient(#0008,#000c)",
+    "font-family:'VT323',ui-monospace,Menlo,Consolas,monospace",
+    "color:#dff1ff",
+    "letter-spacing:1px",
+    "z-index:9999",
+    "transition:opacity 140ms ease-out",
+  ].join(";");
+  const loadBox = document.createElement("div");
+  loadBox.style.cssText = [
+    "width:min(420px,80vw)",
+    "text-align:center",
+    "padding:16px",
+    "background:#0a1330",
+    "border:2px solid #7ac6ff",
+    "border-radius:10px",
+    "box-shadow:0 0 20px #7ac6ff66",
+  ].join(";");
+  const loadTitle = document.createElement("div");
+  loadTitle.textContent = "LOADING";
+  loadTitle.style.cssText = "font-size:28px;margin-bottom:10px;color:#aeeaff;text-shadow:0 0 6px #7ac6ff";
+  const barWrap = document.createElement("div");
+  barWrap.style.cssText = "height:18px;background:#081024;border:2px solid #7ac6ff;border-radius:9px;overflow:hidden";
+  const bar = document.createElement("div");
+  bar.style.cssText = "height:100%;width:0%;background:linear-gradient(90deg,#79ffe1,#7ac6ff)";
+  barWrap.appendChild(bar);
+  const pct = document.createElement("div");
+  pct.style.cssText = "margin-top:8px;font-size:18px;color:#9bd3ff";
+  pct.textContent = "0%";
+  loadBox.appendChild(loadTitle);
+  loadBox.appendChild(barWrap);
+  loadBox.appendChild(pct);
+  loader.appendChild(loadBox);
+  root.appendChild(loader);
+
   const core = makeCore(canvas);
 
   function fitRootHeight() {
@@ -84,6 +126,61 @@ export default function GameView(): HTMLElement {
     }
   }
 
+  // asset manifests per game for a simple progress bar
+  const manifests: Record<keyof typeof loaders, string[]> = {
+    pom: [
+      "assets/game/bg/roo-bg.png",
+      "assets/game/sprites/roo_hop.png",
+      "assets/game/fonts/VT323.woff2",
+    ],
+    rain: [
+      "assets/game/bg/NEWtreat-rain-bg.png",
+      "assets/game/sprites/NEWpom.png",
+      "assets/game/sprites/treat-bone.png",
+      "assets/game/fonts/VT323.woff2",
+    ],
+    hop: [
+      // update when hop assets exist
+      "assets/game/fonts/VT323.woff2",
+    ],
+  };
+
+  async function preload(id: keyof typeof loaders) {
+    const items = manifests[id] || [];
+    if (items.length === 0) return;
+    loader.style.display = "flex";
+    loader.style.opacity = "1";
+    bar.style.width = "0%";
+    pct.textContent = "0%";
+
+    let done = 0;
+    const bump = () => {
+      done++;
+      const q = Math.max(0, Math.min(100, Math.round((done / items.length) * 100)));
+      bar.style.width = q + "%";
+      pct.textContent = q + "%";
+    };
+
+    const tasks = items.map((rel) => {
+      const url = asset(rel);
+      if (rel.endsWith(".woff2")) {
+        if (document.fonts.check('12px "VT323"')) { bump(); return Promise.resolve(); }
+        const ff = new FontFace("VT323", `url(${url}) format("woff2")`);
+        return ff.load().then(face => { document.fonts.add(face); bump(); }).catch(() => { bump(); });
+      } else {
+        return new Promise<void>((res) => {
+          const im = new Image();
+          im.onload = () => { bump(); res(); };
+          im.onerror = () => { bump(); res(); };
+          im.decoding = "async";
+          im.src = url;
+        });
+      }
+    });
+
+    await Promise.all(tasks);
+  }
+
   function showMenu() {
     cleanupCurrent();
     viewport.style.display = "none";
@@ -104,7 +201,7 @@ export default function GameView(): HTMLElement {
     overlay.innerHTML = `
       <div class="icons-row">
         ${tile("pom", "Pom Dash", "assets/game/icons/roos-hundred-acre-hop.png")}
-        ${tile("rain", "Treat Rain", "assets/game/icons/NEW1treat-rain-tile.png")}
+        ${tile("rain", "Treat Rain", "assets/game/icons/treat-rain-tile.png")}
         ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tile.png")}
       </div>
     `;
@@ -130,11 +227,23 @@ export default function GameView(): HTMLElement {
     root.querySelectorAll(".arcade-menu").forEach((n) => n.remove());
     viewport.style.display = "block";
     controls.style.display = "flex";
+
+    // preload with progress bar
+    await preload(id);
+
     const mod = (await loaders[id]()).default as GameModule;
-    await mod.init(canvas, core); // wait for async asset + size setup
-    mod.start();                  // then start the loop
+
+    // wait for async setup in init to avoid first frame being a static background
+    await mod.init(canvas, core);
+    mod.start();
     current = mod;
     fitRootHeight();
+
+    // hide loader after the first frame has a chance to draw
+    requestAnimationFrame(() => {
+      loader.style.opacity = "0";
+      setTimeout(() => { loader.style.display = "none"; }, 160);
+    });
   }
 
   backBtn.onclick = () => showMenu();

@@ -6,14 +6,20 @@ function aabb(ax: number, ay: number, aw: number, ah: number, bx: number, by: nu
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-// Tunables in CSS px
+// Tunables (CSS px)
 const INITIAL_BUFFER = 0.9;
-const BASE_SPEED = 120;       // CSS px/s
-const MAX_SPEED  = 520;       // higher cap so it keeps getting harder
-const GAP        = 300;       // opening
+const BASE_SPEED = 120;         // CSS px/s at t=0
+const GAP = 300;                // vertical opening
 const WALL_THICK = 28;
-const SPAWN_MAX  = 2.2;       // s
-const SPAWN_MIN  = 1.3;       // lower min so late game is busier
+
+// Exponential speed ramp: speed(t) = BASE * exp(K * t)
+const K = 0.055;                // growth rate; raise to go harder
+
+// Target horizontal spacing between wall pairs (in CSS px)
+// spacing(t) → shrinks from START to END with an exponential decay
+const SPACING_START = 380;
+const SPACING_END   = 220;
+const SPACING_DECAY = 0.04;     // how fast spacing shrinks
 
 const game = {
   meta: { id: "pom", title: "Pom Dash", bestKey: "best.pom" },
@@ -24,10 +30,9 @@ const game = {
   _vy: 0,
   _running: false,
   _dead: false,
-  _speed: BASE_SPEED,
-  _time: 0,
-  _spawnTimer: INITIAL_BUFFER,
-  _spawnInterval: SPAWN_MAX,
+  _speed: BASE_SPEED,   // CSS px/s
+  _time: 0,             // s since start
+  _spawnTimer: INITIAL_BUFFER, // s
   _score: 0,
   _best: 0,
 
@@ -48,7 +53,6 @@ const game = {
     this._speed = BASE_SPEED;
     this._time = 0;
     this._spawnTimer = INITIAL_BUFFER;
-    this._spawnInterval = SPAWN_MAX;
     this._score = 0;
     this._kbdDown = false;
   },
@@ -92,17 +96,22 @@ const game = {
       if (this._playerY < pupH * 0.5) { this._playerY = pupH * 0.5; this._vy = 0; }
       if (this._playerY > H - pupH * 0.5) { this._playerY = H - pupH * 0.5; this._vy = 0; }
 
-      // spawn
+      // exponential speed ramp (CSS px/s), smoothed
+      const targetSpeed = BASE_SPEED * Math.exp(K * this._time);
+      this._speed += (targetSpeed - this._speed) * Math.min(1, dt * 4);
+
+      // schedule next spawn by target pixel spacing
+      // spacing decays toward SPACING_END
+      const spacingPx = SPACING_END + (SPACING_START - SPACING_END) * Math.exp(-SPACING_DECAY * this._time);
+      const spawnInterval = Math.max(0.35, spacingPx / this._speed); // seconds to next pair
+
       this._spawnTimer -= dt;
       if (this._spawnTimer <= 0) {
-        this._spawnTimer = this._spawnInterval;
-        // interval reduces with score, capped by SPAWN_MIN
-        this._spawnInterval = Math.max(SPAWN_MIN, SPAWN_MAX - this._score * 0.06);
-
+        this._spawnTimer += spawnInterval; // schedule based on current speed
         const gap = GAP * dpr;
         const thickness = WALL_THICK * dpr;
         const cy = 140 * dpr + Math.random() * (H - 280 * dpr);
-        const x = W + 2;
+        const x = W + 2; // just off-screen
         const hTop = Math.max(0, cy - gap * 0.5);
         const hBotY = cy + gap * 0.5;
         const hBot = Math.max(0, H - hBotY);
@@ -118,7 +127,7 @@ const game = {
       // collisions and scoring
       const px = 120 * dpr, py = this._playerY - pupH * 0.5, pw = 72 * dpr, ph = pupH;
       for (const o of this._ob) {
-        if (o.y === 0 && o.type === 0 && !o.counted && o.x + o.w < px) {
+        if (o.y === 0 && !o.counted && o.x + o.w < px) {
           o.counted = true;
           this._score += 1;
         }
@@ -127,13 +136,6 @@ const game = {
           return;
         }
       }
-
-      // non linear speed ramp that keeps growing
-      // target = BASE + a*t + b*t^2, then smoothed and clamped
-      const a = 28;      // linear term
-      const b = 6;       // quadratic term
-      const target = Math.min(MAX_SPEED, BASE_SPEED + a * this._time + b * this._time * this._time);
-      this._speed += (target - this._speed) * Math.min(1, dt * 5);
 
       // draw
       ctx.clearRect(0, 0, W, H);

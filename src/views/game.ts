@@ -15,7 +15,6 @@ const loaders = {
   hop: () => import("../game/hop.ts"),
 } as const;
 
-// GitHub Pages safe asset helper
 const base = (import.meta as any).env.BASE_URL as string;
 const asset = (p: string) => (base.endsWith("/") ? base : base + "/") + p.replace(/^\//, "");
 
@@ -23,42 +22,46 @@ export default function GameView(): HTMLElement {
   const root = document.createElement("div");
   root.id = "game-root";
 
-  // Small viewport box for the canvas
   const viewport = document.createElement("div");
   viewport.className = "game-viewport";
-  viewport.style.display = "none"; // hidden while in menu
+  viewport.style.display = "none";
   root.appendChild(viewport);
 
   const canvas = document.createElement("canvas");
   canvas.id = "game-canvas";
   viewport.appendChild(canvas);
 
-  // Controls row under the canvas
   const controls = document.createElement("div");
   controls.className = "game-controls";
   controls.style.display = "none";
+
   const backBtn = document.createElement("div");
   backBtn.className = "game-btn";
   backBtn.textContent = "Back";
+
+  const retryBtn = document.createElement("div");
+  retryBtn.className = "game-btn";
+  retryBtn.textContent = "Retry";
+
   const muteBtn = document.createElement("div");
   muteBtn.className = "game-btn";
+
   controls.appendChild(backBtn);
+  controls.appendChild(retryBtn);
   controls.appendChild(muteBtn);
   root.appendChild(controls);
 
   const core = makeCore(canvas);
 
-  // Fit the root to the visible viewport below your header
   function fitRootHeight() {
     const top = root.getBoundingClientRect().top;
-    const h = Math.max(360, Math.round(window.innerHeight - top));
+    const h = Math.max(320, Math.round(window.innerHeight - top));
     root.style.height = h + "px";
     core.resize();
   }
   requestAnimationFrame(fitRootHeight);
   window.addEventListener("resize", fitRootHeight);
 
-  // Mute toggle
   const updateMuteLabel = () => {
     const muted = core.store.getBool("muted", true);
     muteBtn.textContent = muted ? "Unmute" : "Mute";
@@ -75,19 +78,14 @@ export default function GameView(): HTMLElement {
   let current: GameModule | null = null;
 
   function tile(id: string, title: string, iconRel: string) {
-    const best = getBestLabel(id);
+    const key = `best.${id}`;
+    const best = core.store.getNumber(key, 0);
     const iconUrl = asset(iconRel);
     return `<div class="arcade-tile" data-g="${id}">
       <img alt="" src="${iconUrl}">
       <div class="title">${title}</div>
-      <div class="best">${best}</div>
+      <div class="best">${best > 0 ? `Best: ${best}` : "No score yet"}</div>
     </div>`;
-  }
-
-  function getBestLabel(id: string) {
-    const key = `best.${id}`;
-    const n = core.store.getNumber(key, 0);
-    return n > 0 ? `Best: ${n}` : "No score yet";
   }
 
   function showMenu() {
@@ -114,6 +112,7 @@ export default function GameView(): HTMLElement {
     };
     root.querySelectorAll(".arcade-menu").forEach(n => n.remove());
     root.appendChild(overlay);
+
     if (location.hash !== "#/game") {
       history.replaceState(null, "", location.pathname + location.search + "#/game");
     }
@@ -131,6 +130,22 @@ export default function GameView(): HTMLElement {
   }
 
   backBtn.onclick = () => showMenu();
+
+  retryBtn.onclick = () => {
+    if (!current) return;
+    current.stop();
+    current.init(canvas, core);
+    current.start();
+  };
+
+  // Clicking the "Mini Game" tab while already on #/game returns to tiles
+  function onNavClick(e: MouseEvent) {
+    const a = (e.target as HTMLElement).closest('a[href="#/game"]') as HTMLAnchorElement | null;
+    if (!a) return;
+    // Do not block the site nav. Just show our menu.
+    showMenu();
+  }
+  window.addEventListener("click", onNavClick, true);
 
   // deep link once then normalize
   (() => {

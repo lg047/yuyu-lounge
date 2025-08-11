@@ -1,140 +1,398 @@
-// src/main.ts
-import "./styles.css";
-import { initRouter } from "./router";
-import TopNav from "./components/topnav";
-import { makeBGM } from "./lib/bgm";
-import { store } from "./game/core/storage";
-import "./styles/reels.css";
+// src/views/reels.ts
+// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on stop or close.
+// Grid: progressive append.
 
-// create once
-const bgm = makeBGM({
-  src: "assets/audio/bgm.mp3",
-  store,
-  key: "bgm.muted",
-  volume: 0.18,
-});
-(window as any).__bgm = bgm;
-
-// Mark <html> when running as an installed app
-function markStandalone(): void {
-  const isStandalone =
-    window.matchMedia?.("(display-mode: standalone)")?.matches ||
-    // @ts-ignore
-    (typeof navigator !== "undefined" && (navigator as any).standalone === true);
-  document.documentElement.classList.toggle(
-    "standalone",
-    Boolean(isStandalone)
-  );
-}
-markStandalone();
-try {
-  const mq = window.matchMedia?.("(display-mode: standalone)");
-  mq?.addEventListener?.("change", markStandalone);
-} catch {}
-
-// --- PWA Install button wiring ---
-let deferredPrompt: unknown = null;
-const installBtn = document.getElementById(
-  "installBtn"
-) as HTMLButtonElement | null;
-window.addEventListener("beforeinstallprompt", (e: Event) => {
-  // @ts-ignore
-  e.preventDefault?.();
-  deferredPrompt = e;
-  if (installBtn) installBtn.hidden = false;
-});
-installBtn?.addEventListener("click", async () => {
-  if (!deferredPrompt) return;
-  // @ts-ignore
-  await deferredPrompt.prompt?.();
-  deferredPrompt = null;
-  if (installBtn) installBtn.hidden = true;
-});
-
-// --- Mount Top Nav ---
-const topnavHost = document.getElementById("topnav") as HTMLElement | null;
-if (topnavHost) topnavHost.replaceChildren(TopNav());
-
-// Replace Settings tab with a mute button for site music
-(function attachMusicToggle() {
-  const scope = topnavHost ?? document;
-  const selectors = [
-    '[data-nav="settings"]',
-    "#settings-tab",
-    ".nav-settings",
-    'a[href="#/settings"]',
-  ];
-  let target: Element | null = null;
-  for (const sel of selectors) {
-    target = scope.querySelector(sel);
-    if (target) break;
+function shuffle<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  if (target) {
-    bgm.attachToggleInto(target);
-  } else if (topnavHost) {
-    const placeholder = document.createElement("span");
-    topnavHost.appendChild(placeholder);
-    bgm.attachToggleInto(placeholder);
+  return a;
+}
+
+async function loadClips(): Promise<string[]> {
+  const base = import.meta.env.BASE_URL || "/";
+  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data)) throw new Error("clips.json is not an array");
+  return data.map(String).filter((u) => /\.mp4(\?|$)/i.test(u));
+}
+
+export default function ReelsView(): HTMLElement {
+  const root = document.createElement("section");
+  root.className = "clips-view";
+
+  // Backdrop and overlay
+  const backdrop = document.createElement("div");
+  backdrop.className = "clip-backdrop";
+  backdrop.addEventListener("click", () => closeOverlay());
+
+  const overlay = document.createElement("div");
+  overlay.className = "clip-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+
+  const overlayWrap = document.createElement("div");
+  overlayWrap.className = "clip-overlay-wrap";
+  overlay.appendChild(overlayWrap);
+
+  const player = document.createElement("video");
+  player.className = "clip-overlay-player";
+  player.playsInline = true;
+  player.muted = false;
+  player.loop = true;
+  player.preload = "auto";
+  player.style.display = "none";
+
+  const overlaySpinner = document.createElement("div");
+  overlaySpinner.className = "clip-spinner";
+
+  overlayWrap.appendChild(player);
+  overlayWrap.appendChild(overlaySpinner);
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "clip-overlay-close";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close");
+  closeBtn.textContent = "×";
+  closeBtn.addEventListener("click", () => closeOverlay());
+
+  const prevBtn = document.createElement("button");
+  prevBtn.className = "clip-nav clip-nav-prev";
+  prevBtn.type = "button";
+  prevBtn.setAttribute("aria-label", "Previous");
+  prevBtn.textContent = "‹";
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "clip-nav clip-nav-next";
+  nextBtn.type = "button";
+  nextBtn.setAttribute("aria-label", "Next");
+  nextBtn.textContent = "›";
+
+  overlay.appendChild(closeBtn);
+  overlay.appendChild(prevBtn);
+  overlay.appendChild(nextBtn);
+
+  let list: string[] = [];
+  let current = -1;
+  let switching = false; // true while swapping sources to avoid BGM resume glitches
+  let tapToPlayHandler: ((e: Event) => void) | null = null;
+  let onPlaying: ((e: Event) => void) | null = null;
+
+  // Site BGM handle
+  const bgm: any = (window as any).__bgm || null;
+
+  // Cover viewport
+  function sizeOverlayToVideo() {
+    overlayWrap.style.width = "100vw";
+    overlayWrap.style.height = "100vh";
+    player.style.width = "100%";
+    player.style.height = "100%";
+    player.style.objectFit = "cover";
+    player.style.objectPosition = "center";
   }
-  void bgm.playIfAllowed();
-})();
 
-// ---- BGM vs videos: pause BGM when any video plays, resume when none do ----
-const playingVideos = new Set<HTMLVideoElement>();
+  // BGM control handlers bound to this player
+  const pauseBGM = () => { try { bgm?.pause?.(); } catch {} };
+  const resumeBGM = () => {
+    try {
+      if (bgm && !bgm.muted && !switching) bgm.playIfAllowed?.();
+    } catch {}
+  };
 
-function isVideo(t: EventTarget | null): t is HTMLVideoElement {
-  return !!t && (t as any).tagName === "VIDEO";
-}
+  function bindAudioBridging() {
+    onPlaying = () => { switching = false; pauseBGM(); };
+    player.addEventListener("play", pauseBGM);
+    player.addEventListener("playing", onPlaying);
+    player.addEventListener("pause", resumeBGM);
+    player.addEventListener("ended", resumeBGM);
+    player.addEventListener("emptied", resumeBGM);
+  }
+  function unbindAudioBridging() {
+    player.removeEventListener("play", pauseBGM);
+    if (onPlaying) player.removeEventListener("playing", onPlaying);
+    player.removeEventListener("pause", resumeBGM);
+    player.removeEventListener("ended", resumeBGM);
+    player.removeEventListener("emptied", resumeBGM);
+    onPlaying = null;
+  }
 
-document.addEventListener(
-  "play",
-  (e) => {
-    if (!isVideo(e.target)) return;
-    playingVideos.add(e.target);
-    bgm.pause(); // do not touch the video's mute or volume
-  },
-  true
-);
+  function openOverlay(index: number, gestureEvent?: Event) {
+    if (index < 0 || index >= list.length) return;
+    current = index;
+    const url = list[current];
 
-function onStop(e: Event) {
-  if (!isVideo(e.target)) return;
-  playingVideos.delete(e.target);
-  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
-}
-document.addEventListener("pause", onStop, true);
-document.addEventListener("ended", onStop, true);
-document.addEventListener("emptied", onStop, true);
+    // Suppress global auto resume while lightbox is active or switching
+    (window as any).__suppressBGMResume = true;
+    pauseBGM();
 
-// Re-check on route changes
-function currentPath(): string {
-  const hash = location.hash || "#/reels";
-  return hash.replace(/^#/, "");
-}
-function updateTopNavActive(path: string): void {
-  const links = document.querySelectorAll<HTMLAnchorElement>(
-    ".topnav a[href^='#/']"
+    overlaySpinner.classList.add("show");
+    player.style.display = "none";
+    switching = true;
+    player.src = url;
+    if (tapToPlayHandler) {
+      overlay.removeEventListener("click", tapToPlayHandler);
+      tapToPlayHandler = null;
+    }
+
+    const onReady = () => {
+      sizeOverlayToVideo();
+      overlaySpinner.classList.remove("show");
+      player.style.display = "";
+      player.removeEventListener("loadedmetadata", onReady);
+      player.removeEventListener("canplay", onReady);
+    };
+    player.addEventListener("loadedmetadata", onReady, { once: true });
+    player.addEventListener("canplay", onReady, { once: true });
+
+    document.documentElement.classList.add("clip-open");
+    backdrop.classList.add("is-visible");
+    overlay.classList.add("is-visible");
+    overlay.setAttribute("aria-hidden", "false");
+
+    if (!overlayWrap.contains(player)) overlayWrap.appendChild(player);
+
+    // Ensure bridging is active for this player
+    bindAudioBridging();
+
+    // Try to play immediately within the same user gesture. Fallback: first overlay tap.
+    player.muted = false;
+    player.play().catch(() => {
+      tapToPlayHandler = () => {
+        player.muted = false;
+        player.play().catch(() => {});
+        if (tapToPlayHandler) overlay.removeEventListener("click", tapToPlayHandler);
+        tapToPlayHandler = null;
+      };
+      overlay.addEventListener("click", tapToPlayHandler, { once: true });
+    });
+
+    const onResize = () => sizeOverlayToVideo();
+    window.addEventListener("resize", onResize, { passive: true });
+    overlay.addEventListener("transitionend", function cleanup() {
+      if (!overlay.classList.contains("is-visible")) {
+        window.removeEventListener("resize", onResize);
+        overlay.removeEventListener("transitionend", cleanup);
+      }
+    });
+  }
+
+  function closeOverlay() {
+    overlay.classList.remove("is-visible");
+    backdrop.classList.remove("is-visible");
+    overlay.setAttribute("aria-hidden", "true");
+    document.documentElement.classList.remove("clip-open");
+
+    // Stop video and detach handlers
+    player.pause();
+    unbindAudioBridging();
+    if (tapToPlayHandler) { overlay.removeEventListener("click", tapToPlayHandler); tapToPlayHandler = null; }
+    player.removeAttribute("src");
+    player.load();
+    current = -1;
+    switching = false;
+
+    // Resume BGM
+    (window as any).__suppressBGMResume = false;
+    resumeBGM();
+  }
+
+  function step(delta: number) {
+    if (current < 0) return;
+    const next = (current + delta + list.length) % list.length;
+    openOverlay(next);
+  }
+
+  prevBtn.addEventListener("click", (e) => { e.stopPropagation(); openOverlay((current - 1 + list.length) % list.length, e); });
+  nextBtn.addEventListener("click", (e) => { e.stopPropagation(); openOverlay((current + 1) % list.length, e); });
+
+  window.addEventListener("keydown", (e) => {
+    if (!overlay.classList.contains("is-visible")) return;
+    if (e.key === "Escape") closeOverlay();
+    else if (e.key === "ArrowLeft") openOverlay((current - 1 + list.length) % list.length, e);
+    else if (e.key === "ArrowRight") openOverlay((current + 1) % list.length, e);
+  });
+
+  // Grid
+  const gridWrap = document.createElement("div");
+  gridWrap.className = "clips-grid-wrap";
+
+  const grid = document.createElement("div");
+  grid.className = "clips-grid";
+
+  const status = document.createElement("div");
+  status.textContent = "Loading…";
+  status.style.opacity = "0.7";
+
+  root.appendChild(status);
+  gridWrap.appendChild(grid);
+  root.appendChild(gridWrap);
+  root.appendChild(backdrop);
+  root.appendChild(overlay);
+
+  function makeSpinner(): HTMLElement {
+    const s = document.createElement("div");
+    s.className = "clip-spinner";
+    return s;
+  }
+
+  let loadingIndex = 0;
+  let batchInProgress = false;
+  const batchSize = 12;
+
+  // Sentinel stays last
+  const sentinel = document.createElement("div");
+  sentinel.style.width = "1px";
+  sentinel.style.height = "1px";
+  grid.appendChild(sentinel);
+
+  async function loadTile(index: number): Promise<HTMLButtonElement> {
+    const url = list[index];
+
+    // Preload off DOM so first frame is ready
+    const v = document.createElement("video");
+    v.src = url;
+    v.muted = true;
+    v.playsInline = true;
+    v.loop = false;
+    v.preload = "metadata";
+    v.className = "clip-preview";
+    v.style.objectFit = "cover";
+    v.style.objectPosition = "center";
+
+    await new Promise<void>((resolve) => {
+      v.addEventListener("loadedmetadata", () => {
+        try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01); } catch {}
+      });
+      v.addEventListener("canplay", () => resolve(), { once: true });
+    });
+
+    const tile = document.createElement("button");
+    tile.className = "clip-tile";
+    tile.type = "button";
+    tile.setAttribute("aria-label", "Open clip");
+
+    const spinner = makeSpinner();
+    tile.appendChild(v);
+    tile.appendChild(spinner);
+
+    // Spinner only during buffering after click
+    v.addEventListener("waiting", () => spinner.classList.add("show"));
+    v.addEventListener("seeking", () => spinner.classList.add("show"));
+    v.addEventListener("canplay", () => spinner.classList.remove("show"));
+    v.addEventListener("playing", () => spinner.classList.remove("show"));
+    v.addEventListener("pause", () => spinner.classList.remove("show"));
+    v.addEventListener("ended", () => spinner.classList.remove("show"));
+
+    tile.addEventListener("click", (ev) => openOverlay(index, ev));
+
+    return tile;
+  }
+
+  async function renderBatch() {
+    if (batchInProgress || loadingIndex >= list.length) return;
+    batchInProgress = true;
+
+    const end = Math.min(list.length, loadingIndex + batchSize);
+    for (; loadingIndex < end; loadingIndex++) {
+      const tile = await loadTile(loadingIndex);
+      grid.insertBefore(tile, sentinel);
+    }
+
+    batchInProgress = false;
+  }
+
+  async function topUpUntilScrollable() {
+    let guard = 0;
+    while (guard++ < 20) {
+      const docH = document.documentElement.scrollHeight;
+      const winH = window.innerHeight;
+      if (docH > winH * 1.2 || loadingIndex >= list.length) break;
+      await renderBatch();
+    }
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          renderBatch().then(topUpUntilScrollable);
+          if (loadingIndex >= list.length) {
+            io.disconnect();
+            sentinel.remove();
+          }
+        }
+      }
+    },
+    { root: null, rootMargin: "1000px 0px" }
   );
-  links.forEach((a) => {
-    const hrefPath = a.getAttribute("href")?.replace(/^#/, "") ?? "";
-    a.classList.toggle("active", hrefPath === path);
-  });
-  document.title = `Yuyu Lounge • ${path.slice(1)}`;
 
-  // If no videos are currently playing, resume bgm if user has not muted it
-  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
-}
-function onRouteChange(): void {
-  updateTopNavActive(currentPath());
-}
-onRouteChange();
-window.addEventListener("hashchange", onRouteChange);
+  // Scroll fallback
+  let ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(async () => {
+      const bottom = window.scrollY + window.innerHeight;
+      const docH = document.documentElement.scrollHeight;
+      if (docH - bottom < 1200) await renderBatch();
+      ticking = false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
 
-// Router bootstrap
-initRouter();
+  loadClips()
+    .then((urls) => {
+      status.remove();
+      list = shuffle(urls);
+      renderBatch().then(topUpUntilScrollable);
+      io.observe(sentinel);
+    })
+    .catch((err) => {
+      status.textContent = `Failed to load clips: ${err instanceof Error ? err.message : String(err)}`;
+    });
 
-// Service Worker
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(console.error);
-  });
+  return root;
 }
+
+/* Minimal CSS injection */
+const style = document.createElement("style");
+style.textContent = `
+.clip-tile { position: relative; }
+.clip-overlay, .clip-overlay-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.clip-overlay-wrap {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  background: black;
+}
+.clip-overlay, .clip-overlay-wrap { overflow: hidden; }
+.clip-preview { object-fit: cover; object-position: center; }
+.clip-overlay-player {
+  display: block;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+}
+.clip-spinner {
+  position: absolute;
+  width: 32px; height: 32px;
+  border: 3px solid transparent;
+  border-top-color: #7df6ff;
+  border-right-color: #ff4f98;
+  border-radius: 50%;
+  animation: clip-spin 0.9s linear infinite paused;
+  opacity: 0; pointer-events: none;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.clip-spinner.show { opacity: 1; animation-play-state: running; }
+@keyframes clip-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+`;
+document.head.appendChild(style);

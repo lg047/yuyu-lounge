@@ -17,7 +17,7 @@ export type BGM = {
 
 export function makeBGM(opts: Opts): BGM {
   const key = opts.key ?? "bgm.muted";
-  const initKey = key + ".init";          // one-time bootstrap so first load is unmuted
+  const initKey = key + ".init";
   const vol = Math.max(0, Math.min(1, opts.volume ?? 0.18));
 
   const el = document.createElement("audio");
@@ -29,7 +29,7 @@ export function makeBGM(opts: Opts): BGM {
   el.style.display = "none";
   document.body.appendChild(el);
 
-  // Start unmuted by default. If we have not initialized before, force unmuted once.
+  // first visit boot: force unmuted once
   const seen = !!opts.store?.getBool(initKey, false);
   if (!seen) {
     opts.store?.setBool?.(key, false);
@@ -38,16 +38,25 @@ export function makeBGM(opts: Opts): BGM {
   let muted = !!opts.store?.getBool(key, false);
   apply();
 
-  // start once after the first gesture, if not muted
-  const unlock = async () => {
-    document.removeEventListener("pointerdown", unlock);
-    document.removeEventListener("keydown", unlock);
-    if (!muted) await safePlay();
+  // start on first real gesture (capture so nothing can stopPropagation)
+  const types = ["pointerdown","pointerup","click","touchstart","touchend","keydown"];
+  const onFirstGesture = () => {
+    if (!muted) void safePlay();
+    cleanupFirstGesture();
   };
-  document.addEventListener("pointerdown", unlock, { once: true, passive: true });
-  document.addEventListener("keydown", unlock, { once: true });
+  function cleanupFirstGesture() {
+    types.forEach(t => {
+      document.removeEventListener(t, onFirstGesture, true);
+      window.removeEventListener(t, onFirstGesture, true);
+    });
+  }
+  types.forEach(t => {
+    document.addEventListener(t, onFirstGesture, { once: true, capture: true, passive: true });
+    window.addEventListener(t, onFirstGesture, { once: true, capture: true, passive: true });
+  });
 
-  // pause on hidden, resume on visible if not muted
+  // opportunistic attempt on visible tabs (desktop may allow)
+  if (document.visibilityState === "visible" && !muted) void safePlay();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") el.pause();
     else if (!muted) void safePlay();
@@ -57,7 +66,7 @@ export function makeBGM(opts: Opts): BGM {
     try {
       el.volume = vol;
       if (el.paused) await el.play();
-    } catch { /* need a gesture on some browsers */ }
+    } catch { /* blocked until a gesture; handled by onFirstGesture */ }
   }
 
   function setMuted(m: boolean) {
@@ -78,7 +87,6 @@ export function makeBGM(opts: Opts): BGM {
     btn.type = "button";
     btn.title = muted ? "Unmute music" : "Mute music";
     btn.setAttribute("aria-label", btn.title);
-    // Y2K pink pill to match your nav
     btn.style.cssText = [
       "all:unset",
       "display:inline-flex",
@@ -96,14 +104,11 @@ export function makeBGM(opts: Opts): BGM {
 
     const svgFor = (mutedNow: boolean) => `
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="display:block">
-        <!-- speaker -->
         <path fill="currentColor" d="M3 10v4h3l4 4V6L6 10H3z"/>
         ${
           mutedNow
-          // bigger X that does not clash with the speaker
-          ? `<path d="M15 8.5l5 5M20 8.5l-5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />`
-          // single wave glyph when unmuted
-          : `<path fill="currentColor" d="M13.5 7.5a6.5 6.5 0 0 1 0 9v-2a4.5 4.5 0 0 0 0-5v-2z"/>`
+            ? `<path d="M12.8 7.8L21 16M21 8l-8.2 8.2" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>`
+            : `<path fill="currentColor" d="M14 7.3a6.8 6.8 0 0 1 0 9.4v-2.1a4.7 4.7 0 0 0 0-5.2V7.3z"/>`
         }
       </svg>`;
     btn.innerHTML = svgFor(muted);
@@ -114,7 +119,7 @@ export function makeBGM(opts: Opts): BGM {
     btn.onclick = async () => {
       const willUnmute = muted;
       toggle();
-      if (willUnmute) { await safePlay(); }   // first click should start immediately
+      if (willUnmute) { await safePlay(); }
       btn.title = muted ? "Unmute music" : "Mute music";
       btn.setAttribute("aria-label", btn.title);
       btn.innerHTML = svgFor(muted);

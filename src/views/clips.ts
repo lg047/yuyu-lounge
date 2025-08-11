@@ -42,6 +42,8 @@ export default function ReelsView(): HTMLElement {
   player.loop = true;
   player.preload = "auto";
   player.style.display = "none";
+  player.style.objectFit = "contain";
+  player.style.objectPosition = "center";
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
@@ -167,10 +169,11 @@ export default function ReelsView(): HTMLElement {
   let loadingIndex = 0;
   let batchInProgress = false;
   const batchSize = 12;
+
   const sentinel = document.createElement("div");
   sentinel.style.width = "1px";
   sentinel.style.height = "1px";
-  gridWrap.appendChild(sentinel);
+  grid.appendChild(sentinel);
 
   async function renderBatch() {
     if (batchInProgress || loadingIndex >= list.length) return;
@@ -188,6 +191,8 @@ export default function ReelsView(): HTMLElement {
       v.loop = false;
       v.preload = "metadata";
       v.className = "clip-preview";
+      v.style.objectFit = "contain";
+      v.style.objectPosition = "center";
 
       await new Promise<void>((resolve) => {
         v.addEventListener("loadedmetadata", () => {
@@ -216,7 +221,8 @@ export default function ReelsView(): HTMLElement {
 
       tile.addEventListener("click", () => openOverlay(index));
 
-      grid.appendChild(tile);
+      // Insert tile before sentinel so sentinel stays last
+      grid.insertBefore(tile, sentinel);
     }
 
     batchInProgress = false;
@@ -232,13 +238,13 @@ export default function ReelsView(): HTMLElement {
         }
       }
     }
-  }, { root: null, rootMargin: "800px 0px" });
+  }, { root: null, rootMargin: "1000px 0px" });
 
   loadClips()
     .then((urls) => {
       status.remove();
       list = shuffle(urls);
-      renderBatch(); // initial batch immediately
+      renderBatch(); // initial load
       io.observe(sentinel);
     })
     .catch((err) => {
@@ -254,6 +260,10 @@ export default function ReelsView(): HTMLElement {
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }
+.clip-preview, .clip-overlay-player {
+  object-fit: contain;
+  object-position: center;
+}
 .clip-spinner {
   position: absolute;
   width: 32px;

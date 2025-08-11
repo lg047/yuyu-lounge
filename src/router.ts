@@ -7,7 +7,6 @@ const routes: Record<string, ViewFactory> = {
   "/chat": async () => (await import("./views/chat.ts")).default(),
   "/stocks": async () => (await import("./views/stocks.ts")).default(),
   "/game": async () => (await import("./views/game.ts")).default(),
-  "/settings": async () => (await import("./views/settings.ts")).default(),
 };
 
 async function render(path: string): Promise<void> {

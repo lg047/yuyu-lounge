@@ -7,17 +7,14 @@ import { store } from "./game/core/storage";
 
 // create once
 const bgm = makeBGM({ src: "assets/audio/bgm.mp3", store, key: "bgm.muted", volume: 0.18 });
-
-// optional: expose for debugging
 ;(window as any).__bgm = bgm;
 
 // Mark <html> when running as an installed app (iOS uses navigator.standalone)
 function markStandalone(): void {
   const isStandalone =
     window.matchMedia?.("(display-mode: standalone)")?.matches ||
-    // @ts-ignore - iOS Safari property
+    // @ts-ignore
     (typeof navigator !== "undefined" && (navigator as any).standalone === true);
-
   document.documentElement.classList.toggle("standalone", Boolean(isStandalone));
 }
 markStandalone();
@@ -29,14 +26,12 @@ try {
 // --- PWA Install button wiring ---
 let deferredPrompt: unknown = null;
 const installBtn = document.getElementById("installBtn") as HTMLButtonElement | null;
-
 window.addEventListener("beforeinstallprompt", (e: Event) => {
   // @ts-ignore
   e.preventDefault?.();
   deferredPrompt = e;
   if (installBtn) installBtn.hidden = false;
 });
-
 installBtn?.addEventListener("click", async () => {
   if (!deferredPrompt) return;
   // @ts-ignore
@@ -59,10 +54,7 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
     'a[href="#/settings"]',
   ];
   let target: Element | null = null;
-  for (const sel of selectors) {
-    target = scope.querySelector(sel);
-    if (target) break;
-  }
+  for (const sel of selectors) { target = scope.querySelector(sel); if (target) break; }
   if (target) {
     bgm.attachToggleInto(target);
   } else if (topnavHost) {
@@ -70,29 +62,32 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
     topnavHost.appendChild(placeholder);
     bgm.attachToggleInto(placeholder);
   }
-  // try to start if the user has already interacted and music is unmuted
   void bgm.playIfAllowed();
 })();
 
 // --- Pause BGM when a video plays, resume when all videos stop ---
-let activeVideos = 0;
+const playingVideos = new Set<HTMLVideoElement>();
+
 function isVideo(t: EventTarget | null): t is HTMLVideoElement {
   return !!t && (t as any).tagName === "VIDEO";
 }
+
 document.addEventListener("play", (e) => {
   if (!isVideo(e.target)) return;
-  activeVideos++;
-  bgm.el.pause(); // do not change bgm.muted, just pause playback
+  playingVideos.add(e.target);
+  bgm.el.pause(); // do not change mute state
 }, true);
+
 function handleVideoStop(e: Event) {
   if (!isVideo(e.target)) return;
-  activeVideos = Math.max(0, activeVideos - 1);
-  if (activeVideos === 0 && !bgm.muted) void bgm.playIfAllowed();
+  playingVideos.delete(e.target);
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
 document.addEventListener("pause", handleVideoStop, true);
 document.addEventListener("ended", handleVideoStop, true);
+document.addEventListener("emptied", handleVideoStop, true); // covers src changes
 
-// --- Active link + title ---
+// also re-check on route changes in case videos are removed from DOM
 function currentPath(): string {
   const hash = location.hash || "#/reels";
   return hash.replace(/^#/, "");
@@ -104,10 +99,10 @@ function updateTopNavActive(path: string): void {
     a.classList.toggle("active", hrefPath === path);
   });
   document.title = `Yuyu Lounge • ${path.slice(1)}`;
+  // resume if no active videos
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
-function onRouteChange(): void {
-  updateTopNavActive(currentPath());
-}
+function onRouteChange(): void { updateTopNavActive(currentPath()); }
 onRouteChange();
 window.addEventListener("hashchange", onRouteChange);
 
@@ -120,3 +115,4 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
+

@@ -5,8 +5,13 @@ type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 const routes: Record<string, ViewFactory> = {
   "/reels": async () => (await import("./views/clips.ts")).default(), // points to clips.ts
   "/chat": async () => (await import("./views/chat.ts")).default(),
-  // In your routes table or addRoute calls, add this entry:
-  "#/happystocks": async (root: HTMLElement) => (await import("./views/happystocks")).default(root),
+  "/happystocks": async () => {
+    const mod = await import("./views/happystocks");
+    const wrap = document.createElement("div");
+    // happystocks.ts exports default (root: HTMLElement) => void
+    mod.default(wrap);
+    return wrap;
+  },
   "/game": async () => (await import("./views/game.ts")).default(),
 };
 

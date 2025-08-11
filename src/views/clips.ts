@@ -84,8 +84,8 @@ export default function ReelsView(): HTMLElement {
     const vhNatural = player.videoHeight || 0;
     if (!vwNatural || !vhNatural) return;
 
-    const maxW = window.innerWidth * 0.95;
-    const maxH = window.innerHeight * 0.95;
+    const maxW = window.innerWidth;
+    const maxH = window.innerHeight;
 
     const scale = Math.min(maxW / vwNatural, maxH / vhNatural);
     const w = vwNatural * scale;
@@ -325,7 +325,8 @@ style.textContent = `
 }
 .clip-overlay-wrap {
   padding: 0; margin: 0; border: 0;
-  box-sizing: content-box;
+  box-sizing: content-box; display: block;  
+  background: transparent;
 }
 .clip-preview { object-fit: cover; object-position: center; }
 .clip-overlay-player {

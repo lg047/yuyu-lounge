@@ -36,8 +36,9 @@ export default function ChatView(): HTMLElement {
 function renderSelect(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "chat-select";
+
   const title = document.createElement("h1");
-  title.textContent = "Chat";
+  title.textContent = "Who would you like to talk with?";
   wrap.appendChild(title);
 
   const grid = document.createElement("div");
@@ -70,9 +71,14 @@ function renderSelect(): HTMLElement {
 }
 
 function renderRoom(c: { id: string; name: string; color: string }) {
+  // shell centers a small window on desktop, full height on mobile
+  const shell = document.createElement("div");
+  shell.className = "chat-room-shell";
+  shell.style.setProperty("--accent", c.color);
+
   const wrap = document.createElement("div");
   wrap.className = "chat-room";
-  wrap.style.setProperty("--accent", c.color);
+  shell.appendChild(wrap);
 
   // header
   const header = document.createElement("div");
@@ -133,11 +139,19 @@ function renderRoom(c: { id: string; name: string; color: string }) {
   }
   list.scrollTop = list.scrollHeight;
 
-  // auto grow
+  // auto grow textarea
   ta.addEventListener("input", () => {
     ta.style.height = "auto";
     ta.style.height = Math.min(120, ta.scrollHeight) + "px";
   }, { passive: true });
+
+  // ENTER to send, SHIFT+ENTER for newline
+  ta.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey) {
+      ev.preventDefault();
+      form.requestSubmit();
+    }
+  });
 
   // submit
   form.addEventListener("submit", async (e) => {
@@ -152,7 +166,6 @@ function renderRoom(c: { id: string; name: string; color: string }) {
     list.appendChild(renderMsg(um));
     list.scrollTop = list.scrollHeight;
 
-    // ask Worker
     const hist = chatStore.list(c.id);
     const payload = {
       characterId: c.id,
@@ -175,12 +188,12 @@ function renderRoom(c: { id: string; name: string; color: string }) {
       chatStore.push(c.id, am);
       thinking.replaceWith(renderMsg(am));
       list.scrollTop = list.scrollHeight;
-    } catch (err) {
+    } catch {
       thinking.replaceWith(renderBubble("assistant", "Sorry, the chat service is unavailable."));
     }
   });
 
-  return wrap;
+  return shell;
 }
 
 function renderMsg(m: Msg): HTMLElement {

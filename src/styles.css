@@ -391,6 +391,8 @@ body::before {
 
 /* Chat + Character Select */
 
+:root { --topbar-h: 120px; } /* adjust if your header is taller on iOS */
+
 .chat {
   color: #fff;
   padding: 12px;
@@ -398,19 +400,18 @@ body::before {
   font-family: 'VT323', monospace;
   letter-spacing: 0.2px;
 
-  /* bubble + input palette */
   --panel: #eec9ff;
   --bubble-user: #3aa9ff;
   --bubble-ai: #965eff;
   --input-bg: #5a4a86;   /* opaque input */
-  --send-bg:  #8a6fe8;   /* opaque Send */
+  --send-bg:  #8a6fe8;   /* opaque send */
 }
 
 /* Selection title */
 .chat-select h1 {
-  font-size: clamp(22px, 6.4vw, 36px);  /* scales down on small screens */
+  font-size: clamp(22px, 6.4vw, 36px);
   text-align: center;
-  margin: 14px 12px 30px;               /* side padding prevents clipping */
+  margin: 14px 12px 30px;
   font-weight: 400;
   color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.2);
@@ -428,7 +429,7 @@ body::before {
   padding: 0 10px;
 }
 
-/* Stack tiles on iPhone */
+/* Stack tiles on phones */
 @media (max-width: 640px) {
   .chat-select .chat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -441,7 +442,7 @@ body::before {
 }
 @media (max-width: 420px) {
   .chat-select .chat-grid {
-    grid-template-columns: 1fr;   /* single column on very small screens */
+    grid-template-columns: 1fr;
     max-width: 360px;
     gap: 12px;
   }
@@ -487,13 +488,13 @@ body::before {
 }
 
 /* ---------- BACKGROUND LAYERS ---------- */
-/* Stars: static. Hearts: moving overlay behind content. */
 .chat-room {
   position: relative;
   overflow: hidden;
   border-radius: 16px;
+  isolation: isolate; /* keep overlays behind content */
 
-  /* make stars smaller by repeating the 1024 tile at 768 */
+  /* stars smaller by repeating at 768px (source is 1024) */
   background: url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
   background-size: 768px 768px;
 
@@ -502,8 +503,8 @@ body::before {
   gap: 8px;
   width: 100%;
   max-width: 700px;
-  height: 64vh;             /* a bit taller on desktop */
-  max-height: 700px;
+  height: 66vh;   /* desktop: slightly taller */
+  max-height: 720px;
   padding: 12px;
 
   box-shadow: none;
@@ -511,37 +512,35 @@ body::before {
   -webkit-backdrop-filter: none;
 }
 
-/* Fit on iPhone without scrolling to reach input */
+/* iPhone: fit without scrolling to reach input */
 @media (max-width: 768px) {
   .chat-room-shell { padding: 0; }
   .chat-room {
     border-radius: 0;
     width: 100%;
-    height: 78svh;          /* uses small viewport height on iOS */
+    height: calc(100svh - var(--topbar-h)); /* subtract your header */
+    max-height: none;
     padding: 10px;
   }
 }
 
+/* hearts overlay behind content, faint, bottom fade */
 .chat-room::before,
 .chat-room::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;               /* keep UNDER content */
+  z-index: 0;
 }
-
-/* moving hearts, faint, bottom fade */
 .chat-room::before {
   background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
-  background-size: 1024px 1024px;
+  background-size: 1024px 1024px;     /* native */
   animation: heartsDrift 80s linear infinite;
   opacity: 0.18;
   -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
   mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
 }
-
-/* gentle tint to calm whites */
 .chat-room::after { background: rgba(120, 70, 160, 0.06); }
 
 @keyframes heartsDrift {
@@ -606,7 +605,7 @@ body::before {
   align-content: start;
 }
 
-/* Bubbles (opaque) */
+/* Bubbles: force opaque */
 .chat-row { display: grid; }
 .chat-row.user { justify-items: end; }
 .chat-row.assistant { justify-items: start; }
@@ -616,15 +615,17 @@ body::before {
   max-width: 58ch;
   padding: 14px 16px;
   border-radius: 16px;
-  background: var(--bubble-ai);
+  background-color: var(--bubble-ai);
   color: #fff;
   line-height: 1.28;
   white-space: pre-wrap;
   word-break: break-word;
   box-shadow: none;
-  opacity: 1;
+  opacity: 1 !important;
+  mix-blend-mode: normal;
+  backdrop-filter: none;
 }
-.chat-row.user .chat-bubble { background: var(--bubble-user); }
+.chat-row.user .chat-bubble { background-color: var(--bubble-user); }
 
 /* Input (opaque) */
 .chat-form {
@@ -643,7 +644,7 @@ body::before {
   color: #fff;
   min-height: 44px;
   font: inherit;
-  opacity: 1;
+  opacity: 1 !important;
 }
 .chat-form textarea::placeholder { color: rgba(255,255,255,0.95); }
 .chat-form textarea:focus {
@@ -659,12 +660,40 @@ body::before {
   font: inherit;
   -webkit-appearance: none;
   appearance: none;
-  opacity: 1;
+  opacity: 1 !important;
 }
 .chat-send:active { transform: translateY(1px); }
+
+/* Loading overlay (used by both selection and chat) */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: #1a002040; /* translucent dark */
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  transition: opacity .2s ease;
+}
+.loading-overlay.hide { opacity: 0; pointer-events: none; }
+
+/* tiny pixel spinner */
+.px-spinner {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+  align-items: end;
+}
+.px-spinner i {
+  width: 10px; height: 10px;
+  background: #fff;
+  image-rendering: pixelated;
+  animation: pxBounce 1s infinite ease-in-out;
+}
+.px-spinner i:nth-child(2) { animation-delay: .15s; }
+.px-spinner i:nth-child(3) { animation-delay: .30s; }
+@keyframes pxBounce { 0%,80%,100%{ transform: scale(1); } 40%{ transform: scale(1.8); } }
 
 /* iOS safe area */
 @supports(padding:max(0px)) {
   .chat-room { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 }
-

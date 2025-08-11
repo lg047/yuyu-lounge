@@ -123,6 +123,9 @@ export default function ReelsView(): HTMLElement {
     current = index;
     const url = list[current];
 
+    // Stop BGM right away in the same user gesture that triggered this
+    pauseBGM();
+
     overlaySpinner.classList.add("show");
     player.style.display = "none";
     switching = true;
@@ -205,8 +208,8 @@ export default function ReelsView(): HTMLElement {
   window.addEventListener("keydown", (e) => {
     if (!overlay.classList.contains("is-visible")) return;
     if (e.key === "Escape") closeOverlay();
-    else if (e.key === "ArrowLeft") step(-1);
-    else if (e.key === "ArrowRight") step(1);
+    else if (e.key === "ArrowLeft") openOverlay((current - 1 + list.length) % list.length, e);
+    else if (e.key === "ArrowRight") openOverlay((current + 1) % list.length, e);
   });
 
   // Grid

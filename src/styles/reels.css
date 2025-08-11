@@ -1,0 +1,101 @@
+/* Reels grid */
+.reels-grid {
+  --reels-thumb-w: 240px;
+  --reels-gap: 12px;
+  --reels-aqua: #7df6ff;
+  --reels-pink: #ff4f98;
+  --reels-bg: radial-gradient(120% 120% at 50% 0%, rgba(10,12,26,0.95) 0%, #0a0c1a 60%, #04050d 100%);
+}
+
+.reels-grid-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--reels-thumb-w), 1fr));
+  gap: var(--reels-gap);
+  padding: 16px;
+  background: var(--reels-bg);
+}
+
+.reels-card {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(125,246,255,0.10), rgba(255,79,152,0.10)) padding-box,
+    linear-gradient(135deg, var(--reels-aqua), var(--reels-pink)) border-box;
+  border: 2px solid transparent;
+  box-shadow:
+    inset 0 0 18px rgba(125,246,255,0.18),
+    0 6px 18px rgba(0,0,0,0.35);
+  transform: translateZ(0);
+}
+
+.reels-thumb,
+.reels-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.reels-thumb {
+  display: grid;
+  place-items: center;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(125,246,255,0.07) 0 15deg, transparent 15deg 30deg),
+    linear-gradient(180deg, rgba(255,79,152,0.10), rgba(125,246,255,0.10));
+  cursor: pointer;
+}
+
+.reels-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
+/* Spinner */
+.reels-spinner {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--reels-aqua);
+  border-right-color: var(--reels-pink);
+  opacity: 0;
+  transform: translateZ(0);
+  pointer-events: none;
+  transition: opacity 120ms linear;
+  animation: reels-spin 900ms linear infinite paused;
+}
+
+.reels-spinner.show {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* Center spinner without blocking clicks to controls */
+.reels-thumb .reels-spinner,
+.reels-video ~ .reels-spinner {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes reels-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Video element */
+.reels-video {
+  display: block;
+  background: #000; /* avoids white flash */
+}
+
+/* Sentinel occupies minimal space, avoid layout shift */
+.reels-sentinel {
+  inline-size: 1px;
+  block-size: 1px;
+}

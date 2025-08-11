@@ -123,7 +123,8 @@ export default function ReelsView(): HTMLElement {
     current = index;
     const url = list[current];
 
-    // Stop BGM right away in the same user gesture that triggered this
+    // Suppress global auto resume while lightbox is active or switching
+    (window as any).__suppressBGMResume = true;
     pauseBGM();
 
     overlaySpinner.classList.add("show");
@@ -193,6 +194,7 @@ export default function ReelsView(): HTMLElement {
     switching = false;
 
     // Resume BGM
+    (window as any).__suppressBGMResume = false;
     resumeBGM();
   }
 

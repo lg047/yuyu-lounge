@@ -20,12 +20,17 @@ async function render(path: string): Promise<void> {
 
 export async function navigate(): Promise<void> {
   const hash = location.hash || "#/reels";
-  const path = hash.replace(/^#/, "");
+  let path = hash.replace(/^#/, "");
 
   // Legacy alias
   if (path === "/clips") {
     location.replace("#/reels");
     return;
+  }
+
+  // NEW: normalize /chat/xxx -> /chat
+  if (path.startsWith("/chat/")) {
+    path = "/chat";
   }
 
   await render(path);

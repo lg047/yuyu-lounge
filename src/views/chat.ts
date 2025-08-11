@@ -10,23 +10,29 @@ function fitChatHeight(room: HTMLElement): () => void {
     const vv = (window as any).visualViewport as VisualViewport | undefined;
     const vh = vv ? vv.height : window.innerHeight;
 
-    // distance from top of viewport to the chat box
-    const top = room.getBoundingClientRect().top;
+    const rectTop = room.getBoundingClientRect().top;
 
-    // iOS bottom inset if any
-    const saBottomStr = getComputedStyle(document.documentElement).getPropertyValue("--sa-bottom");
-    const saBottom = parseFloat(saBottomStr) || 0;
+    // read iOS safe-area vars you already have in :root
+    const cs = getComputedStyle(document.documentElement);
+    const saTop = parseFloat(cs.getPropertyValue("--sa-top")) || 0;
+    const saBottom = parseFloat(cs.getPropertyValue("--sa-bottom")) || 0;
 
-    // final height in pixels
-    const h = Math.floor(vh - top - saBottom);
+    // top gap = distance from top nav to chat window top
+    const topGap = Math.max(0, rectTop - saTop);
 
-    room.style.height = Math.max(360, h) + "px";
-    room.style.maxHeight = "none"; // allow full use of available space
+    // optional tiny cushion so it never visually touches
+    const cushion = 4; // px
+
+    // set height so there is an equal gap at the bottom
+    // height = viewport - currentTop - safeBottom - topGap - cushion
+    const h = Math.floor(vh - rectTop - saBottom - topGap - cushion);
+
+    room.style.height = Math.max(320, h) + "px";
+    room.style.maxHeight = "none";
   };
 
   apply();
 
-  // keep it updated on rotations, address-bar collapse, keyboard open
   const onResize = () => apply();
   const ro = new ResizeObserver(apply);
   ro.observe(document.body);
@@ -37,7 +43,6 @@ function fitChatHeight(room: HTMLElement): () => void {
     vv.addEventListener("scroll", onResize, { passive: true });
   }
 
-  // cleanup
   return () => {
     ro.disconnect();
     window.removeEventListener("resize", onResize);
@@ -48,6 +53,7 @@ function fitChatHeight(room: HTMLElement): () => void {
     }
   };
 }
+
 
 
 function createLoader(): HTMLDivElement {

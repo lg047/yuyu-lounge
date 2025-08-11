@@ -1,6 +1,4 @@
 // src/views/reels.ts
-// Same layout/overlay as before. Adds: batch loading via IntersectionObserver,
-// spinner overlay during buffering/seeking, keeps video previews as thumbnails.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -33,12 +31,23 @@ export default function ReelsView(): HTMLElement {
   overlay.className = "clip-overlay";
   overlay.setAttribute("aria-hidden", "true");
 
+  const overlayWrap = document.createElement("div");
+  overlayWrap.className = "clip-overlay-wrap";
+  overlay.appendChild(overlayWrap);
+
   const player = document.createElement("video");
   player.className = "clip-overlay-player";
   player.playsInline = true;
   player.muted = false;
   player.loop = true;
   player.preload = "auto";
+  player.style.display = "none"; // hidden until ready
+
+  const overlaySpinner = document.createElement("div");
+  overlaySpinner.className = "clip-spinner";
+
+  overlayWrap.appendChild(player);
+  overlayWrap.appendChild(overlaySpinner);
 
   const closeBtn = document.createElement("button");
   closeBtn.className = "clip-overlay-close";
@@ -59,7 +68,6 @@ export default function ReelsView(): HTMLElement {
   nextBtn.setAttribute("aria-label", "Next");
   nextBtn.textContent = "›";
 
-  overlay.appendChild(player);
   overlay.appendChild(closeBtn);
   overlay.appendChild(prevBtn);
   overlay.appendChild(nextBtn);
@@ -71,7 +79,19 @@ export default function ReelsView(): HTMLElement {
     if (index < 0 || index >= list.length) return;
     current = index;
     const url = list[current];
-    if (player.src !== url) player.src = url;
+
+    overlaySpinner.classList.add("show");
+    player.style.display = "none";
+
+    player.src = url;
+    player.addEventListener(
+      "canplay",
+      () => {
+        overlaySpinner.classList.remove("show");
+        player.style.display = "";
+      },
+      { once: true }
+    );
 
     document.documentElement.classList.add("clip-open");
     backdrop.classList.add("is-visible");
@@ -121,7 +141,7 @@ export default function ReelsView(): HTMLElement {
     else if (e.key === "ArrowRight") step(1);
   });
 
-  // Centered grid
+  // Grid
   const gridWrap = document.createElement("div");
   gridWrap.className = "clips-grid-wrap";
 
@@ -138,32 +158,28 @@ export default function ReelsView(): HTMLElement {
   root.appendChild(backdrop);
   root.appendChild(overlay);
 
-  // Spinner element
   function makeSpinner(): HTMLElement {
     const s = document.createElement("div");
     s.className = "clip-spinner";
     return s;
   }
 
-  // Batch rendering
   let rendered = 0;
-  const batchSize = 24;
+  const batchSize = 12; // smaller batches feel snappier
   const sentinel = document.createElement("div");
   sentinel.style.width = "1px";
   sentinel.style.height = "1px";
   gridWrap.appendChild(sentinel);
 
-  function renderBatch() {
+  async function renderBatch() {
     const end = Math.min(list.length, rendered + batchSize);
+    const fragment = document.createDocumentFragment();
+
     for (; rendered < end; rendered++) {
-      const index = rendered; // capture index for click handler
+      const index = rendered;
       const url = list[index];
 
-      const tile = document.createElement("button");
-      tile.className = "clip-tile";
-      tile.type = "button";
-      tile.setAttribute("aria-label", "Open clip");
-
+      // Preload video off-DOM
       const v = document.createElement("video");
       v.src = url;
       v.muted = true;
@@ -171,16 +187,26 @@ export default function ReelsView(): HTMLElement {
       v.loop = false;
       v.preload = "metadata";
       v.className = "clip-preview";
-      v.addEventListener("loadedmetadata", () => {
-        try {
-          v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
-        } catch {}
+
+      await new Promise<void>((resolve) => {
+        v.addEventListener("loadedmetadata", () => {
+          try {
+            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
+          } catch {}
+        });
+        v.addEventListener("canplay", () => resolve(), { once: true });
       });
+
+      const tile = document.createElement("button");
+      tile.className = "clip-tile";
+      tile.type = "button";
+      tile.setAttribute("aria-label", "Open clip");
 
       const spinner = makeSpinner();
       tile.appendChild(v);
       tile.appendChild(spinner);
 
+      // Spinner only used if buffering after click
       v.addEventListener("waiting", () => spinner.classList.add("show"));
       v.addEventListener("seeking", () => spinner.classList.add("show"));
       v.addEventListener("canplay", () => spinner.classList.remove("show"));
@@ -189,9 +215,10 @@ export default function ReelsView(): HTMLElement {
       v.addEventListener("ended", () => spinner.classList.remove("show"));
 
       tile.addEventListener("click", () => openOverlay(index));
-
-      grid.appendChild(tile);
+      fragment.appendChild(tile);
     }
+
+    grid.appendChild(fragment);
   }
 
   const io = new IntersectionObserver((entries) => {
@@ -204,7 +231,7 @@ export default function ReelsView(): HTMLElement {
         }
       }
     }
-  }, { root: null, rootMargin: "1200px 0px" });
+  }, { root: null, rootMargin: "800px 0px" });
 
   loadClips()
     .then((urls) => {
@@ -222,7 +249,7 @@ export default function ReelsView(): HTMLElement {
   return root;
 }
 
-/* === Spinner CSS appended === */
+/* Spinner CSS injection */
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }

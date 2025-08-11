@@ -5,7 +5,8 @@ type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 const routes: Record<string, ViewFactory> = {
   "/reels": async () => (await import("./views/clips.ts")).default(), // points to clips.ts
   "/chat": async () => (await import("./views/chat.ts")).default(),
-  "/stocks": async () => (await import("./views/stocks.ts")).default(),
+  // In your routes table or addRoute calls, add this entry:
+  "#/happystocks": async (root: HTMLElement) => (await import("./views/happystocks")).default(root),
   "/game": async () => (await import("./views/game.ts")).default(),
 };
 

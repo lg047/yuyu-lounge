@@ -87,6 +87,22 @@ document.addEventListener("pause", onStop, true);
 document.addEventListener("ended", onStop, true);
 document.addEventListener("emptied", onStop, true);
 
+// Unmute a video when the user explicitly clicks the video element
+document.addEventListener("click", (e) => {
+  const el = e.target as HTMLElement | null;
+  const v = el?.closest?.("video") as HTMLVideoElement | null;
+  if (!v) return;
+
+  // user intent: enable audio
+  v.muted = false;
+  v.defaultMuted = false;
+  if (v.volume === 0) v.volume = 1;
+  v.setAttribute("playsinline", "true"); // iOS
+  // optional: ensure it plays if they tapped a paused poster
+  if (v.paused) void v.play().catch(() => {});
+}, { capture: true });
+
+
 // Re-check on route changes
 function currentPath(): string {
   const hash = location.hash || "#/reels";

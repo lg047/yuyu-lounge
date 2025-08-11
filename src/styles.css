@@ -490,10 +490,11 @@ body::before {
 /* ---------- BACKGROUND LAYERS ---------- */
 .chat-room {
   position: relative;
+  isolation: isolate;          /* create stacking context */
   overflow: hidden;
   border-radius: 16px;
 
-  /* stars smaller by repeating at 640px (source is 1024) */
+  /* stars smaller by repeating the 1024 tile at 640 */
   background: url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
   background-size: 640px 640px;
 
@@ -502,7 +503,7 @@ body::before {
   gap: 8px;
   width: 100%;
   max-width: 700px;
-  height: 66vh;      /* desktop a bit taller */
+  height: 66vh;                /* desktop */
   max-height: 720px;
   padding: 12px;
 
@@ -510,16 +511,23 @@ body::before {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-
 /* iPhone: fit without page scroll to reach input */
 @media (max-width: 768px) {
   .chat-room-shell { padding: 0; }
   .chat-room {
     border-radius: 0;
     width: 100%;
-    height: min(calc(100svh - var(--topbar-h)), calc(100dvh - var(--topbar-h)));
+    height: calc(100svh - var(--topbar-h) - env(safe-area-inset-bottom) - 8px);
     max-height: none;
     padding: 10px;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 768px) {
+    .chat-room {
+      height: calc(100dvh - var(--topbar-h) - env(safe-area-inset-bottom) - 8px);
+    }
   }
 }
 
@@ -530,7 +538,7 @@ body::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: -1;  /* push behind content for real */
+  z-index: 0;  /* push behind content for real */
 }
 .chat-room::before {
   background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
@@ -541,6 +549,15 @@ body::before {
   mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
 }
 .chat-room::after { background: rgba(120, 70, 160, 0.06); }
+
+/* ensure all real content sits above overlays */
+.chat-room > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* messages area can shrink to fit height calc */
+.chat-list { min-height: 0; }
 
 @keyframes heartsDrift {
   from { background-position: 0 0; }

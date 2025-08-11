@@ -9,7 +9,7 @@ import { store } from "./game/core/storage";
 const bgm = makeBGM({ src: "assets/audio/bgm.mp3", store, key: "bgm.muted", volume: 0.18 });
 ;(window as any).__bgm = bgm;
 
-// Mark <html> when running as an installed app (iOS uses navigator.standalone)
+// Mark <html> when running as an installed app
 function markStandalone(): void {
   const isStandalone =
     window.matchMedia?.("(display-mode: standalone)")?.matches ||
@@ -21,7 +21,7 @@ markStandalone();
 try {
   const mq = window.matchMedia?.("(display-mode: standalone)");
   mq?.addEventListener?.("change", markStandalone);
-} catch { /* no-op */ }
+} catch {}
 
 // --- PWA Install button wiring ---
 let deferredPrompt: unknown = null;
@@ -65,29 +65,35 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
   void bgm.playIfAllowed();
 })();
 
-// --- Pause BGM when a video plays, resume when all videos stop ---
-const playingVideos = new Set<HTMLVideoElement>();
-
+// Pause BGM when any audible video plays, resume when none are audible
+const audibleVideos = new Set<HTMLVideoElement>();
 function isVideo(t: EventTarget | null): t is HTMLVideoElement {
   return !!t && (t as any).tagName === "VIDEO";
 }
-
-document.addEventListener("play", (e) => {
-  if (!isVideo(e.target)) return;
-  playingVideos.add(e.target);
-  bgm.el.pause(); // do not change mute state
-}, true);
-
-function handleVideoStop(e: Event) {
-  if (!isVideo(e.target)) return;
-  playingVideos.delete(e.target);
-  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
+function isAudible(v: HTMLVideoElement): boolean {
+  return !v.paused && !v.muted && v.volume > 0;
 }
-document.addEventListener("pause", handleVideoStop, true);
-document.addEventListener("ended", handleVideoStop, true);
-document.addEventListener("emptied", handleVideoStop, true); // covers src changes
+function updateAudible(v: HTMLVideoElement) {
+  if (isAudible(v)) {
+    if (!audibleVideos.has(v)) audibleVideos.add(v);
+  } else {
+    audibleVideos.delete(v);
+  }
+  if (audibleVideos.size > 0) {
+    bgm.el.pause();
+  } else if (!bgm.muted) {
+    void bgm.playIfAllowed();
+  }
+}
 
-// also re-check on route changes in case videos are removed from DOM
+document.addEventListener("play", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+document.addEventListener("playing", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+document.addEventListener("pause", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+document.addEventListener("ended", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+document.addEventListener("emptied", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+document.addEventListener("volumechange", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
+
+// Re-check on route changes
 function currentPath(): string {
   const hash = location.hash || "#/reels";
   return hash.replace(/^#/, "");
@@ -99,20 +105,20 @@ function updateTopNavActive(path: string): void {
     a.classList.toggle("active", hrefPath === path);
   });
   document.title = `Yuyu Lounge • ${path.slice(1)}`;
-  // resume if no active videos
-  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
+
+  // In case videos got detached
+  if (audibleVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
 function onRouteChange(): void { updateTopNavActive(currentPath()); }
 onRouteChange();
 window.addEventListener("hashchange", onRouteChange);
 
-// --- Router bootstrap ---
+// Router bootstrap
 initRouter();
 
-// --- Service Worker ---
+// Service Worker
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
-

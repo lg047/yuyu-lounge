@@ -48,6 +48,8 @@ function renderSelect(): HTMLElement {
     const card = document.createElement("button");
     card.className = "chat-card";
     card.style.setProperty("--accent", c.color);
+    card.style.setProperty("--fill", c.color); // solid fill same as border
+    card.setAttribute("data-id", c.id);
     card.onclick = () => {
       location.hash = `#/chat/${c.id}`;
     };
@@ -70,8 +72,8 @@ function renderSelect(): HTMLElement {
   return wrap;
 }
 
-function renderRoom(c: { id: string; name: string; color: string }) {
-  // shell centers a small window on desktop, full height on mobile
+function renderRoom(c: { id: string; name: string; color: string; }) {
+  // shell near top on desktop, full on mobile
   const shell = document.createElement("div");
   shell.className = "chat-room-shell";
   shell.style.setProperty("--accent", c.color);
@@ -92,7 +94,17 @@ function renderRoom(c: { id: string; name: string; color: string }) {
 
   const title = document.createElement("div");
   title.className = "chat-title";
-  title.textContent = c.name;
+
+  const avatar = document.createElement("img");
+  avatar.className = "chat-title-avatar";
+  avatar.src = `${import.meta.env.BASE_URL || "/"}assets/portraits/${c.id}.png`;
+  avatar.alt = c.name;
+
+  const name = document.createElement("span");
+  name.textContent = c.name;
+
+  title.appendChild(avatar);
+  title.appendChild(name);
   header.appendChild(title);
 
   const clear = document.createElement("button");
@@ -139,13 +151,13 @@ function renderRoom(c: { id: string; name: string; color: string }) {
   }
   list.scrollTop = list.scrollHeight;
 
-  // auto grow textarea
+  // grow textarea
   ta.addEventListener("input", () => {
     ta.style.height = "auto";
     ta.style.height = Math.min(120, ta.scrollHeight) + "px";
   }, { passive: true });
 
-  // ENTER to send, SHIFT+ENTER for newline
+  // Enter sends, Shift+Enter newline
   ta.addEventListener("keydown", (ev) => {
     if (ev.key === "Enter" && !ev.shiftKey) {
       ev.preventDefault();
@@ -166,10 +178,9 @@ function renderRoom(c: { id: string; name: string; color: string }) {
     list.appendChild(renderMsg(um));
     list.scrollTop = list.scrollHeight;
 
-    const hist = chatStore.list(c.id);
     const payload = {
       characterId: c.id,
-      messages: hist.map(m => ({ role: m.role, content: m.content }))
+      messages: chatStore.list(c.id).map(m => ({ role: m.role, content: m.content }))
     };
 
     const thinking = renderBubble("assistant", "…");

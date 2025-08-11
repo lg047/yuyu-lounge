@@ -391,7 +391,7 @@ body::before {
 
 /* Chat + Character Select */
 
-:root { --topbar-h: 120px; } /* adjust if your header is taller on iOS */
+:root { --topbar-h: 140px; } /* bump if your header is taller on iPhone */
 
 .chat {
   color: #fff;
@@ -401,10 +401,10 @@ body::before {
   letter-spacing: 0.2px;
 
   --panel: #eec9ff;
-  --bubble-user: #3aa9ff;
-  --bubble-ai: #965eff;
-  --input-bg: #5a4a86;   /* opaque input */
-  --send-bg:  #8a6fe8;   /* opaque send */
+  --bubble-user: #3aa9ff;   /* solid */
+  --bubble-ai: #965eff;     /* solid */
+  --input-bg: #5a4a86;      /* solid */
+  --send-bg:  #8a6fe8;      /* solid */
 }
 
 /* Selection title */
@@ -492,18 +492,17 @@ body::before {
   position: relative;
   overflow: hidden;
   border-radius: 16px;
-  isolation: isolate; /* keep overlays behind content */
 
-  /* stars smaller by repeating at 768px (source is 1024) */
+  /* stars smaller by repeating at 640px (source is 1024) */
   background: url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
-  background-size: 768px 768px;
+  background-size: 640px 640px;
 
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
   width: 100%;
   max-width: 700px;
-  height: 66vh;   /* desktop: slightly taller */
+  height: 66vh;      /* desktop a bit taller */
   max-height: 720px;
   padding: 12px;
 
@@ -512,34 +511,34 @@ body::before {
   -webkit-backdrop-filter: none;
 }
 
-/* iPhone: fit without scrolling to reach input */
+/* iPhone: fit without page scroll to reach input */
 @media (max-width: 768px) {
   .chat-room-shell { padding: 0; }
   .chat-room {
     border-radius: 0;
     width: 100%;
-    height: calc(100svh - var(--topbar-h)); /* subtract your header */
+    height: min(calc(100svh - var(--topbar-h)), calc(100dvh - var(--topbar-h)));
     max-height: none;
     padding: 10px;
   }
 }
 
-/* hearts overlay behind content, faint, bottom fade */
+/* overlays behind all content */
 .chat-room::before,
 .chat-room::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;  /* push behind content for real */
 }
 .chat-room::before {
   background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
-  background-size: 1024px 1024px;     /* native */
+  background-size: 1024px 1024px;
   animation: heartsDrift 80s linear infinite;
   opacity: 0.18;
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
 }
 .chat-room::after { background: rgba(120, 70, 160, 0.06); }
 
@@ -605,7 +604,7 @@ body::before {
   align-content: start;
 }
 
-/* Bubbles: force opaque */
+/* Bubbles: force solid and non-blended */
 .chat-row { display: grid; }
 .chat-row.user { justify-items: end; }
 .chat-row.assistant { justify-items: start; }
@@ -615,17 +614,19 @@ body::before {
   max-width: 58ch;
   padding: 14px 16px;
   border-radius: 16px;
-  background-color: var(--bubble-ai);
+  background: var(--bubble-ai);     /* solid color */
   color: #fff;
   line-height: 1.28;
   white-space: pre-wrap;
   word-break: break-word;
   box-shadow: none;
   opacity: 1 !important;
-  mix-blend-mode: normal;
-  backdrop-filter: none;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
 }
-.chat-row.user .chat-bubble { background-color: var(--bubble-user); }
+.chat-row.user .chat-bubble {
+  background: var(--bubble-user);
+}
 
 /* Input (opaque) */
 .chat-form {
@@ -664,19 +665,17 @@ body::before {
 }
 .chat-send:active { transform: translateY(1px); }
 
-/* Loading overlay (used by both selection and chat) */
+/* Loading overlay */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: #1a002040; /* translucent dark */
+  background: #1a002040;
   display: grid;
   place-items: center;
   z-index: 9999;
   transition: opacity .2s ease;
 }
 .loading-overlay.hide { opacity: 0; pointer-events: none; }
-
-/* tiny pixel spinner */
 .px-spinner {
   display: grid;
   grid-auto-flow: column;

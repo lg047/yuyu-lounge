@@ -464,11 +464,18 @@ body::before {
 }
 
 /* ---------- BACKGROUND LAYERS ---------- */
-/* Base: static tiny stars (opaque) */
+/* Base: static tiny stars (opaque).
+   Your file is 1024×1024, but we repeat it at 768px to make crosses look smaller.
+   Note: background scaling can soften pixels a touch on Safari. */
 .chat-room {
-  background: url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
-  background-size: 1024px 1024px; /* your star tile is 1024×1024 */
+  position: relative;
+  overflow: hidden;
   border-radius: 16px;
+
+  background:
+    url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
+  background-size:
+    768px 768px; /* zoom-out stars only */
 
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -482,39 +489,42 @@ body::before {
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-
-  position: relative;
-  overflow: hidden;
 }
 
-/* Moving hearts overlay with low opacity and a bottom fade */
-.chat-room::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
-  background-size: 1024px 1024px;        /* matches your 1024×1024 hearts */
-  animation: heartsDrift 80s linear infinite;
-  opacity: 0.20;                          /* less distracting */
-  pointer-events: none;
-
-  /* fade out near the input to avoid clutter there */
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
-}
-
-/* Subtle tint to calm the big stars a touch (no slab look) */
+/* Moving hearts overlay behind content, faint, with bottom fade */
+.chat-room::before,
 .chat-room::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(120, 70, 160, 0.08);  /* very light lilac wash */
   pointer-events: none;
+  z-index: 0; /* keep UNDER content */
+}
+
+/* hearts */
+.chat-room::before {
+  background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
+  background-size: 1024px 1024px;  /* native size for your 1024 tile */
+  animation: heartsDrift 80s linear infinite;
+  opacity: 0.18;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
+}
+
+/* subtle wash to calm big whites, also behind content */
+.chat-room::after {
+  background: rgba(120, 70, 160, 0.06);
+}
+
+/* ensure all real content sits above overlays */
+.chat-room > * {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes heartsDrift {
   from { background-position: 0 0; }
-  to   { background-position: -1024px 0; } /* gentle leftward drift */
+  to   { background-position: -1024px 0; }
 }
 
 @media (max-width: 768px) {
@@ -528,7 +538,7 @@ body::before {
   }
 }
 
-/* Header: bigger avatar and name */
+/* Header */
 .chat-head {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -585,7 +595,7 @@ body::before {
   align-content: start;
 }
 
-/* Bubbles */
+/* Bubbles: fully opaque again */
 .chat-row { display: grid; }
 .chat-row.user { justify-items: end; }
 .chat-row.assistant { justify-items: start; }
@@ -595,12 +605,13 @@ body::before {
   max-width: 58ch;
   padding: 14px 16px;
   border-radius: 16px;
-  background: var(--bubble-ai);
+  background: var(--bubble-ai); /* solid */
   color: #fff;
   line-height: 1.28;
   white-space: pre-wrap;
   word-break: break-word;
   box-shadow: none;
+  opacity: 1; /* forcefully opaque */
 }
 .chat-row.user .chat-bubble { background: var(--bubble-user); }
 

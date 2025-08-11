@@ -42,8 +42,13 @@ export default function ReelsView(): HTMLElement {
   player.loop = true;
   player.preload = "auto";
   player.style.display = "none";
+  // Lightbox rendering: centered, symmetric bars, constrained to viewport
   player.style.objectFit = "contain";
   player.style.objectPosition = "center";
+  player.style.maxWidth = "90vw";
+  player.style.maxHeight = "90vh";
+  player.style.width = "auto";
+  player.style.height = "auto";
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
@@ -184,6 +189,7 @@ export default function ReelsView(): HTMLElement {
       const index = loadingIndex;
       const url = list[index];
 
+      // Off DOM preload
       const v = document.createElement("video");
       v.src = url;
       v.muted = true;
@@ -191,7 +197,8 @@ export default function ReelsView(): HTMLElement {
       v.loop = false;
       v.preload = "metadata";
       v.className = "clip-preview";
-      v.style.objectFit = "contain";
+      // Previews stay square and filled as before
+      v.style.objectFit = "cover";
       v.style.objectPosition = "center";
 
       await new Promise<void>((resolve) => {
@@ -212,6 +219,7 @@ export default function ReelsView(): HTMLElement {
       tile.appendChild(v);
       tile.appendChild(spinner);
 
+      // Spinner only during buffering after click
       v.addEventListener("waiting", () => spinner.classList.add("show"));
       v.addEventListener("seeking", () => spinner.classList.add("show"));
       v.addEventListener("canplay", () => spinner.classList.remove("show"));
@@ -221,30 +229,33 @@ export default function ReelsView(): HTMLElement {
 
       tile.addEventListener("click", () => openOverlay(index));
 
-      // Insert tile before sentinel so sentinel stays last
+      // Insert before sentinel so sentinel remains last
       grid.insertBefore(tile, sentinel);
     }
 
     batchInProgress = false;
   }
 
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (e.isIntersecting) {
-        renderBatch();
-        if (loadingIndex >= list.length) {
-          io.disconnect();
-          sentinel.remove();
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          renderBatch();
+          if (loadingIndex >= list.length) {
+            io.disconnect();
+            sentinel.remove();
+          }
         }
       }
-    }
-  }, { root: null, rootMargin: "1000px 0px" });
+    },
+    { root: null, rootMargin: "1000px 0px" }
+  );
 
   loadClips()
     .then((urls) => {
       status.remove();
       list = shuffle(urls);
-      renderBatch(); // initial load
+      renderBatch();
       io.observe(sentinel);
     })
     .catch((err) => {
@@ -256,14 +267,17 @@ export default function ReelsView(): HTMLElement {
   return root;
 }
 
-/* Spinner CSS injection */
+/* Minimal CSS injection for centering and spinner */
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }
-.clip-preview, .clip-overlay-player {
-  object-fit: contain;
-  object-position: center;
+.clip-overlay, .clip-overlay-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.clip-preview { object-fit: cover; object-position: center; }
+.clip-overlay-player { object-fit: contain; object-position: center; }
 .clip-spinner {
   position: absolute;
   width: 32px;
@@ -279,12 +293,7 @@ style.textContent = `
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.clip-spinner.show {
-  opacity: 1;
-  animation-play-state: running;
-}
-@keyframes clip-spin {
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
+.clip-spinner.show { opacity: 1; animation-play-state: running; }
+@keyframes clip-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 `;
 document.head.appendChild(style);

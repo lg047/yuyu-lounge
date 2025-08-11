@@ -27,14 +27,12 @@ function fallbackBeep(freq = 660, ms = 60) {
     const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
     if (!AC) return;
     if (!fallbackCtx) fallbackCtx = new AC();
-    // resume if suspended due to autoplay policy
     if (fallbackCtx.state === "suspended") fallbackCtx.resume();
     const t0 = fallbackCtx.currentTime;
     const osc = fallbackCtx.createOscillator();
     const gain = fallbackCtx.createGain();
     osc.type = "sine";
     osc.frequency.value = freq;
-    // small envelope to avoid clicks and keep volume gentle
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(0.08, t0 + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + ms / 1000);
@@ -117,7 +115,7 @@ export default function GameView(): HTMLElement {
   root.appendChild(loader);
 
   const core = makeCore(canvas);
-  ;(window as any).__core = core; // TEMP diagnostics
+  ;(window as any).__core = core;
   
   function fitRootHeight() {
     const top = root.getBoundingClientRect().top;
@@ -134,15 +132,13 @@ export default function GameView(): HTMLElement {
   };
   updateMuteLabel();
   muteBtn.onclick = () => {
-    // make sure WebAudio context is running
     core.audio.unlock();
     const was = core.store.getBool("muted", false);
     core.store.setBool("muted", !was);
-    core.audio.setEnabled(was); // enable when unmuting
+    core.audio.setEnabled(was);
     updateMuteLabel();
     if (core.audio.enabled) {
       try { core.audio.beep(660, 60); } catch {}
-      // also ping fallback in case the game's audio engine is blocked on this device
       fallbackBeep(660, 40);
     }
   };
@@ -153,7 +149,6 @@ export default function GameView(): HTMLElement {
     if (current) {
       try { current.stop(); } catch {}
       try { current.destroy(); } catch {}
-      // hard clear canvas to avoid ghost frames
       const ctx = canvas.getContext("2d");
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       current = null;
@@ -224,18 +219,27 @@ export default function GameView(): HTMLElement {
     const overlay = document.createElement("div");
     overlay.className = "arcade-menu";
 
-    function tile(id: string, label: string, imgRel: string) {
+    function tile(id: string, label: string, imgRel: string, clickable = true) {
       const imgUrl = asset(imgRel);
-      return `<button class="game-icon" data-g="${id}" aria-label="${label}">
-                <img src="${imgUrl}" alt="" decoding="async">
-              </button>`;
+      if (!clickable) {
+        // not a button, no data-g attribute, and visually dimmed
+        return `
+          <div class="game-icon disabled" aria-label="${label}"
+               style="opacity:.55;filter:grayscale(60%);cursor:not-allowed;">
+            <img src="${imgUrl}" alt="" decoding="async">
+          </div>`;
+      }
+      return `
+        <button class="game-icon" data-g="${id}" aria-label="${label}">
+          <img src="${imgUrl}" alt="" decoding="async">
+        </button>`;
     }
 
     overlay.innerHTML = `
       <div class="icons-row">
         ${tile("pom", "Pom Dash", "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/NEW1treat-rain-tile.png")}
-        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tileNEW.png")}
+        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tileNEW.png", false)}
       </div>
     `;
 
@@ -245,6 +249,9 @@ export default function GameView(): HTMLElement {
       e.preventDefault();
       e.stopPropagation();
       const id = el.dataset.g as keyof typeof loaders;
+      if (id === "hop") {
+        return;
+      }
       await loadGame(id);
     };
 
@@ -256,7 +263,7 @@ export default function GameView(): HTMLElement {
   }
 
   async function loadGame(id: keyof typeof loaders) {
-    cleanupCurrent(); // stop the old game before loading new
+    cleanupCurrent();
     root.querySelectorAll(".arcade-menu").forEach((n) => n.remove());
     viewport.style.display = "block";
     controls.style.display = "flex";

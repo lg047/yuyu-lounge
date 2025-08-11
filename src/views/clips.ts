@@ -41,7 +41,7 @@ export default function ReelsView(): HTMLElement {
   player.muted = false;
   player.loop = true;
   player.preload = "auto";
-  player.style.display = "none"; // hidden until ready
+  player.style.display = "none";
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
@@ -164,22 +164,23 @@ export default function ReelsView(): HTMLElement {
     return s;
   }
 
-  let rendered = 0;
-  const batchSize = 12; // smaller batches feel snappier
+  let loadingIndex = 0;
+  let batchInProgress = false;
+  const batchSize = 12;
   const sentinel = document.createElement("div");
   sentinel.style.width = "1px";
   sentinel.style.height = "1px";
   gridWrap.appendChild(sentinel);
 
   async function renderBatch() {
-    const end = Math.min(list.length, rendered + batchSize);
-    const fragment = document.createDocumentFragment();
+    if (batchInProgress || loadingIndex >= list.length) return;
+    batchInProgress = true;
 
-    for (; rendered < end; rendered++) {
-      const index = rendered;
+    const end = Math.min(list.length, loadingIndex + batchSize);
+    for (; loadingIndex < end; loadingIndex++) {
+      const index = loadingIndex;
       const url = list[index];
 
-      // Preload video off-DOM
       const v = document.createElement("video");
       v.src = url;
       v.muted = true;
@@ -206,7 +207,6 @@ export default function ReelsView(): HTMLElement {
       tile.appendChild(v);
       tile.appendChild(spinner);
 
-      // Spinner only used if buffering after click
       v.addEventListener("waiting", () => spinner.classList.add("show"));
       v.addEventListener("seeking", () => spinner.classList.add("show"));
       v.addEventListener("canplay", () => spinner.classList.remove("show"));
@@ -215,17 +215,18 @@ export default function ReelsView(): HTMLElement {
       v.addEventListener("ended", () => spinner.classList.remove("show"));
 
       tile.addEventListener("click", () => openOverlay(index));
-      fragment.appendChild(tile);
+
+      grid.appendChild(tile);
     }
 
-    grid.appendChild(fragment);
+    batchInProgress = false;
   }
 
   const io = new IntersectionObserver((entries) => {
     for (const e of entries) {
       if (e.isIntersecting) {
         renderBatch();
-        if (rendered >= list.length) {
+        if (loadingIndex >= list.length) {
           io.disconnect();
           sentinel.remove();
         }
@@ -237,7 +238,7 @@ export default function ReelsView(): HTMLElement {
     .then((urls) => {
       status.remove();
       list = shuffle(urls);
-      renderBatch();
+      renderBatch(); // initial batch immediately
       io.observe(sentinel);
     })
     .catch((err) => {

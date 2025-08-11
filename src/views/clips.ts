@@ -45,6 +45,7 @@ export default function ReelsView(): HTMLElement {
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
+
   overlayWrap.appendChild(player);
   overlayWrap.appendChild(overlaySpinner);
 
@@ -74,24 +75,29 @@ export default function ReelsView(): HTMLElement {
   let list: string[] = [];
   let current = -1;
 
-  function sizeOverlayVideo() {
+  function sizeOverlayToVideo() {
     const vw = player.videoWidth || 0;
     const vh = player.videoHeight || 0;
     if (!vw || !vh) return;
 
-    const maxW = Math.min(window.innerWidth * 0.95, window.innerHeight * 0.95 * (vw / vh));
-    const maxH = Math.min(window.innerHeight * 0.95, window.innerWidth * 0.95 * (vh / vw));
+    // Fit inside 95% viewport, preserve aspect exactly
+    const maxW = window.innerWidth * 0.95;
+    const maxH = window.innerHeight * 0.95;
+    const scale = Math.min(maxW / vw, maxH / vh);
 
-    // Choose the limiting side to avoid bars inside the element
-    let w = maxW;
-    let h = (w * vh) / vw;
-    if (h > window.innerHeight * 0.95) {
-      h = maxH;
-      w = (h * vw) / vh;
-    }
+    const w = Math.floor(vw * scale);
+    const h = Math.floor(vh * scale);
 
-    player.style.width = `${w}px`;
-    player.style.height = `${h}px`;
+    overlayWrap.style.width = `${w}px`;
+    overlayWrap.style.height = `${h}px`;
+    // Help browsers lock the ratio
+    overlayWrap.style.aspectRatio = `${vw} / ${vh}`;
+
+    // Video fills wrapper exactly, no internal bars
+    player.style.width = "100%";
+    player.style.height = "100%";
+    player.style.objectFit = "contain";
+    player.style.objectPosition = "center";
   }
 
   function openOverlay(index: number) {
@@ -105,7 +111,7 @@ export default function ReelsView(): HTMLElement {
     player.src = url;
 
     const onReady = () => {
-      sizeOverlayVideo();
+      sizeOverlayToVideo();
       overlaySpinner.classList.remove("show");
       player.style.display = "";
       player.removeEventListener("loadedmetadata", onReady);
@@ -126,9 +132,15 @@ export default function ReelsView(): HTMLElement {
       player.addEventListener("click", tapToPlay, { once: true });
     });
 
-    // Resize with viewport changes
-    const onResize = () => sizeOverlayVideo();
-    window.addEventListener("resize", onResize, { passive: true, once: true });
+    const onResize = () => sizeOverlayToVideo();
+    window.addEventListener("resize", onResize, { passive: true });
+    // Clean up when closed
+    overlay.addEventListener("transitionend", function cleanup() {
+      if (!overlay.classList.contains("is-visible")) {
+        window.removeEventListener("resize", onResize);
+        overlay.removeEventListener("transitionend", cleanup);
+      }
+    });
   }
 
   function closeOverlay() {
@@ -185,7 +197,7 @@ export default function ReelsView(): HTMLElement {
   let batchInProgress = false;
   const batchSize = 12;
 
-  // Sentinel at the very end of the grid
+  // Sentinel stays last
   const sentinel = document.createElement("div");
   sentinel.style.width = "1px";
   sentinel.style.height = "1px";
@@ -194,7 +206,7 @@ export default function ReelsView(): HTMLElement {
   async function loadTile(index: number): Promise<HTMLButtonElement> {
     const url = list[index];
 
-    // Preload off DOM to avoid black
+    // Preload off DOM so first frame is ready
     const v = document.createElement("video");
     v.src = url;
     v.muted = true;
@@ -241,20 +253,18 @@ export default function ReelsView(): HTMLElement {
     const end = Math.min(list.length, loadingIndex + batchSize);
     for (; loadingIndex < end; loadingIndex++) {
       const tile = await loadTile(loadingIndex);
-      grid.insertBefore(tile, sentinel); // keep sentinel last
+      grid.insertBefore(tile, sentinel);
     }
 
     batchInProgress = false;
   }
 
   async function topUpUntilScrollable() {
-    // Keep filling until page is comfortably scrollable
-    let safety = 0;
-    while (safety++ < 20) {
+    let guard = 0;
+    while (guard++ < 20) {
       const docH = document.documentElement.scrollHeight;
       const winH = window.innerHeight;
-      const scrollable = docH > winH * 1.2;
-      if (scrollable || loadingIndex >= list.length) break;
+      if (docH > winH * 1.2 || loadingIndex >= list.length) break;
       await renderBatch();
     }
   }
@@ -274,7 +284,7 @@ export default function ReelsView(): HTMLElement {
     { root: null, rootMargin: "1000px 0px" }
   );
 
-  // Scroll fallback in case IO misses on some browsers
+  // Scroll fallback
   let ticking = false;
   function onScroll() {
     if (ticking) return;
@@ -282,9 +292,7 @@ export default function ReelsView(): HTMLElement {
     requestAnimationFrame(async () => {
       const bottom = window.scrollY + window.innerHeight;
       const docH = document.documentElement.scrollHeight;
-      if (docH - bottom < 1200) {
-        await renderBatch();
-      }
+      if (docH - bottom < 1200) await renderBatch();
       ticking = false;
     });
   }
@@ -304,7 +312,7 @@ export default function ReelsView(): HTMLElement {
   return root;
 }
 
-/* Minimal CSS injection for centring and spinner */
+/* Minimal CSS injection */
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }
@@ -314,7 +322,7 @@ style.textContent = `
   justify-content: center;
 }
 .clip-preview { object-fit: cover; object-position: center; }
-.clip-overlay-player { display: block; background: #000; }
+.clip-overlay-player { display: block; }
 .clip-spinner {
   position: absolute;
   width: 32px; height: 32px;

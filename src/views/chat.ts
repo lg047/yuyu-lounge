@@ -25,7 +25,10 @@ function fitChatHeight(room: HTMLElement): () => void {
 
     // set height so there is an equal gap at the bottom
     // height = viewport - currentTop - safeBottom - topGap - cushion
-    const h = Math.floor(vh - rectTop - saBottom - topGap * 0.7 - cushion);
+    // bottomGap = 0.5 * topGap
+    const halfTop = Math.floor(topGap * 0.7);
+    const h = Math.max(320, Math.floor(vh - rectTop - saBottom - halfTop - cushion));
+
 
     room.style.height = Math.max(320, h) + "px";
     room.style.maxHeight = "none";

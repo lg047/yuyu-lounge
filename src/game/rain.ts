@@ -70,6 +70,7 @@ const game = {
   _onClick: null as ((e: MouseEvent)=>void) | null,
 
   _rbx: 0, _rby: 0, _rbw: 0, _rbh: 0,
+  _spawnCount: 0,
 
   async init(canvas: HTMLCanvasElement, core: Core) {
     this._core = core;
@@ -87,6 +88,8 @@ const game = {
     this._spawnIv = SPAWN_START_S;
     this._fallBase = FALL_START;
     this._treats.length = 0;
+    this._spawnCount = 0;
+
 
     this._warmup = 2;
     this._lastNow = performance.now();
@@ -256,6 +259,8 @@ const game = {
             break;
           }
         }
+        } // <-- closes the for (let i = ...)
+      }   // <-- closes if (this._running && !this._over)
 
 
       // draw

@@ -1,6 +1,6 @@
 // src/views/reels.ts
-// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on close.
-// Grid: progressive append, no blanks, no repeats, loads past 4 rows.
+// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on stop/close.
+// Grid: progressive append.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -43,7 +43,7 @@ export default function ReelsView(): HTMLElement {
   player.muted = false;
   player.loop = true;
   player.preload = "auto";
-  player.style.display = "none"; // hidden until first frame
+  player.style.display = "none";
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
@@ -76,7 +76,9 @@ export default function ReelsView(): HTMLElement {
 
   let list: string[] = [];
   let current = -1;
-  const bgm: any = (window as any).__bgm || null; // site background music
+
+  // Site BGM handle
+  const bgm: any = (window as any).__bgm || null;
 
   // Cover viewport
   function sizeOverlayToVideo() {
@@ -86,6 +88,25 @@ export default function ReelsView(): HTMLElement {
     player.style.height = "100%";
     player.style.objectFit = "cover";
     player.style.objectPosition = "center";
+  }
+
+  // BGM control handlers bound to this player
+  const pauseBGM = () => { try { bgm?.pause?.(); } catch {} };
+  const resumeBGM = () => { try { if (bgm && !bgm.muted) bgm.playIfAllowed?.(); } catch {} };
+
+  function bindAudioBridging() {
+    player.addEventListener("play", pauseBGM);
+    player.addEventListener("playing", pauseBGM);
+    player.addEventListener("pause", resumeBGM);
+    player.addEventListener("ended", resumeBGM);
+    player.addEventListener("emptied", resumeBGM);
+  }
+  function unbindAudioBridging() {
+    player.removeEventListener("play", pauseBGM);
+    player.removeEventListener("playing", pauseBGM);
+    player.removeEventListener("pause", resumeBGM);
+    player.removeEventListener("ended", resumeBGM);
+    player.removeEventListener("emptied", resumeBGM);
   }
 
   function openOverlay(index: number) {
@@ -114,8 +135,8 @@ export default function ReelsView(): HTMLElement {
 
     if (!overlayWrap.contains(player)) overlayWrap.appendChild(player);
 
-    // Pause site BGM immediately
-    if (bgm) bgm.pause?.();
+    // Ensure bridging is active for this player
+    bindAudioBridging();
 
     // Try to play immediately, else wait for click
     player.muted = false;
@@ -144,13 +165,15 @@ export default function ReelsView(): HTMLElement {
     overlay.setAttribute("aria-hidden", "true");
     document.documentElement.classList.remove("clip-open");
 
+    // Stop video and detach handlers
     player.pause();
+    unbindAudioBridging();
     player.removeAttribute("src");
     player.load();
     current = -1;
 
-    // Resume site BGM if user has not muted it
-    if (bgm && !bgm.muted) void bgm.playIfAllowed?.();
+    // Resume BGM
+    resumeBGM();
   }
 
   function step(delta: number) {
@@ -311,7 +334,7 @@ export default function ReelsView(): HTMLElement {
   return root;
 }
 
-/* Minimal CSS injection to ensure no internal bars and proper centering */
+/* Minimal CSS injection */
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }

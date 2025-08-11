@@ -3,12 +3,12 @@
 type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 
 const routes: Record<string, ViewFactory> = {
-  "/reels": async () => (await import("./views/clips.ts")).default(), // points to clips.ts
+  "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),
   "/happystocks": async () => {
-    const mod = await import("./views/happystocks");
+    const mod = await import("./views/happystocks.ts");
     const wrap = document.createElement("div");
-    // happystocks.ts exports default (root: HTMLElement) => void
+    // happystocks default export mounts into a provided root
     mod.default(wrap);
     return wrap;
   },
@@ -20,13 +20,14 @@ async function render(path: string): Promise<void> {
   const view = document.getElementById("view")!;
   view.innerHTML = "";
   view.appendChild(await factory());
-  // reset scroll
   window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
 }
 
 export async function navigate(): Promise<void> {
   const hash = location.hash || "#/reels";
-  let path = hash.replace(/^#/, "");
+  // normalize: "#/happystocks" -> "/happystocks", also trim trailing slash
+  let path = hash.replace(/^#/, "").replace(/\/+$/, "");
+  if (path === "") path = "/reels";
 
   // Legacy alias
   if (path === "/clips") {
@@ -34,7 +35,7 @@ export async function navigate(): Promise<void> {
     return;
   }
 
-  // NEW: normalize /chat/xxx -> /chat
+  // normalize /chat/anything -> /chat
   if (path.startsWith("/chat/")) {
     path = "/chat";
   }
@@ -43,6 +44,6 @@ export async function navigate(): Promise<void> {
 }
 
 export function initRouter(): void {
-  window.addEventListener("hashchange", navigate);
+  window.addEventListener("hashchange", () => navigate().catch(console.error));
   navigate().catch(console.error);
 }

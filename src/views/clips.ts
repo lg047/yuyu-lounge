@@ -41,14 +41,7 @@ export default function ReelsView(): HTMLElement {
   player.muted = false;
   player.loop = true;
   player.preload = "auto";
-  player.style.display = "none";
-  // Lightbox rendering: centered, symmetric bars, constrained to viewport
-  player.style.objectFit = "contain";
-  player.style.objectPosition = "center";
-  player.style.maxWidth = "90vw";
-  player.style.maxHeight = "90vh";
-  player.style.width = "auto";
-  player.style.height = "auto";
+  player.style.display = "none"; // no black before first frame
 
   const overlaySpinner = document.createElement("div");
   overlaySpinner.className = "clip-spinner";
@@ -82,6 +75,18 @@ export default function ReelsView(): HTMLElement {
   let list: string[] = [];
   let current = -1;
 
+  function tuneOverlayFit() {
+    // Decide cover vs contain based on clip aspect. 9:16-ish => cover, else contain with centered bars.
+    const vw = player.videoWidth || 0;
+    const vh = player.videoHeight || 0;
+    if (!vw || !vh) return;
+    const r = vw / vh;              // ~0.5625 for 9:16
+    const nearPortrait = Math.abs(r - 9 / 16) <= 0.03 || r < 0.60;
+
+    player.classList.toggle("fit-cover", nearPortrait);
+    player.classList.toggle("fit-contain", !nearPortrait);
+  }
+
   function openOverlay(index: number) {
     if (index < 0 || index >= list.length) return;
     current = index;
@@ -89,16 +94,19 @@ export default function ReelsView(): HTMLElement {
 
     overlaySpinner.classList.add("show");
     player.style.display = "none";
+    player.classList.remove("fit-cover", "fit-contain");
 
     player.src = url;
-    player.addEventListener(
-      "canplay",
-      () => {
-        overlaySpinner.classList.remove("show");
-        player.style.display = "";
-      },
-      { once: true }
-    );
+
+    const onReady = () => {
+      tuneOverlayFit();
+      overlaySpinner.classList.remove("show");
+      player.style.display = "";
+      player.removeEventListener("loadedmetadata", onReady);
+      player.removeEventListener("canplay", onReady);
+    };
+    player.addEventListener("loadedmetadata", onReady, { once: true });
+    player.addEventListener("canplay", onReady, { once: true });
 
     document.documentElement.classList.add("clip-open");
     backdrop.classList.add("is-visible");
@@ -107,9 +115,7 @@ export default function ReelsView(): HTMLElement {
 
     player.play().catch(() => {
       const tapToPlay = () => {
-        player.play().finally(() => {
-          player.removeEventListener("click", tapToPlay);
-        });
+        player.play().finally(() => player.removeEventListener("click", tapToPlay));
       };
       player.addEventListener("click", tapToPlay, { once: true });
     });
@@ -132,14 +138,8 @@ export default function ReelsView(): HTMLElement {
     openOverlay(next);
   }
 
-  prevBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(-1);
-  });
-  nextBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(1);
-  });
+  prevBtn.addEventListener("click", (e) => { e.stopPropagation(); step(-1); });
+  nextBtn.addEventListener("click", (e) => { e.stopPropagation(); step(1); });
 
   window.addEventListener("keydown", (e) => {
     if (!overlay.classList.contains("is-visible")) return;
@@ -180,88 +180,95 @@ export default function ReelsView(): HTMLElement {
   sentinel.style.height = "1px";
   grid.appendChild(sentinel);
 
+  async function loadTile(index: number): Promise<HTMLButtonElement> {
+    const url = list[index];
+
+    // Off-DOM preview video so first frame is ready
+    const v = document.createElement("video");
+    v.src = url;
+    v.muted = true;
+    v.playsInline = true;
+    v.loop = false;
+    v.preload = "metadata";
+    v.className = "clip-preview";
+    // Previews stay square and filled
+    v.style.objectFit = "cover";
+    v.style.objectPosition = "center";
+
+    await new Promise<void>((resolve) => {
+      v.addEventListener("loadedmetadata", () => {
+        try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01); } catch {}
+      });
+      v.addEventListener("canplay", () => resolve(), { once: true });
+    });
+
+    const tile = document.createElement("button");
+    tile.className = "clip-tile";
+    tile.type = "button";
+    tile.setAttribute("aria-label", "Open clip");
+
+    const spinner = makeSpinner();
+    tile.appendChild(v);
+    tile.appendChild(spinner);
+
+    // Spinner only if buffering after user interaction
+    v.addEventListener("waiting", () => spinner.classList.add("show"));
+    v.addEventListener("seeking", () => spinner.classList.add("show"));
+    v.addEventListener("canplay", () => spinner.classList.remove("show"));
+    v.addEventListener("playing", () => spinner.classList.remove("show"));
+    v.addEventListener("pause", () => spinner.classList.remove("show"));
+    v.addEventListener("ended", () => spinner.classList.remove("show"));
+
+    tile.addEventListener("click", () => openOverlay(index));
+
+    return tile;
+  }
+
   async function renderBatch() {
     if (batchInProgress || loadingIndex >= list.length) return;
     batchInProgress = true;
 
     const end = Math.min(list.length, loadingIndex + batchSize);
     for (; loadingIndex < end; loadingIndex++) {
-      const index = loadingIndex;
-      const url = list[index];
-
-      // Off DOM preload
-      const v = document.createElement("video");
-      v.src = url;
-      v.muted = true;
-      v.playsInline = true;
-      v.loop = false;
-      v.preload = "metadata";
-      v.className = "clip-preview";
-      // Previews stay square and filled as before
-      v.style.objectFit = "cover";
-      v.style.objectPosition = "center";
-
-      await new Promise<void>((resolve) => {
-        v.addEventListener("loadedmetadata", () => {
-          try {
-            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
-          } catch {}
-        });
-        v.addEventListener("canplay", () => resolve(), { once: true });
-      });
-
-      const tile = document.createElement("button");
-      tile.className = "clip-tile";
-      tile.type = "button";
-      tile.setAttribute("aria-label", "Open clip");
-
-      const spinner = makeSpinner();
-      tile.appendChild(v);
-      tile.appendChild(spinner);
-
-      // Spinner only during buffering after click
-      v.addEventListener("waiting", () => spinner.classList.add("show"));
-      v.addEventListener("seeking", () => spinner.classList.add("show"));
-      v.addEventListener("canplay", () => spinner.classList.remove("show"));
-      v.addEventListener("playing", () => spinner.classList.remove("show"));
-      v.addEventListener("pause", () => spinner.classList.remove("show"));
-      v.addEventListener("ended", () => spinner.classList.remove("show"));
-
-      tile.addEventListener("click", () => openOverlay(index));
-
-      // Insert before sentinel so sentinel remains last
+      const tile = await loadTile(loadingIndex);
       grid.insertBefore(tile, sentinel);
     }
 
     batchInProgress = false;
   }
 
-  const io = new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) {
-          renderBatch();
-          if (loadingIndex >= list.length) {
-            io.disconnect();
-            sentinel.remove();
-          }
+  // Ensure we keep adding rows until page is scrollable beyond a threshold
+  async function topUpUntilScrollable() {
+    const threshold = window.innerHeight * 1.25;
+    // Keep adding while sentinel is too close to the top
+    while (loadingIndex < list.length) {
+      const rect = sentinel.getBoundingClientRect();
+      if (rect.top > threshold) break;
+      await renderBatch();
+    }
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        renderBatch().then(topUpUntilScrollable);
+        if (loadingIndex >= list.length) {
+          io.disconnect();
+          sentinel.remove();
         }
       }
-    },
-    { root: null, rootMargin: "1000px 0px" }
-  );
+    }
+  }, { root: null, rootMargin: "1000px 0px" });
 
   loadClips()
     .then((urls) => {
       status.remove();
       list = shuffle(urls);
-      renderBatch();
+      renderBatch().then(topUpUntilScrollable);
       io.observe(sentinel);
     })
     .catch((err) => {
-      status.textContent = `Failed to load clips: ${
-        err instanceof Error ? err.message : String(err)
-      }`;
+      status.textContent = `Failed to load clips: ${err instanceof Error ? err.message : String(err)}`;
     });
 
   return root;
@@ -277,20 +284,24 @@ style.textContent = `
   justify-content: center;
 }
 .clip-preview { object-fit: cover; object-position: center; }
-.clip-overlay-player { object-fit: contain; object-position: center; }
+.clip-overlay-player.fit-cover {
+  object-fit: cover;
+  width: auto; height: 90vh; max-width: 95vw;
+}
+.clip-overlay-player.fit-contain {
+  object-fit: contain;
+  width: 95vw; height: 95vh;
+}
 .clip-spinner {
   position: absolute;
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   border: 3px solid transparent;
   border-top-color: #7df6ff;
   border-right-color: #ff4f98;
   border-radius: 50%;
   animation: clip-spin 0.9s linear infinite paused;
-  opacity: 0;
-  pointer-events: none;
-  top: 50%;
-  left: 50%;
+  opacity: 0; pointer-events: none;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
 }
 .clip-spinner.show { opacity: 1; animation-play-state: running; }

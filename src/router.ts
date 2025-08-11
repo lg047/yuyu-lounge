@@ -8,42 +8,57 @@ const routes: Record<string, ViewFactory> = {
   "/happystocks": async () => {
     const mod = await import("./views/happystocks.ts");
     const wrap = document.createElement("div");
-    // happystocks default export mounts into a provided root
-    mod.default(wrap);
+    mod.default(wrap); // mounts into wrap
     return wrap;
   },
   "/game": async () => (await import("./views/game.ts")).default(),
 };
 
+function normalizeHash(h: string): string {
+  let p = (h || "#/reels").replace(/^#/, "");
+  p = p.split("?")[0].split("&")[0];
+  p = p.replace(/\/+$/, ""); // trim trailing slash
+  p = p.trim();
+  if (p === "") p = "/reels";
+  // collapse double slashes
+  p = p.replace(/\/{2,}/g, "/");
+  // only lowercase the route segment, not query
+  p = p.toLowerCase();
+  // special normalize
+  if (p.startsWith("/chat/")) p = "/chat";
+  if (p === "/clips") p = "/reels";
+  return p;
+}
+
 async function render(path: string): Promise<void> {
   const factory = routes[path] || routes["/reels"];
-  const view = document.getElementById("view")!;
+  const view = document.getElementById("view");
+  if (!view) {
+    // DOM not ready yet
+    await new Promise<void>(r => requestAnimationFrame(() => r()));
+    const v2 = document.getElementById("view");
+    if (!v2) throw new Error("#view not found");
+    return render(path);
+  }
   view.innerHTML = "";
-  view.appendChild(await factory());
+  const node = await factory();
+  view.appendChild(node);
   window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
 }
 
 export async function navigate(): Promise<void> {
-  const hash = location.hash || "#/reels";
-  // normalize: "#/happystocks" -> "/happystocks", also trim trailing slash
-  let path = hash.replace(/^#/, "").replace(/\/+$/, "");
-  if (path === "") path = "/reels";
-
-  // Legacy alias
-  if (path === "/clips") {
-    location.replace("#/reels");
-    return;
-  }
-
-  // normalize /chat/anything -> /chat
-  if (path.startsWith("/chat/")) {
-    path = "/chat";
-  }
-
+  const path = normalizeHash(location.hash);
+  // tiny debug to confirm
+  // console.log("route", path, Object.keys(routes));
   await render(path);
 }
 
 export function initRouter(): void {
+  const start = () => navigate().catch(console.error);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
   window.addEventListener("hashchange", () => navigate().catch(console.error));
-  navigate().catch(console.error);
 }

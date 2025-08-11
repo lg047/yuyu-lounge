@@ -156,7 +156,9 @@ export default function ReelsView(): HTMLElement {
   function renderBatch() {
     const end = Math.min(list.length, rendered + batchSize);
     for (; rendered < end; rendered++) {
-      const url = list[rendered];
+      const index = rendered; // capture index for click handler
+      const url = list[index];
+
       const tile = document.createElement("button");
       tile.className = "clip-tile";
       tile.type = "button";
@@ -186,8 +188,7 @@ export default function ReelsView(): HTMLElement {
       v.addEventListener("pause", () => spinner.classList.remove("show"));
       v.addEventListener("ended", () => spinner.classList.remove("show"));
 
-      // openOverlay uses index from current rendered loop
-      tile.addEventListener("click", () => openOverlay(rendered));
+      tile.addEventListener("click", () => openOverlay(index));
 
       grid.appendChild(tile);
     }

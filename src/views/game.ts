@@ -129,14 +129,14 @@ export default function GameView(): HTMLElement {
   window.addEventListener("resize", fitRootHeight);
 
   const updateMuteLabel = () => {
-    const muted = core.store.getBool("muted", true);
+    const muted = core.store.getBool("muted", false);
     muteBtn.textContent = muted ? "Unmute" : "Mute";
   };
   updateMuteLabel();
   muteBtn.onclick = () => {
     // make sure WebAudio context is running
     core.audio.unlock();
-    const was = core.store.getBool("muted", true);
+    const was = core.store.getBool("muted", false);
     core.store.setBool("muted", !was);
     core.audio.setEnabled(was); // enable when unmuting
     updateMuteLabel();
@@ -315,7 +315,7 @@ export default function GameView(): HTMLElement {
   // unlock audio on the first user interaction anywhere, and ping a quiet fallback beep if unmuted
   const unlockOnce = () => {
     try { core.audio.unlock(); } catch {}
-    const muted = core.store.getBool("muted", true);
+    const muted = core.store.getBool("muted", false);
     core.audio.setEnabled(!muted);
     if (!muted) fallbackBeep(440, 40);
   };

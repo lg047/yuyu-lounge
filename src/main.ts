@@ -78,6 +78,19 @@ document.addEventListener("play", (e) => {
   bgm.el.pause(); // do not touch the video's mute or volume
 }, true);
 
+// Uniform, lower video volume so it matches bgm loudness
+const VIDEO_TARGET_VOL = 0.25; // try 0.22..0.28
+
+document.addEventListener("play", (e) => {
+  const v = (e.target as HTMLVideoElement);
+  if (!v || v.tagName !== "VIDEO") return;
+
+  // set once per element, do not fight user adjustments later
+  if (!(v as any)._volInit) {
+    v.volume = VIDEO_TARGET_VOL;
+    (v as any)._volInit = true;
+  }
+}, true);
 
 
 function onStop(e: Event) {

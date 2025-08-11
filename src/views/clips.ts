@@ -115,12 +115,14 @@ export default function ReelsView(): HTMLElement {
     backdrop.classList.add("is-visible");
     overlay.classList.add("is-visible");
     overlay.setAttribute("aria-hidden", "false");
-
+    
     player.play().catch(() => {
       const tapToPlay = () => {
-        player.play().finally(() => player.removeEventListener("click", tapToPlay));
+        player.muted = false;         // ensure audio enabled
+        player.play().catch(() => {}); // try again
+        player.removeEventListener("click", tapToPlay);
       };
-      player.addEventListener("click", tapToPlay, { once: true });
+      overlay.addEventListener("click", tapToPlay, { once: true });
     });
 
     const onResize = () => sizeOverlayToVideo();

@@ -17,6 +17,7 @@ export type BGM = {
 
 export function makeBGM(opts: Opts): BGM {
   const key = opts.key ?? "bgm.muted";
+  const initKey = key + ".init";          // one-time bootstrap so first load is unmuted
   const vol = Math.max(0, Math.min(1, opts.volume ?? 0.18));
 
   const el = document.createElement("audio");
@@ -28,6 +29,12 @@ export function makeBGM(opts: Opts): BGM {
   el.style.display = "none";
   document.body.appendChild(el);
 
+  // Start unmuted by default. If we have not initialized before, force unmuted once.
+  const seen = !!opts.store?.getBool(initKey, false);
+  if (!seen) {
+    opts.store?.setBool?.(key, false);
+    opts.store?.setBool?.(initKey, true);
+  }
   let muted = !!opts.store?.getBool(key, false);
   apply();
 
@@ -50,9 +57,7 @@ export function makeBGM(opts: Opts): BGM {
     try {
       el.volume = vol;
       if (el.paused) await el.play();
-    } catch {
-      // still blocked until a gesture, ok
-    }
+    } catch { /* need a gesture on some browsers */ }
   }
 
   function setMuted(m: boolean) {
@@ -62,12 +67,8 @@ export function makeBGM(opts: Opts): BGM {
   }
 
   function apply() {
-    if (muted) {
-      el.pause();
-    } else {
-      el.volume = vol;
-      void safePlay();
-    }
+    if (muted) el.pause();
+    else { el.volume = vol; void safePlay(); }
   }
 
   function toggle() { setMuted(!muted); }
@@ -84,20 +85,26 @@ export function makeBGM(opts: Opts): BGM {
       "align-items:center",
       "justify-content:center",
       "cursor:pointer",
-      "width:34px;height:28px",
+      "width:36px;height:28px",
       "padding:0 6px",
       "border-radius:9px",
-      "background:linear-gradient(180deg,#ff93d0 0%,#ff58ba 100%)",
-      "border:1.5px solid rgba(255,255,255,0.75)",
+      "background:linear-gradient(180deg,#ff97d2 0%,#ff58ba 100%)",
+      "border:1.5px solid rgba(255,255,255,0.85)",
       "box-shadow:0 2px 0 rgba(0,0,0,0.15), inset 0 0 8px rgba(255,255,255,0.25)",
       "color:#fff",
     ].join(";");
 
     const svgFor = (mutedNow: boolean) => `
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="display:block">
-        ${mutedNow
-          ? `<path fill="currentColor" d="M3 10v4h3l4 4V6L6 10H3zm12.59 2 3.7 3.7-1.41 1.41L14.17 13l-3.7 3.7-1.41-1.41L12.75 12 9.06 8.31l1.41-1.41 3.7 3.7 3.71-3.7 1.41 1.41L15.41 12z"/>`
-          : `<path fill="currentColor" d="M3 10v4h3l4 4V6L6 10H3zm10-4.5a6.5 6.5 0 0 1 0 13v-2a4.5 4.5 0 0 0 0-9v-2z"/>`}
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="display:block">
+        <!-- speaker -->
+        <path fill="currentColor" d="M3 10v4h3l4 4V6L6 10H3z"/>
+        ${
+          mutedNow
+          // bigger X that does not clash with the speaker
+          ? `<path d="M15 8.5l5 5M20 8.5l-5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />`
+          // single wave glyph when unmuted
+          : `<path fill="currentColor" d="M13.5 7.5a6.5 6.5 0 0 1 0 9v-2a4.5 4.5 0 0 0 0-5v-2z"/>`
+        }
       </svg>`;
     btn.innerHTML = svgFor(muted);
 
@@ -105,10 +112,9 @@ export function makeBGM(opts: Opts): BGM {
     btn.onpointerleave = () => { btn.style.filter = ""; };
 
     btn.onclick = async () => {
-      const willUnmute = muted; // current state
+      const willUnmute = muted;
       toggle();
-      // if we just unmuted, try to start immediately under this gesture
-      if (willUnmute) { await safePlay(); }
+      if (willUnmute) { await safePlay(); }   // first click should start immediately
       btn.title = muted ? "Unmute music" : "Mute music";
       btn.setAttribute("aria-label", btn.title);
       btn.innerHTML = svgFor(muted);

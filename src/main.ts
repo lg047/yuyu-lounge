@@ -4,6 +4,7 @@ import { initRouter } from "./router";
 import TopNav from "./components/topnav";
 import { makeBGM } from "./lib/bgm";
 import { store } from "./game/core/storage";
+import "./styles/reels.css"; 
 
 // create once
 const bgm = makeBGM({ src: "assets/audio/bgm.mp3", store, key: "bgm.muted", volume: 0.18 });

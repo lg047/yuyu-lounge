@@ -1,4 +1,7 @@
 // src/views/reels.ts
+// Keeps your original layout and overlay.
+// Fixes: lightbox fills with the clip (no internal bars on 9:16), symmetric bars only when aspect differs.
+// Grid: progressive append, no blanks, no repeats, loads past 4 rows.
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -75,29 +78,29 @@ export default function ReelsView(): HTMLElement {
   let list: string[] = [];
   let current = -1;
 
+  // Size overlay wrapper to the exact video aspect. This removes internal letterbox on 9:16.
   function sizeOverlayToVideo() {
-    const vw = player.videoWidth || 0;
-    const vh = player.videoHeight || 0;
-    if (!vw || !vh) return;
+    const vwNatural = player.videoWidth || 0;
+    const vhNatural = player.videoHeight || 0;
+    if (!vwNatural || !vhNatural) return;
 
-    // Fit inside 95% viewport, preserve aspect exactly
     const maxW = window.innerWidth * 0.95;
     const maxH = window.innerHeight * 0.95;
-    const scale = Math.min(maxW / vw, maxH / vh);
 
-    const w = Math.floor(vw * scale);
-    const h = Math.floor(vh * scale);
+    const scale = Math.min(maxW / vwNatural, maxH / vhNatural);
+    const w = vwNatural * scale;
+    const h = vhNatural * scale;
 
     overlayWrap.style.width = `${w}px`;
     overlayWrap.style.height = `${h}px`;
-    // Help browsers lock the ratio
-    overlayWrap.style.aspectRatio = `${vw} / ${vh}`;
+    overlayWrap.style.aspectRatio = `${vwNatural} / ${vhNatural}`;
 
-    // Video fills wrapper exactly, no internal bars
+    // Video fills wrapper exactly
     player.style.width = "100%";
     player.style.height = "100%";
-    player.style.objectFit = "contain";
+    player.style.objectFit = "fill";     // no internal bars since wrapper already matches aspect
     player.style.objectPosition = "center";
+    player.style.background = "transparent";
   }
 
   function openOverlay(index: number) {
@@ -134,7 +137,6 @@ export default function ReelsView(): HTMLElement {
 
     const onResize = () => sizeOverlayToVideo();
     window.addEventListener("resize", onResize, { passive: true });
-    // Clean up when closed
     overlay.addEventListener("transitionend", function cleanup() {
       if (!overlay.classList.contains("is-visible")) {
         window.removeEventListener("resize", onResize);
@@ -312,7 +314,7 @@ export default function ReelsView(): HTMLElement {
   return root;
 }
 
-/* Minimal CSS injection */
+/* Minimal CSS injection to ensure no internal bars and proper centering */
 const style = document.createElement("style");
 style.textContent = `
 .clip-tile { position: relative; }
@@ -321,8 +323,17 @@ style.textContent = `
   align-items: center;
   justify-content: center;
 }
+.clip-overlay-wrap {
+  padding: 0; margin: 0; border: 0;
+  box-sizing: content-box;
+}
 .clip-preview { object-fit: cover; object-position: center; }
-.clip-overlay-player { display: block; }
+.clip-overlay-player {
+  display: block;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+}
 .clip-spinner {
   position: absolute;
   width: 32px; height: 32px;

@@ -235,7 +235,7 @@ export default function GameView(): HTMLElement {
       <div class="icons-row">
         ${tile("pom", "Pom Dash", "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/NEW1treat-rain-tile.png")}
-        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tile.png")}
+        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tileNEW.png")}
       </div>
     `;
 

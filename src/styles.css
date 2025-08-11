@@ -13,7 +13,9 @@
   --text: var(--ink);
   --accent: var(--pink-mid);
   --accent-strong: var(--pink-strong);
-
+  
+  --topbar-h: 180px; /* tweak until input is fully visible on iPhone *
+  
   /* iOS safe areas */
   --sa-top: env(safe-area-inset-top, 0px);
   --sa-bottom: env(safe-area-inset-bottom, 0px);
@@ -517,7 +519,7 @@ body::before {
   .chat-room {
     border-radius: 0;
     width: 100%;
-    height: calc(100svh - var(--topbar-h) - env(safe-area-inset-bottom) - -140px);
+    height: calc(100svh - var(--topbar-h) - env(safe-area-inset-bottom));
     max-height: none;
     padding: 10px;
   }
@@ -526,7 +528,7 @@ body::before {
 @supports (height: 100dvh) {
   @media (max-width: 768px) {
     .chat-room {
-      height: calc(100dvh - var(--topbar-h) - env(safe-area-inset-bottom) - 8px);
+      height: calc(100dvh - var(--topbar-h) - env(safe-area-inset-bottom));
     }
   }
 }

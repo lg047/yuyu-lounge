@@ -1,5 +1,5 @@
 // src/views/reels.ts
-// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on stop/close.
+// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on stop or close.
 // Grid: progressive append.
 
 function shuffle<T>(arr: T[]): T[] {
@@ -76,6 +76,9 @@ export default function ReelsView(): HTMLElement {
 
   let list: string[] = [];
   let current = -1;
+  let switching = false; // true while swapping sources to avoid BGM resume glitches
+  let tapToPlayHandler: ((e: Event) => void) | null = null;
+  let onPlaying: ((e: Event) => void) | null = null;
 
   // Site BGM handle
   const bgm: any = (window as any).__bgm || null;
@@ -92,31 +95,42 @@ export default function ReelsView(): HTMLElement {
 
   // BGM control handlers bound to this player
   const pauseBGM = () => { try { bgm?.pause?.(); } catch {} };
-  const resumeBGM = () => { try { if (bgm && !bgm.muted) bgm.playIfAllowed?.(); } catch {} };
+  const resumeBGM = () => {
+    try {
+      if (bgm && !bgm.muted && !switching) bgm.playIfAllowed?.();
+    } catch {}
+  };
 
   function bindAudioBridging() {
+    onPlaying = () => { switching = false; pauseBGM(); };
     player.addEventListener("play", pauseBGM);
-    player.addEventListener("playing", pauseBGM);
+    player.addEventListener("playing", onPlaying);
     player.addEventListener("pause", resumeBGM);
     player.addEventListener("ended", resumeBGM);
     player.addEventListener("emptied", resumeBGM);
   }
   function unbindAudioBridging() {
     player.removeEventListener("play", pauseBGM);
-    player.removeEventListener("playing", pauseBGM);
+    if (onPlaying) player.removeEventListener("playing", onPlaying);
     player.removeEventListener("pause", resumeBGM);
     player.removeEventListener("ended", resumeBGM);
     player.removeEventListener("emptied", resumeBGM);
+    onPlaying = null;
   }
 
-  function openOverlay(index: number) {
+  function openOverlay(index: number, gestureEvent?: Event) {
     if (index < 0 || index >= list.length) return;
     current = index;
     const url = list[current];
 
     overlaySpinner.classList.add("show");
     player.style.display = "none";
+    switching = true;
     player.src = url;
+    if (tapToPlayHandler) {
+      overlay.removeEventListener("click", tapToPlayHandler);
+      tapToPlayHandler = null;
+    }
 
     const onReady = () => {
       sizeOverlayToVideo();
@@ -138,15 +152,16 @@ export default function ReelsView(): HTMLElement {
     // Ensure bridging is active for this player
     bindAudioBridging();
 
-    // Try to play immediately, else wait for click
+    // Try to play immediately within the same user gesture. Fallback: first overlay tap.
     player.muted = false;
     player.play().catch(() => {
-      const tapToPlay = () => {
+      tapToPlayHandler = () => {
         player.muted = false;
         player.play().catch(() => {});
-        overlay.removeEventListener("click", tapToPlay);
+        if (tapToPlayHandler) overlay.removeEventListener("click", tapToPlayHandler);
+        tapToPlayHandler = null;
       };
-      overlay.addEventListener("click", tapToPlay, { once: true });
+      overlay.addEventListener("click", tapToPlayHandler, { once: true });
     });
 
     const onResize = () => sizeOverlayToVideo();
@@ -168,9 +183,11 @@ export default function ReelsView(): HTMLElement {
     // Stop video and detach handlers
     player.pause();
     unbindAudioBridging();
+    if (tapToPlayHandler) { overlay.removeEventListener("click", tapToPlayHandler); tapToPlayHandler = null; }
     player.removeAttribute("src");
     player.load();
     current = -1;
+    switching = false;
 
     // Resume BGM
     resumeBGM();
@@ -182,8 +199,8 @@ export default function ReelsView(): HTMLElement {
     openOverlay(next);
   }
 
-  prevBtn.addEventListener("click", (e) => { e.stopPropagation(); step(-1); });
-  nextBtn.addEventListener("click", (e) => { e.stopPropagation(); step(1); });
+  prevBtn.addEventListener("click", (e) => { e.stopPropagation(); openOverlay((current - 1 + list.length) % list.length, e); });
+  nextBtn.addEventListener("click", (e) => { e.stopPropagation(); openOverlay((current + 1) % list.length, e); });
 
   window.addEventListener("keydown", (e) => {
     if (!overlay.classList.contains("is-visible")) return;
@@ -263,7 +280,7 @@ export default function ReelsView(): HTMLElement {
     v.addEventListener("pause", () => spinner.classList.remove("show"));
     v.addEventListener("ended", () => spinner.classList.remove("show"));
 
-    tile.addEventListener("click", () => openOverlay(index));
+    tile.addEventListener("click", (ev) => openOverlay(index, ev));
 
     return tile;
   }

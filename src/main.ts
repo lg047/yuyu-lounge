@@ -65,7 +65,6 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
   void bgm.playIfAllowed();
 })();
 
-
 // ---- BGM vs videos: pause BGM when any video plays, resume when none do ----
 const playingVideos = new Set<HTMLVideoElement>();
 
@@ -76,7 +75,7 @@ function isVideo(t: EventTarget | null): t is HTMLVideoElement {
 document.addEventListener("play", (e) => {
   if (!isVideo(e.target)) return;
   playingVideos.add(e.target);
-  bgm.el.pause();               // do not touch the video's mute or volume
+  bgm.el.pause(); // do not touch the video's mute or volume
 }, true);
 
 function onStop(e: Event) {
@@ -87,14 +86,6 @@ function onStop(e: Event) {
 document.addEventListener("pause", onStop, true);
 document.addEventListener("ended", onStop, true);
 document.addEventListener("emptied", onStop, true);
-
-
-document.addEventListener("play", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
-document.addEventListener("playing", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
-document.addEventListener("pause", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
-document.addEventListener("ended", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
-document.addEventListener("emptied", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
-document.addEventListener("volumechange", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
 
 // Re-check on route changes
 function currentPath(): string {
@@ -109,8 +100,8 @@ function updateTopNavActive(path: string): void {
   });
   document.title = `Yuyu Lounge • ${path.slice(1)}`;
 
-  // In case videos got detached
-  if (audibleVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
+  // If no videos are currently playing, resume bgm if user has not muted it
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
 function onRouteChange(): void { updateTopNavActive(currentPath()); }
 onRouteChange();

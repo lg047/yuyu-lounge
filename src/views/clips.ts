@@ -80,28 +80,27 @@ export default function ReelsView(): HTMLElement {
 
   // Size overlay wrapper to the exact video aspect. This removes internal letterbox on 9:16.
   function sizeOverlayToVideo() {
-    const vwNatural = player.videoWidth || 0;
-    const vhNatural = player.videoHeight || 0;
-    if (!vwNatural || !vhNatural) return;
-
-    const maxW = window.innerWidth;
-    const maxH = window.innerHeight;
-
-    const scale = Math.min(maxW / vwNatural, maxH / vhNatural);
-    const w = vwNatural * scale;
-    const h = vhNatural * scale;
-
+    const vw = player.videoWidth || 0;
+    const vh = player.videoHeight || 0;
+    if (!vw || !vh) return;
+  
+    const maxW = document.documentElement.clientWidth;   // not window.innerWidth
+    const maxH = document.documentElement.clientHeight;  // not window.innerHeight
+  
+    const scale = Math.min(maxW / vw, maxH / vh);
+    const w = Math.round(vw * scale);
+    const h = Math.round(vh * scale);
+  
     overlayWrap.style.width = `${w}px`;
     overlayWrap.style.height = `${h}px`;
-    overlayWrap.style.aspectRatio = `${vwNatural} / ${vhNatural}`;
-
-    // Video fills wrapper exactly
+    overlayWrap.style.aspectRatio = `${vw} / ${vh}`;
+  
     player.style.width = "100%";
     player.style.height = "100%";
-    player.style.objectFit = "fill";     // no internal bars since wrapper already matches aspect
+    player.style.objectFit = "fill";
     player.style.objectPosition = "center";
-    player.style.background = "transparent";
   }
+
 
   function openOverlay(index: number) {
     if (index < 0 || index >= list.length) return;
@@ -328,6 +327,7 @@ style.textContent = `
   box-sizing: content-box; display: block;  
   background: transparent;
 }
+.clip-overlay, .clip-overlay-wrap { overflow: hidden; }
 .clip-preview { object-fit: cover; object-position: center; }
 .clip-overlay-player {
   display: block;

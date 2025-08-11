@@ -76,23 +76,8 @@ function isVideo(t: EventTarget | null): t is HTMLVideoElement {
 document.addEventListener("play", (e) => {
   if (!isVideo(e.target)) return;
   playingVideos.add(e.target);
-  bgm.el.pause(); // do not touch the video's mute or volume
+  bgm.pause(); // do not touch the video's mute or volume
 }, true);
-
-// Uniform, lower video volume so it matches bgm loudness
-const VIDEO_TARGET_VOL = 0.25; // try 0.22..0.28
-
-document.addEventListener("play", (e) => {
-  const v = (e.target as HTMLVideoElement);
-  if (!v || v.tagName !== "VIDEO") return;
-
-  // set once per element, do not fight user adjustments later
-  if (!(v as any)._volInit) {
-    v.volume = VIDEO_TARGET_VOL;
-    (v as any)._volInit = true;
-  }
-}, true);
-
 
 function onStop(e: Event) {
   if (!isVideo(e.target)) return;
@@ -102,22 +87,6 @@ function onStop(e: Event) {
 document.addEventListener("pause", onStop, true);
 document.addEventListener("ended", onStop, true);
 document.addEventListener("emptied", onStop, true);
-
-// Unmute a video when the user explicitly clicks the video element
-document.addEventListener("click", (e) => {
-  const el = e.target as HTMLElement | null;
-  const v = el?.closest?.("video") as HTMLVideoElement | null;
-  if (!v) return;
-
-  // user intent: enable audio
-  v.muted = false;
-  v.defaultMuted = false;
-  if (v.volume === 0) v.volume = 1;
-  v.setAttribute("playsinline", "true"); // iOS
-  // optional: ensure it plays if they tapped a paused poster
-  if (v.paused) void v.play().catch(() => {});
-}, { capture: true });
-
 
 // Re-check on route changes
 function currentPath(): string {

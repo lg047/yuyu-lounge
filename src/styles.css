@@ -397,6 +397,8 @@ body::before {
   min-height: 100%;
   font-family: 'VT323', monospace;
   letter-spacing: 0.2px;
+  --input-bg: #5a4a86;   /* solid lavender, opaque */
+  --send-bg:  #8a6fe8;  
 
   /* bubbles only */
   --panel: #eec9ff;
@@ -633,17 +635,38 @@ body::before {
   min-height: 44px;
   font: inherit;
 }
-.chat-form textarea::placeholder { color: rgba(255,255,255,0.9); }
+/* replace your current input styles with this opaque set */
+.chat-form textarea {
+  width: 100%;
+  resize: none;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--input-bg);   /* OPAQUE */
+  color: #fff;
+  min-height: 44px;
+  font: inherit;                 /* VT323 */
+  opacity: 1;
+}
+.chat-form textarea::placeholder { color: rgba(255,255,255,0.95); }
+.chat-form textarea:focus {
+  outline: 2px solid rgba(255,255,255,0.35); /* visible caret ring */
+  outline-offset: 0;
+}
+
 .chat-send {
   border: none;
-  background: rgba(255,255,255,0.18);
+  background: var(--send-bg);    /* OPAQUE */
   border-radius: 12px;
   padding: 10px 16px;
   color: #fff;
-  font: inherit;
+  font: inherit;                 /* VT323 */
   -webkit-appearance: none;
   appearance: none;
+  opacity: 1;
 }
+.chat-send:active { transform: translateY(1px); }
+
 
 /* iOS safe area */
 @supports(padding:max(0px)) {

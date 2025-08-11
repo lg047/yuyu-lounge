@@ -1,6 +1,5 @@
 // src/views/reels.ts
-// Keeps your original layout and overlay.
-// Fixes: lightbox fills with the clip (no internal bars on 9:16), symmetric bars only when aspect differs.
+// Lightbox video covers viewport. BGM pauses while a reel plays, resumes on close.
 // Grid: progressive append, no blanks, no repeats, loads past 4 rows.
 
 function shuffle<T>(arr: T[]): T[] {
@@ -77,81 +76,81 @@ export default function ReelsView(): HTMLElement {
 
   let list: string[] = [];
   let current = -1;
+  const bgm: any = (window as any).__bgm || null; // site background music
 
-  // Size overlay wrapper to the exact video aspect. This removes internal letterbox on 9:16.
+  // Cover viewport
   function sizeOverlayToVideo() {
     overlayWrap.style.width = "100vw";
     overlayWrap.style.height = "100vh";
-  
     player.style.width = "100%";
     player.style.height = "100%";
-    player.style.objectFit = "cover"; // crop instead of leave gaps
+    player.style.objectFit = "cover";
     player.style.objectPosition = "center";
   }
 
   function openOverlay(index: number) {
-  if (index < 0 || index >= list.length) return;
-  current = index;
-  const url = list[current];
+    if (index < 0 || index >= list.length) return;
+    current = index;
+    const url = list[current];
 
-  overlaySpinner.classList.add("show");
-  player.style.display = "none";
+    overlaySpinner.classList.add("show");
+    player.style.display = "none";
+    player.src = url;
 
-  player.src = url;
-
-  const onReady = () => {
-    sizeOverlayToVideo();
-    overlaySpinner.classList.remove("show");
-    player.style.display = "";
-    player.removeEventListener("loadedmetadata", onReady);
-    player.removeEventListener("canplay", onReady);
-  };
-  player.addEventListener("loadedmetadata", onReady, { once: true });
-  player.addEventListener("canplay", onReady, { once: true });
-
-  document.documentElement.classList.add("clip-open");
-  backdrop.classList.add("is-visible");
-  overlay.classList.add("is-visible");
-  overlay.setAttribute("aria-hidden", "false");
-
-  // Ensure video is attached to DOM so main.ts play listener catches it
-  if (!overlayWrap.contains(player)) {
-    overlayWrap.appendChild(player);
-  }
-
-  // Try to play immediately, else wait for click
-  player.muted = false;
-  player.play().catch(() => {
-    const tapToPlay = () => {
-      player.muted = false;
-      player.play().catch(() => {});
-      overlay.removeEventListener("click", tapToPlay);
+    const onReady = () => {
+      sizeOverlayToVideo();
+      overlaySpinner.classList.remove("show");
+      player.style.display = "";
+      player.removeEventListener("loadedmetadata", onReady);
+      player.removeEventListener("canplay", onReady);
     };
-    overlay.addEventListener("click", tapToPlay, { once: true });
-  });
+    player.addEventListener("loadedmetadata", onReady, { once: true });
+    player.addEventListener("canplay", onReady, { once: true });
 
-  const onResize = () => sizeOverlayToVideo();
-  window.addEventListener("resize", onResize, { passive: true });
-  overlay.addEventListener("transitionend", function cleanup() {
-    if (!overlay.classList.contains("is-visible")) {
-      window.removeEventListener("resize", onResize);
-      overlay.removeEventListener("transitionend", cleanup);
-    }
-  });
-}
+    document.documentElement.classList.add("clip-open");
+    backdrop.classList.add("is-visible");
+    overlay.classList.add("is-visible");
+    overlay.setAttribute("aria-hidden", "false");
 
+    if (!overlayWrap.contains(player)) overlayWrap.appendChild(player);
 
+    // Pause site BGM immediately
+    if (bgm) bgm.pause?.();
 
+    // Try to play immediately, else wait for click
+    player.muted = false;
+    player.play().catch(() => {
+      const tapToPlay = () => {
+        player.muted = false;
+        player.play().catch(() => {});
+        overlay.removeEventListener("click", tapToPlay);
+      };
+      overlay.addEventListener("click", tapToPlay, { once: true });
+    });
+
+    const onResize = () => sizeOverlayToVideo();
+    window.addEventListener("resize", onResize, { passive: true });
+    overlay.addEventListener("transitionend", function cleanup() {
+      if (!overlay.classList.contains("is-visible")) {
+        window.removeEventListener("resize", onResize);
+        overlay.removeEventListener("transitionend", cleanup);
+      }
+    });
+  }
 
   function closeOverlay() {
     overlay.classList.remove("is-visible");
     backdrop.classList.remove("is-visible");
     overlay.setAttribute("aria-hidden", "true");
     document.documentElement.classList.remove("clip-open");
+
     player.pause();
     player.removeAttribute("src");
     player.load();
     current = -1;
+
+    // Resume site BGM if user has not muted it
+    if (bgm && !bgm.muted) void bgm.playIfAllowed?.();
   }
 
   function step(delta: number) {

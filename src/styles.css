@@ -398,7 +398,7 @@ body::before {
   font-family: 'VT323', monospace;
   letter-spacing: 0.2px;
 
-  /* palette for bubbles only */
+  /* bubbles only */
   --panel: #eec9ff;
   --bubble-user: #3aa9ff;
   --bubble-ai: #965eff;
@@ -452,7 +452,7 @@ body::before {
   text-shadow: 0 1px 0 rgba(0,0,0,0.25);
 }
 
-/* Softer fills for Mary and Roo to avoid neon clash with white */
+/* Softer fills for Mary and Roo */
 .chat-card[data-id="mary"] { background: #b9e4c3; border-color: #9fd4ad; }
 .chat-card[data-id="roo"]  { background: #86c8ea; border-color: #73b8dd; }
 
@@ -463,19 +463,13 @@ body::before {
   padding: 4px 10px 10px;
 }
 
-/* Pixel background: moving hearts over static small stars.
-   Important: both source PNGs are 1024×1024, so use 1024 sizes to avoid blur. */
+/* ---------- BACKGROUND LAYERS ---------- */
+/* Base: static tiny stars (opaque) */
 .chat-room {
-  /* was a solid panel, now layered tiles */
-  background:
-    url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0,
-    url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
-  background-size:
-    1024px 1024px,     /* hearts tile native size */
-    1024px 1024px;     /* stars tile native size */
-  animation: heartsDrift 55s linear infinite;
-
+  background: url("/yuyu-lounge/assets/bg/chat_tile_stars_128.png") repeat 0 0;
+  background-size: 1024px 1024px; /* your star tile is 1024×1024 */
   border-radius: 16px;
+
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
@@ -484,14 +478,43 @@ body::before {
   height: 58vh;
   max-height: 660px;
   padding: 12px;
+
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Moving hearts overlay with low opacity and a bottom fade */
+.chat-room::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/yuyu-lounge/assets/bg/chat_tile_hearts_256.png") repeat 0 0;
+  background-size: 1024px 1024px;        /* matches your 1024×1024 hearts */
+  animation: heartsDrift 80s linear infinite;
+  opacity: 0.20;                          /* less distracting */
+  pointer-events: none;
+
+  /* fade out near the input to avoid clutter there */
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%);
+}
+
+/* Subtle tint to calm the big stars a touch (no slab look) */
+.chat-room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 70, 160, 0.08);  /* very light lilac wash */
+  pointer-events: none;
 }
 
 @keyframes heartsDrift {
-  from { background-position: 0 0, 0 0; }
-  to   { background-position: -1024px 0, 0 0; } /* hearts move, stars stay */
+  from { background-position: 0 0; }
+  to   { background-position: -1024px 0; } /* gentle leftward drift */
 }
 
 @media (max-width: 768px) {
@@ -562,7 +585,7 @@ body::before {
   align-content: start;
 }
 
-/* Bubbles: larger, flat, no shadows, higher contrast */
+/* Bubbles */
 .chat-row { display: grid; }
 .chat-row.user { justify-items: end; }
 .chat-row.assistant { justify-items: start; }

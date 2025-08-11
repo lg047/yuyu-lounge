@@ -32,20 +32,41 @@ export default function ChatView(): HTMLElement {
     return m ? m[1] : null;
   }
 
+
   function render() {
     root.innerHTML = "";
+    showLoader(root);
+  
     state.id = currentId();
     if (!state.id) {
-      root.appendChild(renderSelect());
+      const el = renderSelect();
+      root.appendChild(el);
+  
+      // wait for portraits to be ready so we hide after pixels exist
+      const imgs = Array.from(el.querySelectorAll("img"));
+      const waits = imgs.map(img =>
+        (img as HTMLImageElement).decode
+          ? (img as HTMLImageElement).decode().catch(() => {})
+          : new Promise(res => {
+              (img as HTMLImageElement).onload = (img as HTMLImageElement).onerror = () => res(null);
+            })
+      );
+      Promise.all(waits).then(() => hideLoader(root));
     } else {
       const c = byId(state.id);
       if (!c) {
-        root.appendChild(renderSelect());
+        const el = renderSelect();
+        root.appendChild(el);
+        hideLoader(root);
       } else {
-        root.appendChild(renderRoom(c));
+        const el = renderRoom(c);
+        root.appendChild(el);
+        // one frame later is enough for the chat layout
+        requestAnimationFrame(() => hideLoader(root));
       }
     }
   }
+
 
   window.addEventListener("hashchange", () => render(), { passive: true });
   render();

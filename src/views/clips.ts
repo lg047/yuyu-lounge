@@ -89,51 +89,59 @@ export default function ReelsView(): HTMLElement {
     player.style.objectPosition = "center";
   }
 
-
-
   function openOverlay(index: number) {
-    if (index < 0 || index >= list.length) return;
-    current = index;
-    const url = list[current];
+  if (index < 0 || index >= list.length) return;
+  current = index;
+  const url = list[current];
 
-    overlaySpinner.classList.add("show");
-    player.style.display = "none";
+  overlaySpinner.classList.add("show");
+  player.style.display = "none";
 
-    player.src = url;
+  player.src = url;
 
-    const onReady = () => {
-      sizeOverlayToVideo();
-      overlaySpinner.classList.remove("show");
-      player.style.display = "";
-      player.removeEventListener("loadedmetadata", onReady);
-      player.removeEventListener("canplay", onReady);
-    };
-    player.addEventListener("loadedmetadata", onReady, { once: true });
-    player.addEventListener("canplay", onReady, { once: true });
+  const onReady = () => {
+    sizeOverlayToVideo();
+    overlaySpinner.classList.remove("show");
+    player.style.display = "";
+    player.removeEventListener("loadedmetadata", onReady);
+    player.removeEventListener("canplay", onReady);
+  };
+  player.addEventListener("loadedmetadata", onReady, { once: true });
+  player.addEventListener("canplay", onReady, { once: true });
 
-    document.documentElement.classList.add("clip-open");
-    backdrop.classList.add("is-visible");
-    overlay.classList.add("is-visible");
-    overlay.setAttribute("aria-hidden", "false");
-    
-    player.play().catch(() => {
-      const tapToPlay = () => {
-        player.muted = false;         // ensure audio enabled
-        player.play().catch(() => {}); // try again
-        player.removeEventListener("click", tapToPlay);
-      };
-      overlay.addEventListener("click", tapToPlay, { once: true });
-    });
+  document.documentElement.classList.add("clip-open");
+  backdrop.classList.add("is-visible");
+  overlay.classList.add("is-visible");
+  overlay.setAttribute("aria-hidden", "false");
 
-    const onResize = () => sizeOverlayToVideo();
-    window.addEventListener("resize", onResize, { passive: true });
-    overlay.addEventListener("transitionend", function cleanup() {
-      if (!overlay.classList.contains("is-visible")) {
-        window.removeEventListener("resize", onResize);
-        overlay.removeEventListener("transitionend", cleanup);
-      }
-    });
+  // Ensure video is attached to DOM so main.ts play listener catches it
+  if (!overlayWrap.contains(player)) {
+    overlayWrap.appendChild(player);
   }
+
+  // Try to play immediately, else wait for click
+  player.muted = false;
+  player.play().catch(() => {
+    const tapToPlay = () => {
+      player.muted = false;
+      player.play().catch(() => {});
+      overlay.removeEventListener("click", tapToPlay);
+    };
+    overlay.addEventListener("click", tapToPlay, { once: true });
+  });
+
+  const onResize = () => sizeOverlayToVideo();
+  window.addEventListener("resize", onResize, { passive: true });
+  overlay.addEventListener("transitionend", function cleanup() {
+    if (!overlay.classList.contains("is-visible")) {
+      window.removeEventListener("resize", onResize);
+      overlay.removeEventListener("transitionend", cleanup);
+    }
+  });
+}
+
+
+
 
   function closeOverlay() {
     overlay.classList.remove("is-visible");

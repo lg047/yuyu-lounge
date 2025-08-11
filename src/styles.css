@@ -389,7 +389,6 @@ body::before {
 /* Remove the X close button */
 .clip-overlay-close { display: none !important; }
 
-
 /* Chat + Character Select */
 
 .chat {
@@ -398,14 +397,19 @@ body::before {
   min-height: 100%;
   font-family: 'VT323', monospace;
   letter-spacing: 0.2px;
+
+  /* unified chat palette with higher contrast on your lilac BG */
+  --panel: #eec9ff;     /* opaque soft-lilac panel for readability */
+  --bubble-user: #3aa9ff; /* keep user vivid but non-neon */
+  --bubble-ai: #965eff;   /* deeper violet so white text pops */
 }
 
 /* Selection title */
 .chat-select h1 {
-  font-size: 34px;                 /* bigger */
+  font-size: 36px;                 /* bigger */
   text-align: center;
-  margin: 12px 0 22px;
-  font-weight: 400;                 /* lighter, avoids muddiness */
+  margin: 14px 0 30px;             /* extra gap above tiles */
+  font-weight: 400;
   color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
@@ -429,8 +433,6 @@ body::before {
   justify-items: center;
   text-align: center;
   cursor: pointer;
-
-  /* solid fill and border same color by default */
   border: 2px solid var(--accent, #ff7fd6);
   background: var(--fill, #ff7fd6);
   transition: transform 120ms ease;
@@ -445,33 +447,23 @@ body::before {
 }
 .chat-card-label {
   font-size: 20px;
-  font-family: 'VT323', monospace;   /* force VT323 on labels */
+  font-family: 'VT323', monospace;
   color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.25);
 }
 
-/* Tweak Mary and Roo fills for better white-contrast */
-.chat-card[data-id="mary"] {
-  background: #bfe8c8;               /* softer mint */
-  border-color: #9fd4ad;
-}
-.chat-card[data-id="roo"]  {
-  background: #8fd0f0;               /* softer aqua */
-  border-color: #7bbfe2;
-}
+/* Softer fills for Mary and Roo to avoid neon clash with white */
+.chat-card[data-id="mary"] { background: #b9e4c3; border-color: #9fd4ad; }
+.chat-card[data-id="roo"]  { background: #86c8ea; border-color: #73b8dd; }
 
-/* Chat window shell closer to top */
+/* Chat window shell near top */
 .chat-room-shell {
-  --accent: #ff7fd6;
-  --bubble-user: #7ac8ff;   /* lighter for white text */
-  --bubble-ai:  #e6a5ff;
-  --panel: rgba(242, 199, 255, 0.30); /* gentle lilac glass */
   display: grid;
   place-items: start center;
-  padding: 4px 10px 10px;            /* less top spacing */
+  padding: 4px 10px 10px;
 }
 
-/* Small centered window. Flat, no shadows. */
+/* Flat panel, no shadows, higher contrast */
 .chat-room {
   background: var(--panel);
   border-radius: 16px;
@@ -479,12 +471,12 @@ body::before {
   grid-template-rows: auto 1fr auto;
   gap: 8px;
   width: 100%;
-  max-width: 700px;                   /* narrower for intimacy */
-  height: 58vh;                       /* smaller on desktop */
+  max-width: 700px;
+  height: 58vh;
   max-height: 660px;
   padding: 12px;
-  box-shadow: none;                   /* no drop shadow */
-  backdrop-filter: none;              /* fully 2D */
+  box-shadow: none;
+  backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
@@ -499,7 +491,7 @@ body::before {
   }
 }
 
-/* Header with bigger avatar and name */
+/* Header: bigger avatar and name */
 .chat-head {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -512,36 +504,37 @@ body::before {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.18);
   text-decoration: none;
   color: #fff;
   font-size: 24px;
   line-height: 1;
   border: none;
+  font-family: 'VT323', monospace;
 }
 .chat-title {
   display: inline-grid;
   grid-auto-flow: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   font-weight: 400;
-  font-size: 26px;                    /* bigger */
+  font-size: 30px;              /* bigger */
   color: #fff;
 }
 .chat-title-avatar {
-  width: 40px;                        /* bigger */
-  height: 40px;
+  width: 56px;                  /* bigger */
+  height: 56px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 .chat-clear {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.18);
   border-radius: 10px;
   padding: 6px 12px;
   border: none;
   color: #fff;
-  font: inherit;                      /* VT323 */
+  font: inherit;                 /* VT323 */
   -webkit-appearance: none;
   appearance: none;
 }
@@ -549,32 +542,30 @@ body::before {
 /* Messages */
 .chat-list {
   overflow: auto;
-  padding: 6px;
+  padding: 8px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   align-content: start;
 }
 
-/* Bubbles: larger, flat, no shadows */
+/* Bubbles: larger, flat, no shadows, higher contrast */
 .chat-row { display: grid; }
 .chat-row.user { justify-items: end; }
 .chat-row.assistant { justify-items: start; }
 
 .chat-bubble {
   display: inline-block;
-  max-width: 60ch;                    /* narrower column */
-  padding: 12px 14px;                 /* a bit larger */
-  border-radius: 14px;
+  max-width: 58ch;              /* tighter column for intimacy */
+  padding: 14px 16px;           /* a touch larger */
+  border-radius: 16px;
   background: var(--bubble-ai);
   color: #fff;
-  line-height: 1.25;
+  line-height: 1.28;
   white-space: pre-wrap;
   word-break: break-word;
-  box-shadow: none;                   /* remove shading */
+  box-shadow: none;
 }
-.chat-row.user .chat-bubble {
-  background: var(--bubble-user);
-}
+.chat-row.user .chat-bubble { background: var(--bubble-user); }
 
 /* Input */
 .chat-form {
@@ -589,19 +580,19 @@ body::before {
   padding: 12px 14px;
   border-radius: 12px;
   border: none;
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.22); /* darker for contrast */
   color: #fff;
   min-height: 44px;
-  font: inherit;                      /* VT323 */
+  font: inherit;                /* VT323 */
 }
-.chat-form textarea::placeholder { color: rgba(255,255,255,0.85); }
+.chat-form textarea::placeholder { color: rgba(255,255,255,0.9); }
 .chat-send {
   border: none;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.18);
   border-radius: 12px;
   padding: 10px 16px;
   color: #fff;
-  font: inherit;                      /* VT323 */
+  font: inherit;                /* VT323 */
   -webkit-appearance: none;
   appearance: none;
 }
@@ -610,5 +601,3 @@ body::before {
 @supports(padding:max(0px)) {
   .chat-room { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 }
-
-

@@ -3,7 +3,7 @@ export default function TopNav(): DocumentFragment {
   const items = [
     { label: "Reels", href: "#/reels", id: "nav-reels" },
     { label: "Chat", href: "#/chat", id: "nav-chat" },
-    { label: "HappyStocks", href: "#/stocks", id: "nav-stocks" },
+    { label: "HappyStocks", href: "#/happystocks", id: "nav-stocks" }, // fixed
     { label: "Arcade", href: "#/game", id: "nav-game" },
   ];
   for (const { label, href, id } of items) {

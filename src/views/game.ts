@@ -235,7 +235,10 @@ export default function GameView(): HTMLElement {
       <div class="icons-row">
         ${tile("pom", "Pom Dash", "assets/game/icons/roos-hundred-acre-hop.png")}
         ${tile("rain", "Treat Rain", "assets/game/icons/NEW1treat-rain-tile.png")}
-        ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tileNEW.png")}
+        <!-- Cloud Hop shown as a static image, not clickable -->
+        <div class="game-icon" aria-label="Cloud Hop" style="cursor: default;">
+          <img src="${asset("assets/game/icons/cloud-hop-tileNEW.png")}" alt="" decoding="async">
+        </div>
       </div>
     `;
 

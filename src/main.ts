@@ -1,252 +1,140 @@
-// src/views/reels.ts
-// Same layout/overlay as before. Adds: batch loading via IntersectionObserver,
-// spinner overlay during buffering/seeking, keeps video previews as thumbnails.
+// src/main.ts
+import "./styles.css";
+import { initRouter } from "./router";
+import TopNav from "./components/topnav";
+import { makeBGM } from "./lib/bgm";
+import { store } from "./game/core/storage";
+import "./styles/reels.css";
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+// create once
+const bgm = makeBGM({
+  src: "assets/audio/bgm.mp3",
+  store,
+  key: "bgm.muted",
+  volume: 0.18,
+});
+(window as any).__bgm = bgm;
+
+// Mark <html> when running as an installed app
+function markStandalone(): void {
+  const isStandalone =
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    // @ts-ignore
+    (typeof navigator !== "undefined" && (navigator as any).standalone === true);
+  document.documentElement.classList.toggle(
+    "standalone",
+    Boolean(isStandalone)
+  );
+}
+markStandalone();
+try {
+  const mq = window.matchMedia?.("(display-mode: standalone)");
+  mq?.addEventListener?.("change", markStandalone);
+} catch {}
+
+// --- PWA Install button wiring ---
+let deferredPrompt: unknown = null;
+const installBtn = document.getElementById(
+  "installBtn"
+) as HTMLButtonElement | null;
+window.addEventListener("beforeinstallprompt", (e: Event) => {
+  // @ts-ignore
+  e.preventDefault?.();
+  deferredPrompt = e;
+  if (installBtn) installBtn.hidden = false;
+});
+installBtn?.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  // @ts-ignore
+  await deferredPrompt.prompt?.();
+  deferredPrompt = null;
+  if (installBtn) installBtn.hidden = true;
+});
+
+// --- Mount Top Nav ---
+const topnavHost = document.getElementById("topnav") as HTMLElement | null;
+if (topnavHost) topnavHost.replaceChildren(TopNav());
+
+// Replace Settings tab with a mute button for site music
+(function attachMusicToggle() {
+  const scope = topnavHost ?? document;
+  const selectors = [
+    '[data-nav="settings"]',
+    "#settings-tab",
+    ".nav-settings",
+    'a[href="#/settings"]',
+  ];
+  let target: Element | null = null;
+  for (const sel of selectors) {
+    target = scope.querySelector(sel);
+    if (target) break;
   }
-  return a;
+  if (target) {
+    bgm.attachToggleInto(target);
+  } else if (topnavHost) {
+    const placeholder = document.createElement("span");
+    topnavHost.appendChild(placeholder);
+    bgm.attachToggleInto(placeholder);
+  }
+  void bgm.playIfAllowed();
+})();
+
+// ---- BGM vs videos: pause BGM when any video plays, resume when none do ----
+const playingVideos = new Set<HTMLVideoElement>();
+
+function isVideo(t: EventTarget | null): t is HTMLVideoElement {
+  return !!t && (t as any).tagName === "VIDEO";
 }
 
-async function loadClips(): Promise<string[]> {
-  const base = import.meta.env.BASE_URL || "/";
-  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
-  const data = await res.json();
-  if (!Array.isArray(data)) throw new Error("clips.json is not an array");
-  return data.map(String).filter((u) => /\.mp4(\?|$)/i.test(u));
+document.addEventListener(
+  "play",
+  (e) => {
+    if (!isVideo(e.target)) return;
+    playingVideos.add(e.target);
+    bgm.pause(); // do not touch the video's mute or volume
+  },
+  true
+);
+
+function onStop(e: Event) {
+  if (!isVideo(e.target)) return;
+  playingVideos.delete(e.target);
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
+document.addEventListener("pause", onStop, true);
+document.addEventListener("ended", onStop, true);
+document.addEventListener("emptied", onStop, true);
 
-export default function ReelsView(): HTMLElement {
-  const root = document.createElement("section");
-  root.className = "clips-view";
-
-  // Backdrop and overlay
-  const backdrop = document.createElement("div");
-  backdrop.className = "clip-backdrop";
-  backdrop.addEventListener("click", () => closeOverlay());
-
-  const overlay = document.createElement("div");
-  overlay.className = "clip-overlay";
-  overlay.setAttribute("aria-hidden", "true");
-
-  const player = document.createElement("video");
-  player.className = "clip-overlay-player";
-  player.playsInline = true;
-  player.muted = false;
-  player.loop = true;
-  player.preload = "auto";
-
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "clip-overlay-close";
-  closeBtn.type = "button";
-  closeBtn.setAttribute("aria-label", "Close");
-  closeBtn.textContent = "×";
-  closeBtn.addEventListener("click", () => closeOverlay());
-
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "clip-nav clip-nav-prev";
-  prevBtn.type = "button";
-  prevBtn.setAttribute("aria-label", "Previous");
-  prevBtn.textContent = "‹";
-
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "clip-nav clip-nav-next";
-  nextBtn.type = "button";
-  nextBtn.setAttribute("aria-label", "Next");
-  nextBtn.textContent = "›";
-
-  overlay.appendChild(player);
-  overlay.appendChild(closeBtn);
-  overlay.appendChild(prevBtn);
-  overlay.appendChild(nextBtn);
-
-  let list: string[] = [];
-  let current = -1;
-
-  function openOverlay(index: number) {
-    if (index < 0 || index >= list.length) return;
-    current = index;
-    const url = list[current];
-    if (player.src !== url) player.src = url;
-
-    document.documentElement.classList.add("clip-open");
-    backdrop.classList.add("is-visible");
-    overlay.classList.add("is-visible");
-    overlay.setAttribute("aria-hidden", "false");
-
-    player.play().catch(() => {
-      const tapToPlay = () => {
-        player.play().finally(() => {
-          player.removeEventListener("click", tapToPlay);
-        });
-      };
-      player.addEventListener("click", tapToPlay, { once: true });
-    });
-  }
-
-  function closeOverlay() {
-    overlay.classList.remove("is-visible");
-    backdrop.classList.remove("is-visible");
-    overlay.setAttribute("aria-hidden", "true");
-    document.documentElement.classList.remove("clip-open");
-    player.pause();
-    player.removeAttribute("src");
-    player.load();
-    current = -1;
-  }
-
-  function step(delta: number) {
-    if (current < 0) return;
-    const next = (current + delta + list.length) % list.length;
-    openOverlay(next);
-  }
-
-  prevBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(-1);
+// Re-check on route changes
+function currentPath(): string {
+  const hash = location.hash || "#/reels";
+  return hash.replace(/^#/, "");
+}
+function updateTopNavActive(path: string): void {
+  const links = document.querySelectorAll<HTMLAnchorElement>(
+    ".topnav a[href^='#/']"
+  );
+  links.forEach((a) => {
+    const hrefPath = a.getAttribute("href")?.replace(/^#/, "") ?? "";
+    a.classList.toggle("active", hrefPath === path);
   });
-  nextBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(1);
+  document.title = `Yuyu Lounge • ${path.slice(1)}`;
+
+  // If no videos are currently playing, resume bgm if user has not muted it
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
+}
+function onRouteChange(): void {
+  updateTopNavActive(currentPath());
+}
+onRouteChange();
+window.addEventListener("hashchange", onRouteChange);
+
+// Router bootstrap
+initRouter();
+
+// Service Worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
-
-  window.addEventListener("keydown", (e) => {
-    if (!overlay.classList.contains("is-visible")) return;
-    if (e.key === "Escape") closeOverlay();
-    else if (e.key === "ArrowLeft") step(-1);
-    else if (e.key === "ArrowRight") step(1);
-  });
-
-  // Centered grid
-  const gridWrap = document.createElement("div");
-  gridWrap.className = "clips-grid-wrap";
-
-  const grid = document.createElement("div");
-  grid.className = "clips-grid";
-
-  const status = document.createElement("div");
-  status.textContent = "Loading…";
-  status.style.opacity = "0.7";
-
-  root.appendChild(status);
-  gridWrap.appendChild(grid);
-  root.appendChild(gridWrap);
-  root.appendChild(backdrop);
-  root.appendChild(overlay);
-
-  // Spinner element
-  function makeSpinner(): HTMLElement {
-    const s = document.createElement("div");
-    s.className = "clip-spinner";
-    return s;
-  }
-
-  // Batch rendering
-  let rendered = 0;
-  const batchSize = 24;
-  const sentinel = document.createElement("div");
-  sentinel.style.width = "1px";
-  sentinel.style.height = "1px";
-  gridWrap.appendChild(sentinel);
-
-  function renderBatch() {
-    const end = Math.min(list.length, rendered + batchSize);
-    for (; rendered < end; rendered++) {
-      const url = list[rendered];
-      const tile = document.createElement("button");
-      tile.className = "clip-tile";
-      tile.type = "button";
-      tile.setAttribute("aria-label", "Open clip");
-
-      const v = document.createElement("video");
-      v.src = url;
-      v.muted = true;
-      v.playsInline = true;
-      v.loop = false;
-      v.preload = "metadata";
-      v.className = "clip-preview";
-      v.addEventListener("loadedmetadata", () => {
-        try {
-          v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
-        } catch {}
-      });
-
-      const spinner = makeSpinner();
-      tile.appendChild(v);
-      tile.appendChild(spinner);
-
-      v.addEventListener("waiting", () => spinner.classList.add("show"));
-      v.addEventListener("seeking", () => spinner.classList.add("show"));
-      v.addEventListener("canplay", () => spinner.classList.remove("show"));
-      v.addEventListener("playing", () => spinner.classList.remove("show"));
-      v.addEventListener("pause", () => spinner.classList.remove("show"));
-      v.addEventListener("ended", () => spinner.classList.remove("show"));
-
-      // openOverlay uses index from current rendered loop
-      tile.addEventListener("click", () => openOverlay(rendered));
-
-      grid.appendChild(tile);
-    }
-  }
-
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (e.isIntersecting) {
-        renderBatch();
-        if (rendered >= list.length) {
-          io.disconnect();
-          sentinel.remove();
-        }
-      }
-    }
-  }, { root: null, rootMargin: "1200px 0px" });
-
-  loadClips()
-    .then((urls) => {
-      status.remove();
-      list = shuffle(urls);
-      renderBatch();
-      io.observe(sentinel);
-    })
-    .catch((err) => {
-      status.textContent = `Failed to load clips: ${
-        err instanceof Error ? err.message : String(err)
-      }`;
-    });
-
-  return root;
 }
-
-/* === Spinner CSS appended === */
-const style = document.createElement("style");
-style.textContent = `
-.clip-tile { position: relative; }
-.clip-spinner {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border: 3px solid transparent;
-  border-top-color: #7df6ff;
-  border-right-color: #ff4f98;
-  border-radius: 50%;
-  animation: clip-spin 0.9s linear infinite paused;
-  opacity: 0;
-  pointer-events: none;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-.clip-spinner.show {
-  opacity: 1;
-  animation-play-state: running;
-}
-@keyframes clip-spin {
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-`;
-document.head.appendChild(style);
-

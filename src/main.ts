@@ -65,26 +65,29 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
   void bgm.playIfAllowed();
 })();
 
-// Pause BGM when any audible video plays, resume when none are audible
-const audibleVideos = new Set<HTMLVideoElement>();
+
+// ---- BGM vs videos: pause BGM when any video plays, resume when none do ----
+const playingVideos = new Set<HTMLVideoElement>();
+
 function isVideo(t: EventTarget | null): t is HTMLVideoElement {
   return !!t && (t as any).tagName === "VIDEO";
 }
-function isAudible(v: HTMLVideoElement): boolean {
-  return !v.paused && !v.muted && v.volume > 0;
+
+document.addEventListener("play", (e) => {
+  if (!isVideo(e.target)) return;
+  playingVideos.add(e.target);
+  bgm.el.pause();               // do not touch the video's mute or volume
+}, true);
+
+function onStop(e: Event) {
+  if (!isVideo(e.target)) return;
+  playingVideos.delete(e.target);
+  if (playingVideos.size === 0 && !bgm.muted) void bgm.playIfAllowed();
 }
-function updateAudible(v: HTMLVideoElement) {
-  if (isAudible(v)) {
-    if (!audibleVideos.has(v)) audibleVideos.add(v);
-  } else {
-    audibleVideos.delete(v);
-  }
-  if (audibleVideos.size > 0) {
-    bgm.el.pause();
-  } else if (!bgm.muted) {
-    void bgm.playIfAllowed();
-  }
-}
+document.addEventListener("pause", onStop, true);
+document.addEventListener("ended", onStop, true);
+document.addEventListener("emptied", onStop, true);
+
 
 document.addEventListener("play", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);
 document.addEventListener("playing", (e) => { if (isVideo(e.target)) updateAudible(e.target); }, true);

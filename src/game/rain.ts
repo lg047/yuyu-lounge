@@ -234,25 +234,29 @@ const game = {
             this._bonus = Math.floor(this._streak / 5);
             this._score += 1 + this._bonus;
             this._treats.splice(i, 1);
+            console.log("[rain] catch, enabled=", core.audio.enabled);
             if (core.audio.enabled) core.audio.beep(900, 40);
             continue;
           }
-          if (o.y > groundY) {
-            this._treats.splice(i, 1);
-            this._misses += 1;
-            this._streak = 0;
-            this._bonus = 0;
-            if (core.audio.enabled) core.audio.beep(240, 80);
-            if (this._misses >= 3) {
-              this._over = true;
-              this._best = Math.max(this._best, this._score);
-              core.store.setNumber(this.meta.bestKey, this._best);
-              if (core.audio.enabled) core.audio.beep(180, 180);
-              break;
-            }
+
+
+        if (o.y > groundY) {
+          this._treats.splice(i, 1);
+          this._misses += 1;
+          this._streak = 0;
+          this._bonus = 0;
+          console.log("[rain] miss", this._misses, "enabled=", core.audio.enabled);
+          if (core.audio.enabled) core.audio.beep(240, 80);
+          if (this._misses >= 3) {
+            this._over = true;
+            console.log("[rain] gameOver, enabled=", core.audio.enabled);
+            this._best = Math.max(this._best, this._score);
+            core.store.setNumber(this.meta.bestKey, this._best);
+            if (core.audio.enabled) core.audio.beep(180, 180);
+            break;
           }
         }
-      }
+
 
       // draw
       const dpr = core.dpr;

@@ -219,13 +219,12 @@ export default function GameView(): HTMLElement {
     const overlay = document.createElement("div");
     overlay.className = "arcade-menu";
 
+    // minimal change: keep Cloud Hop as a non-interactive div, no greying, no pointer cursor
     function tile(id: string, label: string, imgRel: string, clickable = true) {
       const imgUrl = asset(imgRel);
       if (!clickable) {
-        // not a button, no data-g attribute, and visually dimmed
         return `
-          <div class="game-icon disabled" aria-label="${label}"
-               style="opacity:.55;filter:grayscale(60%);cursor:not-allowed;">
+          <div class="game-icon" aria-label="${label}" style="cursor:default;">
             <img src="${imgUrl}" alt="" decoding="async">
           </div>`;
       }
@@ -241,7 +240,7 @@ export default function GameView(): HTMLElement {
         ${tile("rain", "Treat Rain", "assets/game/icons/NEW1treat-rain-tile.png")}
         ${tile("hop", "Cloud Hop", "assets/game/icons/cloud-hop-tileNEW.png", false)}
       </div>
-    `;
+    ";
 
     overlay.onclick = async (e) => {
       const el = (e.target as HTMLElement).closest("[data-g]") as HTMLElement | null;
@@ -249,9 +248,7 @@ export default function GameView(): HTMLElement {
       e.preventDefault();
       e.stopPropagation();
       const id = el.dataset.g as keyof typeof loaders;
-      if (id === "hop") {
-        return;
-      }
+      if (id === "hop") return;
       await loadGame(id);
     };
 

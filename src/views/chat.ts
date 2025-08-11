@@ -3,6 +3,53 @@ import { CHARACTERS, byId } from "../chat/characters";
 import { chatStore, Msg } from "../chat/store";
 import { CHAT_PROXY_URL } from "../lib/config";
 
+// Measure viewport and element position, then set chat height exactly.
+// Works with iOS visualViewport so the keyboard does not push the input offscreen.
+function fitChatHeight(room: HTMLElement): () => void {
+  const apply = () => {
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    const vh = vv ? vv.height : window.innerHeight;
+
+    // distance from top of viewport to the chat box
+    const top = room.getBoundingClientRect().top;
+
+    // iOS bottom inset if any
+    const saBottomStr = getComputedStyle(document.documentElement).getPropertyValue("--sa-bottom");
+    const saBottom = parseFloat(saBottomStr) || 0;
+
+    // final height in pixels
+    const h = Math.floor(vh - top - saBottom);
+
+    room.style.height = Math.max(360, h) + "px";
+    room.style.maxHeight = "none"; // allow full use of available space
+  };
+
+  apply();
+
+  // keep it updated on rotations, address-bar collapse, keyboard open
+  const onResize = () => apply();
+  const ro = new ResizeObserver(apply);
+  ro.observe(document.body);
+  window.addEventListener("resize", onResize, { passive: true });
+  if ((window as any).visualViewport) {
+    const vv = (window as any).visualViewport as VisualViewport;
+    vv.addEventListener("resize", onResize, { passive: true });
+    vv.addEventListener("scroll", onResize, { passive: true });
+  }
+
+  // cleanup
+  return () => {
+    ro.disconnect();
+    window.removeEventListener("resize", onResize);
+    if ((window as any).visualViewport) {
+      const vv = (window as any).visualViewport as VisualViewport;
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    }
+  };
+}
+
+
 function createLoader(): HTMLDivElement {
   const o = document.createElement("div");
   o.className = "loading-overlay";
@@ -33,39 +80,49 @@ export default function ChatView(): HTMLElement {
   }
 
 
-  function render() {
-    root.innerHTML = "";
-    showLoader(root);
-  
-    state.id = currentId();
-    if (!state.id) {
+function render() {
+  // cleanup previous listeners if any
+  if ((render as any)._cleanup) {
+    (render as any)._cleanup();
+    (render as any)._cleanup = null;
+  }
+
+  root.innerHTML = "";
+  showLoader(root);
+
+  state.id = currentId();
+  if (!state.id) {
+    const el = renderSelect();
+    root.appendChild(el);
+
+    const imgs = Array.from(el.querySelectorAll("img"));
+    const waits = imgs.map(img =>
+      (img as HTMLImageElement).decode
+        ? (img as HTMLImageElement).decode().catch(() => {})
+        : new Promise(res => {
+            (img as HTMLImageElement).onload = (img as HTMLImageElement).onerror = () => res(null);
+          })
+    );
+    Promise.all(waits).then(() => hideLoader(root));
+  } else {
+    const c = byId(state.id);
+    if (!c) {
       const el = renderSelect();
       root.appendChild(el);
-  
-      // wait for portraits to be ready so we hide after pixels exist
-      const imgs = Array.from(el.querySelectorAll("img"));
-      const waits = imgs.map(img =>
-        (img as HTMLImageElement).decode
-          ? (img as HTMLImageElement).decode().catch(() => {})
-          : new Promise(res => {
-              (img as HTMLImageElement).onload = (img as HTMLImageElement).onerror = () => res(null);
-            })
-      );
-      Promise.all(waits).then(() => hideLoader(root));
+      hideLoader(root);
     } else {
-      const c = byId(state.id);
-      if (!c) {
-        const el = renderSelect();
-        root.appendChild(el);
-        hideLoader(root);
-      } else {
-        const el = renderRoom(c);
-        root.appendChild(el);
-        // one frame later is enough for the chat layout
-        requestAnimationFrame(() => hideLoader(root));
-      }
+      const shell = renderRoom(c);
+      root.appendChild(shell);
+      // fit height once the DOM is in place
+      const room = shell.querySelector(".chat-room") as HTMLElement;
+      const stop = fitChatHeight(room);
+      (render as any)._cleanup = stop;
+
+      requestAnimationFrame(() => hideLoader(root));
     }
   }
+}
+
 
 
   window.addEventListener("hashchange", () => render(), { passive: true });

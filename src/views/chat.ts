@@ -3,6 +3,25 @@ import { CHARACTERS, byId } from "../chat/characters";
 import { chatStore, Msg } from "../chat/store";
 import { CHAT_PROXY_URL } from "../lib/config";
 
+function createLoader(): HTMLDivElement {
+  const o = document.createElement("div");
+  o.className = "loading-overlay";
+  o.innerHTML = `<div class="px-spinner"><i></i><i></i><i></i></div>`;
+  return o;
+}
+function showLoader(root: HTMLElement) {
+  if (!root.querySelector(".loading-overlay")) {
+    root.appendChild(createLoader());
+  }
+}
+function hideLoader(root: HTMLElement) {
+  const o = root.querySelector<HTMLDivElement>(".loading-overlay");
+  if (!o) return;
+  o.classList.add("hide");
+  setTimeout(() => o.remove(), 220);
+}
+
+
 export default function ChatView(): HTMLElement {
   const root = document.createElement("div");
   root.className = "chat";

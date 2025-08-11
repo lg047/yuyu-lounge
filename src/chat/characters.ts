@@ -10,7 +10,7 @@ export type Character = {
 export const CHARACTERS: Character[] = [
   {
     id: "ballball",
-    name: "Ball ball",
+    name: "Ballball",
     portrait: "ballball.png",
     color: "#ff7fd6",
     system:
@@ -34,7 +34,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: "tiger",
-    name: "Tiger",
+    name: "Tigger",
     portrait: "tiger.png",
     color: "#ffd37a",
     system:

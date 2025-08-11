@@ -21,7 +21,6 @@ function markStandalone(): void {
   document.documentElement.classList.toggle("standalone", Boolean(isStandalone));
 }
 markStandalone();
-// Some iOS versions change this at runtime
 try {
   const mq = window.matchMedia?.("(display-mode: standalone)");
   mq?.addEventListener?.("change", markStandalone);
@@ -71,9 +70,27 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
     topnavHost.appendChild(placeholder);
     bgm.attachToggleInto(placeholder);
   }
-  // try to start quietly if user has already interacted
+  // try to start if the user has already interacted and music is unmuted
   void bgm.playIfAllowed();
 })();
+
+// --- Pause BGM when a video plays, resume when all videos stop ---
+let activeVideos = 0;
+function isVideo(t: EventTarget | null): t is HTMLVideoElement {
+  return !!t && (t as any).tagName === "VIDEO";
+}
+document.addEventListener("play", (e) => {
+  if (!isVideo(e.target)) return;
+  activeVideos++;
+  bgm.el.pause(); // do not change bgm.muted, just pause playback
+}, true);
+function handleVideoStop(e: Event) {
+  if (!isVideo(e.target)) return;
+  activeVideos = Math.max(0, activeVideos - 1);
+  if (activeVideos === 0 && !bgm.muted) void bgm.playIfAllowed();
+}
+document.addEventListener("pause", handleVideoStop, true);
+document.addEventListener("ended", handleVideoStop, true);
 
 // --- Active link + title ---
 function currentPath(): string {

@@ -1,6 +1,16 @@
-// src/views/reels.ts
-// Centered square grid + overlay player with prev/next. Audio on.
-// Visuals are themed by CSS. Behaviour unchanged from previous Clips view.
+// src/views/clips.ts
+// Reels grid with your existing layout aesthetics:
+// - Centered grid wrapper classes preserved: .clips-grid-wrap, .clips-grid
+// - Square tiles: override component card aspect ratio to 1:1
+// - Posters only at first paint, video created on click (handled by ReelsGrid)
+
+import ReelsGrid from "../components/reels-grid";
+
+type ClipItem = {
+  src: string;
+  poster?: string;
+  title?: string;
+};
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -11,167 +21,83 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-async function loadClips(): Promise<string[]> {
-  const base = import.meta.env.BASE_URL || "/";
-  const res = await fetch(`${base}clips.json`, { cache: "no-cache" });
-  if (!res.ok) throw new Error(`fetch ${base}clips.json failed: ${res.status}`);
-  const data = await res.json();
+const base = (import.meta as any).env.BASE_URL || "/";
+const asset = (p: string) => {
+  const root = base.endsWith("/") ? base : base + "/";
+  return root + p.replace(/^\//, "");
+};
+
+async function loadClips(): Promise<ClipItem[]> {
+  const url = asset("clips.json");
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
+
+  const data: unknown = await res.json();
   if (!Array.isArray(data)) throw new Error("clips.json is not an array");
-  return data.map(String).filter((u) => /\.mp4(\?|$)/i.test(u));
+
+  // Accept ["...mp4", ...] or [{src, poster?, title?}, ...]
+  const items = (data as any[]).map((it) => {
+    if (typeof it === "string") return { src: it } as ClipItem;
+    if (it && typeof it.src === "string") {
+      return { src: it.src, poster: it.poster, title: it.title } as ClipItem;
+    }
+    return null;
+  }).filter(Boolean) as ClipItem[];
+
+  // Keep your previous randomised presentation
+  return shuffle(items);
 }
 
-export default function ReelsView(): HTMLElement {
+export default async function ClipsView(): Promise<HTMLElement> {
   const root = document.createElement("section");
   root.className = "clips-view";
 
-  // Backdrop and overlay
-  const backdrop = document.createElement("div");
-  backdrop.className = "clip-backdrop";
-  backdrop.addEventListener("click", () => closeOverlay());
-
-  const overlay = document.createElement("div");
-  overlay.className = "clip-overlay";
-  overlay.setAttribute("aria-hidden", "true");
-
-  const player = document.createElement("video");
-  player.className = "clip-overlay-player";
-  player.playsInline = true;
-  player.muted = false; // audio on
-  player.loop = true;
-  player.preload = "auto";
-
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "clip-overlay-close";
-  closeBtn.type = "button";
-  closeBtn.setAttribute("aria-label", "Close");
-  closeBtn.textContent = "×";
-  closeBtn.addEventListener("click", () => closeOverlay());
-
-  const prevBtn = document.createElement("button");
-  prevBtn.className = "clip-nav clip-nav-prev";
-  prevBtn.type = "button";
-  prevBtn.setAttribute("aria-label", "Previous");
-  prevBtn.textContent = "‹";
-
-  const nextBtn = document.createElement("button");
-  nextBtn.className = "clip-nav clip-nav-next";
-  nextBtn.type = "button";
-  nextBtn.setAttribute("aria-label", "Next");
-  nextBtn.textContent = "›";
-
-  overlay.appendChild(player);
-  overlay.appendChild(closeBtn);
-  overlay.appendChild(prevBtn);
-  overlay.appendChild(nextBtn);
-
-  let list: string[] = [];
-  let current = -1;
-
-  function openOverlay(index: number) {
-    if (index < 0 || index >= list.length) return;
-    current = index;
-    const url = list[current];
-    if (player.src !== url) player.src = url;
-
-    document.documentElement.classList.add("clip-open");
-    backdrop.classList.add("is-visible");
-    overlay.classList.add("is-visible");
-    overlay.setAttribute("aria-hidden", "false");
-
-    player.play().catch(() => {
-      const tapToPlay = () => {
-        player.play().finally(() => {
-          player.removeEventListener("click", tapToPlay);
-        });
-      };
-      player.addEventListener("click", tapToPlay, { once: true });
-    });
-  }
-
-  function closeOverlay() {
-    overlay.classList.remove("is-visible");
-    backdrop.classList.remove("is-visible");
-    overlay.setAttribute("aria-hidden", "true");
-    document.documentElement.classList.remove("clip-open");
-    player.pause();
-    player.removeAttribute("src");
-    player.load();
-    current = -1;
-  }
-
-  function step(delta: number) {
-    if (current < 0) return;
-    const next = (current + delta + list.length) % list.length;
-    openOverlay(next);
-  }
-
-  prevBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(-1);
-  });
-  nextBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    step(1);
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (!overlay.classList.contains("is-visible")) return;
-    if (e.key === "Escape") closeOverlay();
-    else if (e.key === "ArrowLeft") step(-1);
-    else if (e.key === "ArrowRight") step(1);
-  });
-
-  // Centered grid
-  const gridWrap = document.createElement("div");
-  gridWrap.className = "clips-grid-wrap";
-
-  const grid = document.createElement("div");
-  grid.className = "clips-grid";
-
+  // Optional status text while loading, same minimal style
   const status = document.createElement("div");
   status.textContent = "Loading…";
   status.style.opacity = "0.7";
-
   root.appendChild(status);
-  gridWrap.appendChild(grid);
+
+  // Layout wrappers from your original view
+  const gridWrap = document.createElement("div");
+  gridWrap.className = "clips-grid-wrap";
+
+  const gridHost = document.createElement("div");
+  gridHost.className = "clips-grid";
+
+  gridWrap.appendChild(gridHost);
   root.appendChild(gridWrap);
-  root.appendChild(backdrop);
-  root.appendChild(overlay);
 
-  loadClips()
-    .then((urls) => {
-      status.remove();
-      list = shuffle(urls);
+  try {
+    const items = await loadClips();
 
-      list.forEach((url, index) => {
-        const tile = document.createElement("button");
-        tile.className = "clip-tile";
-        tile.type = "button";
-        tile.setAttribute("aria-label", "Open clip");
-
-        const v = document.createElement("video");
-        v.src = url;
-        v.muted = true; // previews silent
-        v.playsInline = true;
-        v.loop = false;
-        v.preload = "metadata";
-        v.className = "clip-preview";
-        v.addEventListener("loadedmetadata", () => {
-          try {
-            v.currentTime = Math.min(0.1, (v.duration || 1) * 0.01);
-          } catch {}
-        });
-
-        tile.appendChild(v);
-        tile.addEventListener("click", () => openOverlay(index));
-        grid.appendChild(tile);
-      });
-    })
-    .catch((err) => {
-      status.textContent = `Failed to load clips: ${
-        err instanceof Error ? err.message : String(err)
-      }`;
+    // Build the lightweight grid
+    const reels = ReelsGrid({
+      items,
+      batchSize: 24,
+      videoVolume: 0.25,
+      thumbWidth: 240,
     });
+
+    // Apply your grid class to the component’s inner grid for spacing and centering
+    const inner = reels.querySelector(".reels-grid-inner");
+    if (inner) inner.classList.add("clips-grid");
+
+    // Force square tiles to match your centered square aesthetic
+    reels.querySelectorAll<HTMLElement>(".reels-card").forEach((card) => {
+      card.style.aspectRatio = "1 / 1";
+    });
+
+    // Replace host with the component
+    gridHost.replaceWith(reels);
+
+    // Done
+    status.remove();
+  } catch (err) {
+    status.textContent = `Failed to load clips: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
+  }
 
   return root;
 }

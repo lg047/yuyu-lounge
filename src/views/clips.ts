@@ -80,26 +80,15 @@ export default function ReelsView(): HTMLElement {
 
   // Size overlay wrapper to the exact video aspect. This removes internal letterbox on 9:16.
   function sizeOverlayToVideo() {
-    const vw = player.videoWidth || 0;
-    const vh = player.videoHeight || 0;
-    if (!vw || !vh) return;
-  
-    const maxW = document.documentElement.clientWidth;   // not window.innerWidth
-    const maxH = document.documentElement.clientHeight;  // not window.innerHeight
-  
-    const scale = Math.min(maxW / vw, maxH / vh);
-    const w = Math.round(vw * scale);
-    const h = Math.round(vh * scale);
-  
-    overlayWrap.style.width = `${w}px`;
-    overlayWrap.style.height = `${h}px`;
-    overlayWrap.style.aspectRatio = `${vw} / ${vh}`;
+    overlayWrap.style.width = "100vw";
+    overlayWrap.style.height = "100vh";
   
     player.style.width = "100%";
     player.style.height = "100%";
-    player.style.objectFit = "fill";
+    player.style.objectFit = "cover"; // crop instead of leave gaps
     player.style.objectPosition = "center";
   }
+
 
 
   function openOverlay(index: number) {
@@ -323,9 +312,11 @@ style.textContent = `
   justify-content: center;
 }
 .clip-overlay-wrap {
-  padding: 0; margin: 0; border: 0;
-  box-sizing: content-box; display: block;  
-  background: transparent;
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  background: black;
 }
 .clip-overlay, .clip-overlay-wrap { overflow: hidden; }
 .clip-preview { object-fit: cover; object-position: center; }

@@ -42,7 +42,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const room = new Image();
   room.className = "room";
-  room.src = BASE_URL + "assets/room/living-room2.png";
+  room.src = BASE_URL + "assets/room/living-room3.png";
   room.alt = "Living room";
 
   const hit = document.createElement("button");
@@ -93,7 +93,7 @@ export default function mountTV(root: HTMLElement): void {
       else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
     } catch {}
     if ((room.naturalWidth && room.naturalWidth !== BASE.w) || (room.naturalHeight && room.naturalHeight !== BASE.h)) {
-      console.warn("living-room2.png natural size differs from BASE", {
+      console.warn("living-room3.png natural size differs from BASE", {
         natural: { w: room.naturalWidth, h: room.naturalHeight },
         BASE,
       });

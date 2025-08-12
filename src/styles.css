@@ -166,6 +166,10 @@ html.standalone .site-header {
   ine-height: 1;
   position: relative;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+  display: inline-flex;   /* center content within the link box */
+  align-items: center;    /* vertical centering */
+  line-height: 1;         /* kill extra line box space */
+  transform: translateY(1px); /* tiny optical nudge */
 }
 
 .topnav a:hover { opacity: 0.85; }

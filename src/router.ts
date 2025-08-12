@@ -5,11 +5,11 @@ type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 const routes: Record<string, ViewFactory> = {
   "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),
-  "/happystocks": async () => {
-    const mod = await import("./views/happystocks.ts");
-    const wrap = document.createElement("div");
-    mod.default(wrap); // mounts into wrap
-    return wrap;
+  const routes = {
+  // existing routes...
+  tv: async (root: HTMLElement) => {
+    const { default: mountTV } = await import("./views/tv");
+    mountTV(root);
   },
   "/game": async () => (await import("./views/game.ts")).default(),
 };

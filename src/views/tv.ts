@@ -48,37 +48,32 @@ export default function mountTV(root: HTMLElement): void {
   root.appendChild(scene);
 
   // Layout
+  // Layout
   const place = () => {
-    // Size of displayed room image
-    const rect = room.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+    const box = scene.getBoundingClientRect(); // size of the container
+    if (box.width === 0 || box.height === 0) return;
 
-    const scaleX = rect.width / BASE.w;
-    const scaleY = rect.height / BASE.h;
+    // Cover scaling - keeps aspect, fills box, may crop
+    const scale = Math.max(box.width / BASE.w, box.height / BASE.h);
+    const imgW = BASE.w * scale;
+    const imgH = BASE.h * scale;
 
-    const left   = Math.round(TV.x * scaleX);
-    const top    = Math.round(TV.y * scaleY);
-    const width  = Math.round(TV.w * scaleX);
-    const height = Math.round(TV.h * scaleY);
+    // When covered, the image is centered with negative offset for the cropped side
+    const offsetX = Math.round((box.width  - imgW) / 2);
+    const offsetY = Math.round((box.height - imgH) / 2);
 
-    // Position within .scene
-    Object.assign(vid.style, {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
-    });
-    Object.assign(hit.style, {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
-    });
+    const left   = Math.round(offsetX + TV.x * scale);
+    const top    = Math.round(offsetY + TV.y * scale);
+    const width  = Math.round(TV.w * scale);
+    const height = Math.round(TV.h * scale);
 
-    // Hint sits just below the screen window
+    Object.assign(vid.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+    Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
   };
+
 
   // Decode and initial layout
   const ready = async () => {

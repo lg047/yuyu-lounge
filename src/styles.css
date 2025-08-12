@@ -732,6 +732,7 @@ body::before {
   height: calc(100vh - var(--topnav-h));
   margin: 0;
   touch-action: manipulation;
+  overflow: hidden; /* hide cropped edges on cover */
 }
 
 /* Stretch images to fill the scene box */
@@ -741,7 +742,8 @@ body::before {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: fill;        /* fill the box; non-uniform scale is OK because TS matches it */
+  object-fit: cover;   /* fill without stretch, allow crop */
+  object-position: center;
   image-rendering: pixelated;
   display: block;
 }

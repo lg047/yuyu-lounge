@@ -47,6 +47,18 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
+  // after: root.appendChild(scene);
+  const setNavH = () => {
+    const nav = document.querySelector<HTMLElement>(".topnav");
+    if (nav) {
+      const h = Math.ceil(nav.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--topnav-h", `${h}px`);
+    }
+  };
+  setNavH();
+  window.addEventListener("resize", setNavH);
+
+
   // Layout
   // Layout
   const place = () => {

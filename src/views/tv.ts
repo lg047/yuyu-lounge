@@ -5,7 +5,7 @@ type Size = { w: number; h: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
 /** EDIT these to match your PNGs */
-const BASE: Size = { w: 1536, h: 1024 }; // natural pixels of living-room.png
+const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 const TV: Rect  = { x: 560,  y: 304,  w: 417,  h: 291  }; // top-left and size of hole in BASE pixels
 
 export default function mountTV(root: HTMLElement): void {
@@ -17,7 +17,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const vid = document.createElement("video");
   vid.id = "tv";
-  vid.src = "/videos/test.mp4";
+  vid.src  = BASE_URL + "videos/test.mp4";
   vid.muted = true;
   vid.preload = "metadata";
   vid.playsInline = true; // iOS inline
@@ -25,12 +25,12 @@ export default function mountTV(root: HTMLElement): void {
 
   const vhs = new Image();
   vhs.className = "vhs";
-  vhs.src = "/assets/room/vhs-filter.png";
+  vhs.src  = BASE_URL + "assets/room/vhs-filter.png";
   vhs.alt = "";
 
   const room = new Image();
   room.className = "room";
-  room.src = "/assets/room/living-room.png";
+  room.src = BASE_URL + "assets/room/living-room.png";
   room.alt = "Living room";
 
   const hit = document.createElement("button");

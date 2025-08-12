@@ -29,7 +29,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const vid = document.createElement("video");
   vid.id = "tv";
-  vid.src = BASE_URL + "videos/test.mp4";
+  vid.src = BASE_URL + "videos/test2.mp4";
   vid.muted = true;
   vid.preload = "metadata";
   vid.playsInline = true;

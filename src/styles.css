@@ -800,6 +800,26 @@ body::before {
 }
 .tv .hint.hide { opacity: 0; }
 
+/* wrapper crops any iOS letterbox */
+.tv .tv-wrap {
+  position: absolute;
+  z-index: 1;           /* below vhs (2) and room (3) */
+  overflow: hidden;
+  pointer-events: none; /* clicks go to .hit */
+}
+
+/* make the video slightly overspill so no edge gaps on iOS */
+.tv .tv-wrap > video {
+  position: absolute;
+  top: -1%;
+  left: -1%;
+  width: 102%;
+  height: 102%;
+  object-fit: cover;    /* keeps aspect inside the overspill */
+  background: #000;
+}
+
+
 @media (max-width: 480px) {
   :root { --topnav-h: 96px; } /* tweak if mobile nav is shorter */
 }

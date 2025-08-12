@@ -6,13 +6,17 @@ export default function TopNav(): DocumentFragment {
     { label: "HappyStocks", href: "#/happystocks", id: "nav-stocks" }, // fixed
     { label: "Arcade", href: "#/game", id: "nav-game" },
   ];
-  for (const { label, href, id } of items) {
-    const a = document.createElement("a");
-    a.id = id;
-    a.href = href;
-    a.textContent = label;
-    a.addEventListener("click", () => a.blur());
-    frag.appendChild(a);
+// src/components/topnav.ts  (add one link)
+  export default function TopNav(): HTMLElement {
+    const el = document.createElement("nav");
+    el.className = "topnav";
+    el.innerHTML = `
+      <a href="#/" class="nav-link">Home</a>
+      <!-- existing links -->
+      <a href="#/tv" class="nav-link">TV</a>
+    `;
+    return el;
   }
+
   return frag;
 }

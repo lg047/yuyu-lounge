@@ -717,185 +717,74 @@ body::before {
 }
 
 
-/* --- HappyStocks --- */
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-.happy {
-  --happy-bg: var(--pink-900, #1e1022);
-  --happy-card: rgba(255,255,255,0.06);
-  --happy-ink: #ffe6ff;
-  --happy-sub: #aeeaff;
-  --happy-accent: #ffbdf2;
-  --happy-good: #c8ffbf;
-  --happy-bad: #ffc9d3;
-  font-family: "VT323", ui-monospace, monospace;
-  color: var(--happy-ink);
-  background: transparent;
-  min-height: calc(var(--vh, 1vh) * 100);
-}
-
-.happy .shine { color: var(--happy-accent); }
-.happy .tag { margin-top: 2px; opacity: 0.85; }
-
-.happy-header { padding: 12px 12px 0 12px; }
-.happy-header h1 { font-size: 40px; line-height: 1; margin: 0; letter-spacing: 0.5px; }
-.happy-header .tag { font-size: 18px; }
-
-.happy-form {
+/* ===== TV view ===== */
+.tv {
   display: grid;
-  grid-template-columns: 1fr 120px 160px auto;
-  gap: 8px;
-  padding: 10px 12px;
-  align-items: end;
-}
-.happy-form .stack { display: grid; gap: 4px; font-size: 16px; }
-.happy-form input {
-  font-family: inherit;
-  font-size: 18px;
-  padding: 8px 10px;
-  background: var(--happy-card);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: var(--happy-ink);
-  border-radius: 8px;
-}
-.happy-btn {
-  font-family: inherit;
-  font-size: 18px;
-  padding: 9px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: linear-gradient(0deg, rgba(255,255,255,0.06), rgba(255,255,255,0.10));
-  color: var(--happy-ink);
-  cursor: pointer;
-}
-.happy-btn.ghost { background: transparent; }
-
-.happy-note {
-  padding: 0 12px 8px 12px;
-  color: var(--happy-sub);
-  font-size: 16px;
-  min-height: 20px;
+  place-content: center;
+  padding: 8px;
+  min-height: calc(100vh - 56px); /* adjust if your topnav height differs */
+  overflow: hidden;
 }
 
-.happy-summary,
-.happy-list {
-  padding: 6px 12px 18px 12px;
+.tv .scene {
+  position: relative;
+  width: min(100vw, 1200px);
+  aspect-ratio: 1536 / 1024; /* keep the room image ratio */
+  margin: 0 auto;
+  touch-action: manipulation;
 }
 
-.happy .card {
-  background: var(--happy-card);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.happy .summary-card h3 {
-  margin: 0 0 6px 0;
-  font-size: 24px;
-}
-
-.happy .empty { text-align: center; font-size: 18px; padding: 24px; }
-
-.happy .row { display: grid; gap: 8px; }
-.happy .row-head {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 6px;
-}
-.happy .row-head .id { display: flex; align-items: baseline; gap: 8px; }
-.happy .sym { font-size: 22px; }
-.happy .nm { font-size: 18px; color: var(--happy-sub); opacity: 0.9; }
-.happy .chip {
-  font-size: 14px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-.happy .chip.off { opacity: 0.6; }
-.happy .chip.manual { background: rgba(255, 230, 255, 0.12); }
-
-.happy .row-head .price { text-align: right; }
-.happy .row-head .price b { font-size: 22px; }
-.happy .row-head .price .sub { display: block; font-size: 16px; color: var(--happy-sub); }
-
-.happy .row-body {
-  display: grid;
-  grid-template-columns: 100px 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-.happy .spark {
-  display: block;
+.tv img.room,
+.tv img.vhs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   image-rendering: pixelated;
-  width: 80px;
-  height: 20px;
-  --happy-ink: #fff;
+  -ms-interpolation-mode: nearest-neighbor; /* old IE, harmless elsewhere */
 }
 
-.happy .metrics {
-  list-style: none;
-  margin: 0; padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
-  gap: 6px 12px;
-  font-size: 16px;
-}
-.happy .metrics li { display: grid; gap: 2px; }
-.happy .metrics span { color: var(--happy-sub); }
-.happy .metrics b { font-size: 18px; }
+.tv img.vhs { z-index: 2; pointer-events: none; }
+.tv img.room { z-index: 3; pointer-events: none; }
 
-.happy .actions { display: flex; gap: 8px; }
-.happy .actions .del {
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: transparent; color: var(--happy-ink);
+/* Video sits under both images. It gets sized and positioned by TS. */
+.tv video#tv {
+  position: absolute;
+  z-index: 1;
+  object-fit: cover;      /* fill the window without letterbox */
+  object-position: center;
+  background: #000;       /* behind video if metadata not ready */
+}
+
+/* Click hitbox exactly over the TV window, set by TS */
+.tv button.hit {
+  position: absolute;
+  z-index: 4;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
   cursor: pointer;
 }
 
-/* Spinner */
-.happy-spinner { display: flex; gap: 8px; padding: 6px 12px; align-items: center; }
-.happy-spinner.hidden { display: none; }
-.happy-spinner .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--happy-accent);
-  animation: happy-b 1s infinite ease-in-out;
+/* Tiny hint, fades after first tap */
+.tv .hint {
+  position: absolute;
+  z-index: 5;
+  font: 600 12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border-radius: 6px;
+  opacity: 0.9;
+  transition: opacity .25s ease;
+  pointer-events: none;
 }
-.happy-spinner .dot:nth-child(2) { animation-delay: 0.15s; }
-.happy-spinner .dot:nth-child(3) { animation-delay: 0.3s; }
-@keyframes happy-b { 0%,80%,100%{ transform: scale(0.8);} 40%{ transform: scale(1.2);} }
+.tv .hint.hide { opacity: 0; }
 
-/* Manual modal */
-.happy-modal-wrap {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: grid; place-items: center;
-  z-index: 50;
+@media (max-width: 480px) {
+  .tv .scene { width: 100vw; }
+  .tv .hint { font-size: 11px; }
 }
-.happy-modal {
-  width: min(420px, 92vw);
-  background: var(--happy-card);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 14px;
-  padding: 12px;
-}
-.happy-modal h4 { margin: 0 0 6px 0; font-size: 22px; }
-.happy .row.gap { display: flex; gap: 8px; margin-top: 8px; }
 
-/* Mobile stack */
-@media (max-width: 560px) {
-  .happy-form {
-    grid-template-columns: 1fr 1fr;
-  }
-  .happy-form .stack:nth-child(3) { grid-column: span 2; }
-  .happy-form .happy-btn { grid-column: span 2; }
-  .happy .row-body {
-    grid-template-columns: 100px 1fr;
-  }
-  .happy .actions { grid-column: 1 / -1; }
-  .happy .metrics {
-    grid-template-columns: repeat(2, minmax(0,1fr));
-  }
 }

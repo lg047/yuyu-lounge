@@ -5,10 +5,22 @@ type Size = { w: number; h: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
 /** EDIT these to match your PNGs */
+const BASE: Size = { w: 1536, h: 1024 }; // natural pixels of living-room.png
+const TV: Rect  = { x: 560, y: 304, w: 417, h: 291 }; // top-left and size of hole in BASE pixels
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
-const TV: Rect  = { x: 560,  y: 304,  w: 417,  h: 291  }; // top-left and size of hole in BASE pixels
 
 export default function mountTV(root: HTMLElement): void {
+  // Set nav height before first paint so we do not overlap the topnav
+  const setNavH = () => {
+    const nav = document.querySelector<HTMLElement>(".topnav");
+    if (nav) {
+      const h = Math.ceil(nav.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--topnav-h", `${h}px`);
+    }
+  };
+  setNavH();
+  window.addEventListener("resize", setNavH);
+
   root.classList.add("tv");
 
   // DOM
@@ -17,15 +29,15 @@ export default function mountTV(root: HTMLElement): void {
 
   const vid = document.createElement("video");
   vid.id = "tv";
-  vid.src  = BASE_URL + "videos/test.mp4";
+  vid.src = BASE_URL + "videos/test.mp4";
   vid.muted = true;
   vid.preload = "metadata";
-  vid.playsInline = true; // iOS inline
+  vid.playsInline = true;
   vid.setAttribute("webkit-playsinline", "true");
 
   const vhs = new Image();
   vhs.className = "vhs";
-  vhs.src  = BASE_URL + "assets/room/vhs-filter.png";
+  vhs.src = BASE_URL + "assets/room/vhs-filter.png";
   vhs.alt = "";
 
   const room = new Image();
@@ -42,35 +54,22 @@ export default function mountTV(root: HTMLElement): void {
   hint.className = "hint";
   hint.textContent = "Tap to open";
 
-  // Layer order by z-index (bottom to top): video, vhs, room, hit, hint
+  // Layer order by z-index bottom to top: video, vhs, room, hit, hint
   scene.append(vid, vhs, room, hit, hint);
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // after: root.appendChild(scene);
-  const setNavH = () => {
-    const nav = document.querySelector<HTMLElement>(".topnav");
-    if (nav) {
-      const h = Math.ceil(nav.getBoundingClientRect().height);
-      document.documentElement.style.setProperty("--topnav-h", `${h}px`);
-    }
-  };
-  setNavH();
-  window.addEventListener("resize", setNavH);
-
-
-  // Layout
   // Layout
   const place = () => {
-    const box = scene.getBoundingClientRect(); // size of the container
+    const box = scene.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
 
-    // Cover scaling - keeps aspect, fills box, may crop
+    // Cover scaling keeps aspect, fills box, may crop
     const scale = Math.max(box.width / BASE.w, box.height / BASE.h);
     const imgW = BASE.w * scale;
     const imgH = BASE.h * scale;
 
-    // When covered, the image is centered with negative offset for the cropped side
+    // Centered offsets for the cropped side
     const offsetX = Math.round((box.width  - imgW) / 2);
     const offsetY = Math.round((box.height - imgH) / 2);
 
@@ -79,26 +78,20 @@ export default function mountTV(root: HTMLElement): void {
     const width  = Math.round(TV.w * scale);
     const height = Math.round(TV.h * scale);
 
-    Object.assign(vid.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
-    Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+    Object.assign(vid.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+    Object.assign(hit.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
 
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
   };
 
-
   // Decode and initial layout
   const ready = async () => {
     try {
-      // Prefer decode for exact sizing
-      // Safari supports HTMLImageElement.decode in modern versions
-      // Fallback to load
-      // @ts-expect-error: decode may not exist
+      // @ts-expect-error: decode may not exist in some browsers
       if (typeof room.decode === "function") await room.decode();
       else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     if ((room.naturalWidth && room.naturalWidth !== BASE.w) || (room.naturalHeight && room.naturalHeight !== BASE.h)) {
       console.warn("living-room.png natural size differs from BASE", {
         natural: { w: room.naturalWidth, h: room.naturalHeight },
@@ -106,7 +99,6 @@ export default function mountTV(root: HTMLElement): void {
       });
     }
     place();
-    // Autoplay muted inline for the idle look
     vid.play().catch(() => {});
   };
   ready();
@@ -123,7 +115,6 @@ export default function mountTV(root: HTMLElement): void {
     if (!hinted) {
       hinted = true;
       hint.classList.add("hide");
-      // Remove node later
       setTimeout(() => hint.remove(), 400);
     }
   };
@@ -133,31 +124,25 @@ export default function mountTV(root: HTMLElement): void {
     vid.muted = false;
     vid.controls = true;
 
-    // iOS path
     const anyVid = vid as any;
     if (typeof anyVid.webkitEnterFullscreen === "function") {
       vid.play().catch(() => {});
-      try {
-        anyVid.webkitEnterFullscreen();
-      } catch {/* ignore */}
+      try { anyVid.webkitEnterFullscreen(); } catch {}
       return;
     }
 
-    // Modern browsers
     if (vid.requestFullscreen) {
       vid.play().catch(() => {});
       vid.requestFullscreen().catch(() => {});
       return;
     }
 
-    // Last fallback
     if (scene.requestFullscreen) {
       vid.play().catch(() => {});
       scene.requestFullscreen().catch(() => {});
       return;
     }
 
-    // No fullscreen API, still unmute and show controls
     vid.play().catch(() => {});
   };
 
@@ -168,14 +153,9 @@ export default function mountTV(root: HTMLElement): void {
   };
 
   hit.addEventListener("click", enterFullscreen);
-  // Exit listeners
   document.addEventListener("fullscreenchange", () => {
     const full = Boolean(document.fullscreenElement);
     if (!full) exitInline();
   });
-  // iOS exit
   vid.addEventListener("webkitendfullscreen" as any, exitInline);
-
-  // Clean up if your router supports unmounting
-  // (not strictly required, safe to leave running)
 }

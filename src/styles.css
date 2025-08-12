@@ -720,16 +720,23 @@ body::before {
 /* Full-bleed TV layout */
 :root { --topnav-h: 112px; } /* adjust to your actual nav height */
 
+/* keep nav above everything */
+.topnav {
+  position: relative;   /* or sticky/fixed in your setup */
+  z-index: 10;
+}
+
+/* TV view fills below nav but stays under it */
 .tv {
   position: fixed;
   top: var(--topnav-h);
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0;
-  margin: 0;
+  z-index: 0;           /* was implicitly above the nav */
   overflow: hidden;
 }
+
 
 .tv .scene {
   position: absolute;

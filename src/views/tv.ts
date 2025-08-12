@@ -74,7 +74,7 @@ export default function mountTV(root: HTMLElement): void {
     const offsetY = Math.round((box.height - imgH) / 2);
 
     const left   = Math.round(offsetX + TV.x * scale);
-    const top    = Math.round(offsetY + TV.y * scale);
+    const top    = Math.round(offsetY + TV.y * scale + 5);
     const width  = Math.round(TV.w * scale);
     const height = Math.round(TV.h * scale);
 

@@ -170,6 +170,10 @@ html.standalone .site-header {
   line-height: 1;          /* kill extra line box space */
 }
 
+.topnav a:not(.active) {
+  transform: translateY(2px);  /* try 2–3px; 2px usually perfect for VT323@20px */
+}
+
 .topnav a:hover { opacity: 0.85; }
 
 .topnav a.active {

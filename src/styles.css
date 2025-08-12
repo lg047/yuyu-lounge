@@ -147,12 +147,13 @@ html.standalone .site-header {
   background: var(--pink-strong);
   display: flex;
   justify-content: center;
+  align-items: center;       /* keeps content vertically tight */
   flex-wrap: wrap;
   gap: 24px;
-  padding-block: 12px;
-  padding-inline: calc(20px + var(--sa-left)) calc(20px + var(--sa-right));
+  padding-block: 6px;        /* was 12px */
+  padding-inline: calc(16px + var(--sa-left)) calc(16px + var(--sa-right));
   border-bottom: 3px solid var(--accent-strong);
-  margin-bottom: 10px; /* space before content */
+  margin-bottom: 8px;        /* was 10px */
 }
 
 .topnav a {
@@ -161,7 +162,7 @@ html.standalone .site-header {
   font-size: 20px;
   letter-spacing: 1px;
   color: var(--cream);
-  padding: 6px 10px;
+  padding: 2px 10px;         /* was 6px 10px */
   position: relative;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
 }
@@ -170,14 +171,15 @@ html.standalone .site-header {
 
 .topnav a.active {
   color: var(--lilac);
-  background: url('/yuyu-lounge/assets/sparkle.gif') no-repeat bottom center/contain;
-  padding-bottom: 12px;
+  background: url('/yuyu-lounge/assets/sparkle.gif') no-repeat bottom center / contain;
+  padding-bottom: 6px;       /* was 12px */
 }
 
 @media (max-width: 480px) {
-  .topnav { gap: 16px; padding-inline: calc(24px + var(--sa-left)) calc(24px + var(--sa-right)); }
-  .topnav a { font-size: 18px; }
+  .topnav { gap: 16px; padding-inline: calc(18px + var(--sa-left)) calc(18px + var(--sa-right)); }
+  .topnav a { font-size: 18px; padding: 2px 8px; }
 }
+
 
 /* ---------- View container ---------- */
 .view {

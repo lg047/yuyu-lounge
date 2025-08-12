@@ -720,20 +720,24 @@ body::before {
 /* Full-bleed TV layout */
 :root { --topnav-h: 112px; } /* adjust to your actual nav height */
 
+/* Fill everything below the topnav */
 .tv {
+  position: fixed;
+  top: var(--topnav-h, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   padding: 0;
-  min-height: 100vh;
+  margin: 0;
   overflow: hidden;
 }
 
 .tv .scene {
-  position: relative;
-  width: 100vw;
-  height: calc(100vh - var(--topnav-h));
-  margin: 0;
-  touch-action: manipulation;
-  overflow: hidden; /* hide cropped edges on cover */
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
+
 
 /* Stretch images to fill the scene box */
 .tv img.room,

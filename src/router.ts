@@ -5,11 +5,11 @@ type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 const routes: Record<string, ViewFactory> = {
   "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),
-  const routes = {
-  // existing routes...
-  tv: async (root: HTMLElement) => {
-    const { default: mountTV } = await import("./views/tv");
-    mountTV(root);
+  "/tv": async () => {
+    const { default: mountTV } = await import("./views/tv.ts");
+    const wrap = document.createElement("div");
+    mountTV(wrap);
+    return wrap;
   },
   "/game": async () => (await import("./views/game.ts")).default(),
 };
@@ -34,7 +34,6 @@ async function render(path: string): Promise<void> {
   const factory = routes[path] || routes["/reels"];
   const view = document.getElementById("view");
   if (!view) {
-    // DOM not ready yet
     await new Promise<void>(r => requestAnimationFrame(() => r()));
     const v2 = document.getElementById("view");
     if (!v2) throw new Error("#view not found");
@@ -48,8 +47,6 @@ async function render(path: string): Promise<void> {
 
 export async function navigate(): Promise<void> {
   const path = normalizeHash(location.hash);
-  // tiny debug to confirm
-  // console.log("route", path, Object.keys(routes));
   await render(path);
 }
 

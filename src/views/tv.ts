@@ -27,6 +27,10 @@ export default function mountTV(root: HTMLElement): void {
   const scene = document.createElement("div");
   scene.className = "scene";
 
+  // wrapper that gets positioned/sized to the TV hole and crops overspill
+  const wrap = document.createElement("div");
+  wrap.className = "tv-wrap";
+
   const vid = document.createElement("video");
   vid.id = "tv";
   vid.src = BASE_URL + "videos/test2.mp4";
@@ -54,8 +58,9 @@ export default function mountTV(root: HTMLElement): void {
   hint.className = "hint";
   hint.textContent = "Tap to open";
 
-  // Layer order by z-index bottom to top: video, vhs, room, hit, hint
-  scene.append(vid, vhs, room, hit, hint);
+  // Layer order bottom→top: wrap(video), vhs, room, hit, hint
+  wrap.appendChild(vid);
+  scene.append(wrap, vhs, room, hit, hint);
   root.innerHTML = "";
   root.appendChild(scene);
 
@@ -74,12 +79,14 @@ export default function mountTV(root: HTMLElement): void {
     const offsetY = Math.round((box.height - imgH) / 2);
 
     const left   = Math.round(offsetX + TV.x * scale);
-    const top    = Math.round(offsetY + TV.y * scale + 80);
+    const top    = Math.round(offsetY + TV.y * scale);
     const width  = Math.round(TV.w * scale);
     const height = Math.round(TV.h * scale);
 
-    Object.assign(vid.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
-    Object.assign(hit.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+    // Position the wrapper (not the video)
+    Object.assign(wrap.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+    // Hitbox matches exactly
+    Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
 
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
@@ -130,19 +137,16 @@ export default function mountTV(root: HTMLElement): void {
       try { anyVid.webkitEnterFullscreen(); } catch {}
       return;
     }
-
     if (vid.requestFullscreen) {
       vid.play().catch(() => {});
       vid.requestFullscreen().catch(() => {});
       return;
     }
-
-    if (scene.requestFullscreen) {
+    if ((scene as any).requestFullscreen) {
       vid.play().catch(() => {});
-      scene.requestFullscreen().catch(() => {});
+      (scene as any).requestFullscreen().catch(() => {});
       return;
     }
-
     vid.play().catch(() => {});
   };
 

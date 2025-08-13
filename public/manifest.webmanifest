@@ -9,18 +9,9 @@
   "theme_color": "#ff8ec3",
   "description": "Y2K-pink lounge for reels, chat, stocks, and a tiny game.",
   "icons": [
-    {
-      "src": "/yuyu-lounge/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/yuyu-lounge/icons/maskable.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    }
+    { "src": "/yuyu-lounge/public/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/yuyu-lounge/public/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/yuyu-lounge/public/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "categories": ["entertainment", "social", "productivity"],
   "prefer_related_applications": false

@@ -749,12 +749,11 @@ body::before {
   height: 100%;
   object-fit: cover;   /* fill without stretch, allow crop */
   object-position: center;
-  opacity: 0;
   image-rendering: pixelated;
   display: block;
 }
 
-.tv img.vhs { z-index: 2; pointer-events: none; }
+.tv img.vhs { z-index: 2; pointer-events: none; opacity: 0;}
 .tv img.room { z-index: 3; pointer-events: none; }
 
 .tv video#tv {

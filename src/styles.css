@@ -849,4 +849,20 @@ body::before {
   visibility: hidden; /* hide your main app until loading finishes */
 }
 
+/* TV controls look */
+.tv .tv-controls button {
+  font-family: "VT323", monospace;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  background: #1f1f1f;      /* dark bezel vibe */
+  color: #f3e9d7;           /* warm CRT-ish text */
+  border: 2px solid #6a4b2b;/* matches cabinet tones */
+  border-radius: 0;         /* no curves */
+  box-shadow: inset 0 1px 0 #2a2a2a, 0 1px 0 rgba(0,0,0,.25);
+}
+.tv .tv-controls button:active {
+  transform: translateY(1px);
+}
+
+
 .tv-controls button.active { outline: 2px solid var(--accent, #ff8ec3); }

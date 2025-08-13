@@ -217,10 +217,16 @@ export default function mountTV(root: HTMLElement): void {
     b.style.display = "grid";
     b.style.gridTemplateRows = "auto 1fr";
     b.style.border = "1px solid #0003";
-    b.style.borderRadius = "12px";
+    b.style.borderRadius = "0";           // no curves
     b.style.overflow = "hidden";
     b.style.background = "transparent";
-    b.style.boxShadow = "0 1px 4px rgba(0,0,0,0.12)";
+    b.style.boxShadow = "none";           // optional
+    
+    cap.style.textAlign = "center";
+    cap.style.fontSize = "16px";
+    cap.style.fontFamily = "'VT323', monospace";
+    cap.style.padding = "6px 8px";
+    
 
     const img = new Image();
     img.src = src;

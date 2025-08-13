@@ -240,39 +240,47 @@ export default function mountTV(root: HTMLElement): void {
       setTimeout(() => hint.remove(), 400);
     }
   };
+  
+const enterFullscreen = () => {
+  const w = window as any;
+  w.__suppressBGMResume = true;
+  try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
 
-  const enterFullscreen = () => {
-    const w = window as any;
-    w.__suppressBGMResume = true;
-    try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
+  hideHint();
+  vid.muted = false;
+  vid.controls = true;
 
-    hideHint();
-    vid.muted = false;
-    vid.controls = true;
+  hit.dataset.prevDisplay = hit.style.display || "";
+  hit.style.display = "none";
+  hit.style.pointerEvents = "none";
+  vid.style.pointerEvents = "auto";
 
-    hit.dataset.prevDisplay = hit.style.display || "";
-    hit.style.display = "none";
-    hit.style.pointerEvents = "none";
-    vid.style.pointerEvents = "auto";
+  const playSoon = () => setTimeout(() => { vid.play().catch(() => {}); }, 0);
 
-    const anyVid = vid as any;
-    if (typeof anyVid.webkitEnterFullscreen === "function") {
-      vid.play().catch(() => {});
-      try { anyVid.webkitEnterFullscreen(); } catch {}
-      return;
-    }
-    if (vid.requestFullscreen) {
-      vid.play().catch(() => {});
-      vid.requestFullscreen().catch(() => {});
-      return;
-    }
-    if ((scene as any).requestFullscreen) {
-      vid.play().catch(() => {});
-      (scene as any).requestFullscreen().catch(() => {});
-      return;
-    }
-    vid.play().catch(() => {});
+  const anyVid = vid as any;
+  if (typeof anyVid.webkitEnterFullscreen === "function") {
+    vid.addEventListener("webkitbeginfullscreen" as any, playSoon, { once: true });
+    try { anyVid.webkitEnterFullscreen(); } catch {}
+    return;
+  }
+
+  const onFs = () => {
+    if (document.fullscreenElement) playSoon();
+    document.removeEventListener("fullscreenchange", onFs);
   };
+  document.addEventListener("fullscreenchange", onFs, { once: true });
+
+  if (vid.requestFullscreen) {
+    vid.requestFullscreen().catch(() => {});
+    return;
+  }
+  if ((scene as any).requestFullscreen) {
+    (scene as any).requestFullscreen().catch(() => {});
+    return;
+  }
+  playSoon();
+};
+
 
   const exitInline = () => {
     vid.controls = false;
@@ -388,9 +396,17 @@ export default function mountTV(root: HTMLElement): void {
 
   // controls wiring
   btnPlay.addEventListener("click", () => {
-    if (vid.paused) vid.play().catch(() => {}); else vid.pause();
+    if (vid.paused) {
+      // start clean
+      try { hls?.startLoad?.(); } catch {}
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+      try { hls?.stopLoad?.(); } catch {}
+    }
     updatePlayButton();
   });
+
   btnPrev.addEventListener("click", () => {
     const goStart = vid.currentTime > 3;
     if (goStart) { vid.currentTime = 0; return; }

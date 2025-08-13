@@ -27,21 +27,33 @@ export default function mountTV(root: HTMLElement): void {
   const scene = document.createElement("div");
   scene.className = "scene";
 
-  // wrapper that gets positioned/sized to the TV hole and crops overspill
+  // wrapper that gets positioned and sized to the TV hole and crops overspill
   const wrap = document.createElement("div");
   wrap.className = "tv-wrap";
 
   const vid = document.createElement("video");
   vid.id = "tv";
   vid.src = BASE_URL + "videos/test2.mp4";
-  vid.muted = true;
-  vid.autoplay = true;            // start buffering/playing ASAP (muted allows autoplay)
-  vid.preload = "auto";           // fetch data, not just metadata
+  // inline audio enabled: do not force mute at creation
+  vid.autoplay = true;
+  vid.preload = "auto";
   vid.playsInline = true;
   vid.setAttribute("webkit-playsinline", "true");
-  vid.load();                     // kick off the network request immediately
+  vid.load();
 
-    // --- NEW: suppress/resume BGM during video activity ---
+  // Allow inline audio after first user gesture
+  const onFirstGesture = () => {
+    vid.muted = false;
+    vid.play().catch(() => {});
+    scene.removeEventListener("pointerdown", onFirstGesture, true);
+    scene.removeEventListener("click", onFirstGesture, true);
+    window.removeEventListener("keydown", onFirstGesture, true);
+  };
+  scene.addEventListener("pointerdown", onFirstGesture, true);
+  scene.addEventListener("click", onFirstGesture, true);
+  window.addEventListener("keydown", onFirstGesture, true);
+
+  // --- suppress or resume BGM during video activity ---
   (function suppressBgmWhileVideoActive(video: HTMLVideoElement) {
     const w = window as any;
     const bgm = w.__bgm?.el as HTMLAudioElement | undefined;
@@ -79,7 +91,7 @@ export default function mountTV(root: HTMLElement): void {
       if (path !== "/tv") suppress(false);
     });
   })(vid);
-  // --- END NEW ---
+  // --- end suppress helper ---
 
   const vhs = new Image();
   vhs.className = "vhs";
@@ -125,7 +137,7 @@ export default function mountTV(root: HTMLElement): void {
     const width  = Math.round(TV.w * scale);
     const height = Math.round(TV.h * scale);
 
-    // Position the wrapper (not the video)
+    // Position the wrapper, not the video
     Object.assign(wrap.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
     // Hitbox matches exactly
     Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
@@ -169,6 +181,12 @@ export default function mountTV(root: HTMLElement): void {
   };
 
   const enterFullscreen = () => {
+    // stop bgm before any fullscreen or play
+    const w = window as any;
+    w.__suppressBGMResume = true;
+    const bgm: HTMLAudioElement | undefined = w.__bgm?.el;
+    try { bgm?.pause?.(); } catch {}
+
     hideHint();
     vid.muted = false;
     vid.controls = true;
@@ -194,7 +212,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const exitInline = () => {
     vid.controls = false;
-    vid.muted = true;
+    // keep current mute state to allow inline audio
     vid.play().catch(() => {});
   };
 

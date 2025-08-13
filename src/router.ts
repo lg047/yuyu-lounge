@@ -42,14 +42,33 @@ async function loadAllImages(container: HTMLElement): Promise<void> {
   );
 }
 
-async function waitForTVVideo(container: HTMLElement): Promise<void> {
+// CHANGED: add timeout + accept first usable readiness signal
+async function waitForTVVideo(container: HTMLElement, timeoutMs = 4000): Promise<void> {
   const video = container.querySelector("video");
   if (!video) return;
-  await new Promise<void>((resolve) => {
-    if (video.readyState >= 4) return resolve(); // HAVE_ENOUGH_DATA
-    video.addEventListener("canplaythrough", () => resolve(), { once: true });
-    video.addEventListener("error", () => resolve(), { once: true });
-  });
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      // If the browser already buffered enough, don't wait.
+      // 3 = HAVE_FUTURE_DATA, 4 = HAVE_ENOUGH_DATA
+      if (video.readyState >= 3) return resolve();
+
+      const onReady = () => cleanup(resolve);
+      const onErr = () => cleanup(resolve);
+
+      const cleanup = (done: () => void) => {
+        video.removeEventListener("canplaythrough", onReady);
+        video.removeEventListener("loadeddata", onReady);
+        video.removeEventListener("error", onErr);
+        done();
+      };
+
+      video.addEventListener("canplaythrough", onReady, { once: true });
+      video.addEventListener("loadeddata", onReady, { once: true });
+      video.addEventListener("error", onErr, { once: true });
+    }),
+    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+  ]);
 }
 
 async function render(path: string): Promise<void> {

@@ -10,7 +10,7 @@ const BASE: Size = { w: 1536, h: 1024 };
 const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 };
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 
-// softer, warm off-white that fits the cabinet palette
+// warm off-white that matches the palette
 const BTN_TINT = "#e6d8c6";
 
 export default function mountTV(root: HTMLElement): void {
@@ -50,7 +50,7 @@ export default function mountTV(root: HTMLElement): void {
   vid.style.display = "block";
   wrap.appendChild(vid);
 
-  // inline audio after first gesture
+  // enable inline audio after first gesture
   const onFirstGesture = () => {
     vid.muted = false;
     vid.play().catch(() => {});
@@ -84,7 +84,6 @@ export default function mountTV(root: HTMLElement): void {
         pauseBgm();
         vid.style.pointerEvents = "auto";
       } else {
-        // do not unsuppress on fullscreen exit
         vid.style.pointerEvents = "";
       }
     });
@@ -129,14 +128,8 @@ export default function mountTV(root: HTMLElement): void {
   hit.style.position = "absolute";
   hit.style.zIndex = "4";
 
-  const hint = document.createElement("div");
-  hint.className = "hint";
-  hint.textContent = "Tap to open";
-  hint.style.position = "absolute";
-  hint.style.zIndex = "5";
-
-  // order: wrap(video) < vhs < room < hit < hint
-  scene.append(wrap, vhs, room, hit, hint);
+  // order: wrap(video) < vhs < room < hit
+  scene.append(wrap, vhs, room, hit);
   root.innerHTML = "";
   root.appendChild(scene);
 
@@ -148,7 +141,7 @@ export default function mountTV(root: HTMLElement): void {
   controls.style.zIndex = "6";
   controls.style.display = "grid";
   controls.style.gridTemplateColumns = "1fr";
-  controls.style.rowGap = "18px"; // more spacing between rows
+  controls.style.rowGap = "18px"; // equal spacing rows
 
   const row1 = document.createElement("div");
   row1.style.display = "grid";
@@ -159,6 +152,13 @@ export default function mountTV(root: HTMLElement): void {
   row2.style.display = "grid";
   row2.style.gridTemplateColumns = "1fr";
 
+  const epTitle = document.createElement("div"); // small episode title under Select show
+  epTitle.style.textAlign = "center";
+  epTitle.style.fontFamily = "'VT323', monospace";
+  epTitle.style.fontSize = "14px";
+  epTitle.style.color = BTN_TINT;
+  epTitle.style.opacity = "0.95";
+
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
   const btnNext = mkBtn("Next ep");
@@ -167,7 +167,7 @@ export default function mountTV(root: HTMLElement): void {
   const btnSelect = mkBtn("Select show");
   row2.append(btnSelect);
 
-  controls.append(row1, row2);
+  controls.append(row1, row2, epTitle); // equal gaps above and below Select row
   scene.appendChild(controls);
 
   // --- Overlay for selecting show (covers) ---
@@ -225,7 +225,7 @@ export default function mountTV(root: HTMLElement): void {
     b.textContent = label;
     b.style.padding = "6px 10px";
     b.style.borderRadius = "0";
-    b.style.border = `2px solid ${BTN_TINT}`;   // softer outline
+    b.style.border = `2px solid ${BTN_TINT}`;
     b.style.background = "transparent";
     b.style.color = BTN_TINT;
     b.style.fontFamily = "'VT323', monospace";
@@ -305,14 +305,11 @@ export default function mountTV(root: HTMLElement): void {
     Object.assign(wrap.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
     Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
 
-    hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
-    hint.style.top  = `${Math.round(top + height + 8)}px`;
-
-    // buttons ~halfway between TV bottom and page bottom, but push further down on desktop
+    // controls: halfway to bottom, slightly lower on desktop
     const tvBottom = top + height;
     const halfway  = tvBottom + (box.height - tvBottom) * 0.5;
     const isDesktop = matchMedia("(pointer: fine)").matches && window.innerWidth >= 900;
-    const extra = isDesktop ? 28 : 0; // lower a bit more on desktop
+    const extra = isDesktop ? 28 : 0;
     const ctrlTop  = Math.min(Math.round(halfway + extra), box.height - 140);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
@@ -334,21 +331,11 @@ export default function mountTV(root: HTMLElement): void {
   window.addEventListener("orientationchange", place);
 
   // fullscreen
-  let hinted = false;
-  const hideHint = () => {
-    if (!hinted) {
-      hinted = true;
-      hint.classList.add("hide");
-      setTimeout(() => hint.remove(), 400);
-    }
-  };
-
   const enterFullscreen = () => {
     const w = window as any;
     w.__suppressBGMResume = true;
     try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
 
-    hideHint();
     vid.muted = false;
     vid.controls = true;
 
@@ -388,7 +375,6 @@ export default function mountTV(root: HTMLElement): void {
     hit.style.display = hit.dataset.prevDisplay ?? "";
     hit.style.pointerEvents = "";
     vid.style.pointerEvents = "";
-    // do not auto-play here
   };
 
   hit.addEventListener("click", enterFullscreen);
@@ -437,6 +423,11 @@ export default function mountTV(root: HTMLElement): void {
     return ch.episodes[Math.max(0, Math.min(epIndex, ch.episodes.length - 1))];
   }
 
+  function setEpisodeLabel() {
+    const ep = currentEpisode();
+    epTitle.textContent = ep ? ep.title : "No episode";
+  }
+
   async function loadEpisode(seekFromResume = true) {
     const ep = currentEpisode();
     if (!ep) return;
@@ -451,6 +442,7 @@ export default function mountTV(root: HTMLElement): void {
     vid.play().catch(() => {});
     updatePlayButton();
     updateChannelTiles();
+    setEpisodeLabel();
   }
 
   function updatePlayButton() {
@@ -519,6 +511,4 @@ export default function mountTV(root: HTMLElement): void {
 
   vid.addEventListener("play", updatePlayButton);
   vid.addEventListener("pause", updatePlayButton);
-
-  function mkSpan(text: string) { const s = document.createElement("span"); s.textContent = text; return s; }
 }

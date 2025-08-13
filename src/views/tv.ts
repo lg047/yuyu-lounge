@@ -141,7 +141,7 @@ export default function mountTV(root: HTMLElement): void {
   controls.style.zIndex = "6";
   controls.style.display = "grid";
   controls.style.gridTemplateColumns = "1fr";
-  controls.style.rowGap = "18px"; // equal spacing rows
+  controls.style.rowGap = "18px";
 
   const row1 = document.createElement("div");
   row1.style.display = "grid";
@@ -167,7 +167,7 @@ export default function mountTV(root: HTMLElement): void {
   const btnSelect = mkBtn("Select show");
   row2.append(btnSelect);
 
-  controls.append(row1, row2, epTitle); // equal gaps above and below Select row
+  controls.append(row1, row2, epTitle);
   scene.appendChild(controls);
 
   // --- Overlay for selecting show (covers) ---
@@ -180,13 +180,18 @@ export default function mountTV(root: HTMLElement): void {
   overlay.style.alignItems = "center";
   overlay.style.justifyContent = "center";
   overlay.style.zIndex = "999";
+  overlay.style.overflowY = "auto";
+  overlay.style.padding = "24px";
 
   const chooser = document.createElement("div");
   chooser.style.display = "grid";
-  chooser.style.gridTemplateColumns = "repeat(3, 150px)";
+  chooser.style.gridTemplateColumns = "repeat(3, 150px)"; // desktop default
   chooser.style.gap = "20px";
   chooser.style.alignItems = "start";
+  chooser.style.maxWidth = "92vw";
+  chooser.style.maxHeight = "80vh";
 
+  // tiles
   const tilePooh = mkCoverTile(
     "pooh",
     "Winnie the Pooh",
@@ -205,6 +210,24 @@ export default function mountTV(root: HTMLElement): void {
   chooser.append(tilePooh, tileLilo, tileDuck);
   overlay.appendChild(chooser);
   document.body.appendChild(overlay);
+
+  // responsive overlay for iOS and small screens
+  function applyOverlayLayout() {
+    const isMobile = matchMedia("(pointer: coarse)").matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      chooser.style.gridTemplateColumns = "repeat(auto-fit, minmax(100px, 28vw))";
+      chooser.style.gap = "4vw";
+      overlay.style.padding = "6vw";
+      chooser.style.maxWidth = "92vw";
+      chooser.style.maxHeight = "80vh";
+    } else {
+      chooser.style.gridTemplateColumns = "repeat(3, 150px)";
+      chooser.style.gap = "20px";
+      overlay.style.padding = "24px";
+    }
+  }
+  applyOverlayLayout();
+  window.addEventListener("resize", applyOverlayLayout);
 
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) hideOverlay();
@@ -305,12 +328,13 @@ export default function mountTV(root: HTMLElement): void {
     Object.assign(wrap.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
     Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
 
-    // controls: halfway to bottom, slightly lower on desktop
+    // controls: halfway to bottom, adjusted for mobile to sit higher
     const tvBottom = top + height;
-    const halfway  = tvBottom + (box.height - tvBottom) * 0.5;
-    const isDesktop = matchMedia("(pointer: fine)").matches && window.innerWidth >= 900;
-    const extra = isDesktop ? 28 : 0;
-    const ctrlTop  = Math.min(Math.round(halfway + extra), box.height - 140);
+    const isMobile = matchMedia("(pointer: coarse)").matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const factor = isMobile ? 0.45 : 0.5; // a bit higher on iOS
+    const halfway = tvBottom + (box.height - tvBottom) * factor;
+    const bottomMargin = isMobile ? 170 : 140; // ensure title not touching bottom
+    const ctrlTop  = Math.min(Math.round(halfway), box.height - bottomMargin);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

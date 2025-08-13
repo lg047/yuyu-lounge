@@ -102,18 +102,21 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
-  // Per page asset waits before hiding loader
+
   if (path === "/tv") {
     // Silence site music immediately on TV
     const bgm: any = (window as any).__bgm;
     if (bgm?.el && typeof bgm.el.pause === "function") {
       try { bgm.el.pause(); } catch {}
     }
-    await waitForTVVideo(view);
+    // Wait for video AND all images (room, vhs, covers) before hiding loader
+    await Promise.all([
+      waitForTVVideo(view),
+      loadAllImages(view),
+    ]);
   } else if (path === "/chat" || path === "/game") {
     await loadAllImages(view);
   }
-  // reels intentionally skipped
 
   hideLoader();
   window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });

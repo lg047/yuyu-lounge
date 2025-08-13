@@ -28,6 +28,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const scene = document.createElement("div");
   scene.className = "scene";
+  scene.style.position = "relative"; // positioning context for controls
 
   const wrap = document.createElement("div");
   wrap.className = "tv-wrap";
@@ -73,7 +74,7 @@ export default function mountTV(root: HTMLElement): void {
         suppress(true); pauseBgm();
         vid.style.pointerEvents = "auto";
       } else {
-        setTimeout(() => { maybeUnsuppress(); }, 0);
+        // Do NOT unsuppress here — avoid BGM popping back on FS exit
         vid.style.pointerEvents = "";
       }
     });
@@ -81,7 +82,9 @@ export default function mountTV(root: HTMLElement): void {
     // @ts-ignore
     video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
     // @ts-ignore
-    video.addEventListener("webkitendfullscreen", () => { setTimeout(() => { maybeUnsuppress(); }, 0); }, true);
+    video.addEventListener("webkitendfullscreen", () => {
+      // Do NOT unsuppress here either
+    }, true);
     // Leaving TV page
     window.addEventListener("hashchange", () => {
       const path = (location.hash || "#/reels").replace(/^#/, "");
@@ -117,16 +120,17 @@ export default function mountTV(root: HTMLElement): void {
   hint.textContent = "Tap to open";
 
   // Layer order bottom→top: wrap(video), vhs, room, hit, hint
-  wrap.appendChild(vid);
   scene.append(wrap, vhs, room, hit, hint);
+  wrap.appendChild(vid);
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // ---------- Controls under the TV ----------
+  // ---------- Controls under the TV (absolute inside scene) ----------
   const controls = document.createElement("div");
   controls.className = "tv-controls";
-  controls.style.maxWidth = "900px";
-  controls.style.margin = "12px auto 0";
+  controls.style.position = "absolute";
+  controls.style.margin = "0";
+  controls.style.zIndex = "10";
   controls.style.display = "grid";
   controls.style.gridTemplateColumns = "1fr";
   controls.style.gap = "8px";
@@ -152,7 +156,7 @@ export default function mountTV(root: HTMLElement): void {
   row2.append(btnPooh, btnLilo, btnDuck);
 
   controls.append(row1, row2);
-  root.appendChild(controls);
+  scene.appendChild(controls);
 
   function mkBtn(label: string): HTMLButtonElement {
     const b = document.createElement("button");
@@ -183,6 +187,14 @@ export default function mountTV(root: HTMLElement): void {
     Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
+
+    // Position controls directly under the TV
+    const ctrlTop = Math.round(top + height + 8);
+    Object.assign(controls.style, {
+      left: `${left}px`,
+      top: `${ctrlTop}px`,
+      width: `${width}px`,
+    });
   };
 
   const ready = async () => {

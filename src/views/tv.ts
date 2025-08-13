@@ -5,12 +5,11 @@ type Size = { w: number; h: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
 /** EDIT these to match your PNGs */
-const BASE: Size = { w: 1536, h: 1024 }; // natural pixels of living-room.png
-const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 }; // top-left and size of hole in BASE pixels
+const BASE: Size = { w: 1536, h: 1024 };
+const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 };
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 
 export default function mountTV(root: HTMLElement): void {
-  // Set nav height before first paint so we do not overlap the topnav
   const setNavH = () => {
     const nav = document.querySelector<HTMLElement>(".topnav");
     if (nav) {
@@ -23,18 +22,15 @@ export default function mountTV(root: HTMLElement): void {
 
   root.classList.add("tv");
 
-  // DOM
   const scene = document.createElement("div");
   scene.className = "scene";
 
-  // wrapper that gets positioned and sized to the TV hole and crops overspill
   const wrap = document.createElement("div");
   wrap.className = "tv-wrap";
 
   const vid = document.createElement("video");
   vid.id = "tv";
   vid.src = BASE_URL + "videos/test2.mp4";
-  // inline audio enabled - do not force mute at creation
   vid.autoplay = true;
   vid.preload = "auto";
   vid.playsInline = true;
@@ -53,52 +49,45 @@ export default function mountTV(root: HTMLElement): void {
   scene.addEventListener("click", onFirstGesture, true);
   window.addEventListener("keydown", onFirstGesture, true);
 
-  // suppress or resume BGM during video activity
+  // Suppress or resume BGM during video activity
   (function suppressBgmWhileVideoActive(video: HTMLVideoElement) {
     const w = window as any;
     const bgm = w.__bgm?.el as HTMLAudioElement | undefined;
     function suppress(on: boolean) { w.__suppressBGMResume = on; }
-    function pauseBgm() {
-      if (bgm && typeof bgm.pause === "function") {
-        try { bgm.pause(); } catch {}
-      }
-    }
+    function pauseBgm() { try { bgm?.pause?.(); } catch {} }
     function maybeUnsuppress() {
       const inFs = !!document.fullscreenElement;
       const onTv = (location.hash.replace(/^#/, "") || "/reels") === "/tv";
       if (!inFs && video.paused && onTv) suppress(false);
     }
-
-    // any video play should suppress and pause bgm
     video.addEventListener("play", () => { suppress(true); pauseBgm(); }, true);
     video.addEventListener("playing", () => { suppress(true); pauseBgm(); }, true);
-
     ["pause", "ended", "emptied"].forEach(evt => {
       video.addEventListener(evt, () => { maybeUnsuppress(); }, true);
     });
-
     document.addEventListener("fullscreenchange", () => {
       if (document.fullscreenElement) {
         suppress(true);
         pauseBgm();
+        // NEW: ensure clicks go to the fullscreen video
+        vid.style.pointerEvents = "auto";
       } else {
         setTimeout(() => { maybeUnsuppress(); }, 0);
+        // NEW: restore pointer behavior after exiting
+        vid.style.pointerEvents = "";
       }
     });
-
     // iOS Safari inline fullscreen
     // @ts-ignore
     video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
     // @ts-ignore
     video.addEventListener("webkitendfullscreen", () => { setTimeout(() => { maybeUnsuppress(); }, 0); }, true);
-
-    // leaving TV page - pause video so main.ts clears its playingVideos and allow resume
+    // Leaving TV page
     window.addEventListener("hashchange", () => {
       const path = (location.hash || "#/reels").replace(/^#/, "");
       if (path !== "/tv") {
         suppress(false);
         try { video.pause(); } catch {}
-        // optional nudge in case pause event ordering races updateTopNavActive
         setTimeout(() => {
           if (!(window as any).__suppressBGMResume) {
             try { (w.__bgm?.playIfAllowed as any)?.(); } catch {}
@@ -127,7 +116,7 @@ export default function mountTV(root: HTMLElement): void {
   hint.className = "hint";
   hint.textContent = "Tap to open";
 
-  // Layer order bottom->top: wrap(video), vhs, room, hit, hint
+  // Layer order bottom→top: wrap(video), vhs, room, hit, hint
   wrap.appendChild(vid);
   scene.append(wrap, vhs, room, hit, hint);
   root.innerHTML = "";
@@ -137,26 +126,17 @@ export default function mountTV(root: HTMLElement): void {
   const place = () => {
     const box = scene.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
-
-    // Cover scaling keeps aspect, fills box, may crop
     const scale = Math.max(box.width / BASE.w, box.height / BASE.h);
     const imgW = BASE.w * scale;
     const imgH = BASE.h * scale;
-
-    // Centered offsets for the cropped side
     const offsetX = Math.round((box.width  - imgW) / 2);
     const offsetY = Math.round((box.height - imgH) / 2);
-
     const left   = Math.round(offsetX + TV.x * scale);
     const top    = Math.round(offsetY + TV.y * scale);
     const width  = Math.round(TV.w * scale);
     const height = Math.round(TV.h * scale);
-
-    // Position the wrapper, not the video
     Object.assign(wrap.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
-    // Hitbox matches exactly
     Object.assign(hit.style,  { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
-
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
   };
@@ -164,7 +144,7 @@ export default function mountTV(root: HTMLElement): void {
   // Decode and initial layout
   const ready = async () => {
     try {
-      // @ts-expect-error: decode may not exist in some browsers
+      // @ts-expect-error
       if (typeof room.decode === "function") await room.decode();
       else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
     } catch {}
@@ -179,7 +159,6 @@ export default function mountTV(root: HTMLElement): void {
   };
   ready();
 
-  // Keep aligned on resize and orientation changes
   const ro = new ResizeObserver(place);
   ro.observe(scene);
   window.addEventListener("resize", place);
@@ -199,12 +178,17 @@ export default function mountTV(root: HTMLElement): void {
     // stop bgm before any fullscreen or play
     const w = window as any;
     w.__suppressBGMResume = true;
-    const bgm: HTMLAudioElement | undefined = w.__bgm?.el;
-    try { bgm?.pause?.(); } catch {}
+    try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
 
     hideHint();
     vid.muted = false;
     vid.controls = true;
+
+    // NEW: disable the overlay while in fullscreen so it cannot intercept clicks
+    hit.dataset.prevDisplay = hit.style.display || "";
+    hit.style.display = "none";
+    hit.style.pointerEvents = "none";
+    vid.style.pointerEvents = "auto";
 
     const anyVid = vid as any;
     if (typeof anyVid.webkitEnterFullscreen === "function") {
@@ -227,7 +211,10 @@ export default function mountTV(root: HTMLElement): void {
 
   const exitInline = () => {
     vid.controls = false;
-    // keep current mute state to allow inline audio
+    // restore overlay so users can tap to enter fullscreen again
+    hit.style.display = hit.dataset.prevDisplay ?? "";
+    hit.style.pointerEvents = "";
+    vid.style.pointerEvents = "";
     vid.play().catch(() => {});
   };
 

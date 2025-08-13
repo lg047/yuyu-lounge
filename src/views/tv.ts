@@ -4,10 +4,46 @@
 type Size = { w: number; h: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
-/** EDIT these to match your PNGs */
+// PNG geometry
 const BASE: Size = { w: 1536, h: 1024 };
 const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 };
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
+
+// --- Minimal catalog: edit URLs as you upload ---
+type Episode = { id: string; title: string; url: string };
+type Channel = { id: "pooh" | "lilo" | "ducktales"; title: string; episodes: Episode[] };
+
+const CATALOG: Channel[] = [
+  {
+    id: "pooh",
+    title: "Winnie the Pooh",
+    episodes: [
+      {
+        id: "pooh_s01e01_pooh-oughta-be-in-pictures",
+        title: "S1E1 • Pooh Oughta Be in Pictures",
+        url: "https://pub-1d39836bb1d54ab8b78e037750c0ee43.r2.dev/tv/pooh/pooh_s01e01/index.m3u8"
+      },
+      // add more when ready
+    ],
+  },
+  { id: "lilo", title: "Lilo & Stitch", episodes: [] },
+  { id: "ducktales", title: "DuckTales", episodes: [] },
+];
+
+// --- Simple per-channel resume store ---
+const STORE_KEY = "tv:v1:resume:";
+function loadResume(channelId: string): { epIndex: number; tSec: number } | null {
+  try {
+    const raw = localStorage.getItem(STORE_KEY + channelId);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    if (typeof v?.epIndex !== "number" || typeof v?.tSec !== "number") return null;
+    return v;
+  } catch { return null; }
+}
+function saveResume(channelId: string, epIndex: number, tSec: number): void {
+  try { localStorage.setItem(STORE_KEY + channelId, JSON.stringify({ epIndex, tSec })); } catch {}
+}
 
 export default function mountTV(root: HTMLElement): void {
   const setNavH = () => {
@@ -30,12 +66,11 @@ export default function mountTV(root: HTMLElement): void {
 
   const vid = document.createElement("video");
   vid.id = "tv";
-  vid.src = BASE_URL + "videos/test2.mp4";
   vid.autoplay = true;
   vid.preload = "auto";
   vid.playsInline = true;
   vid.setAttribute("webkit-playsinline", "true");
-  vid.load();
+  vid.controls = false; // controls only in fullscreen
 
   // Allow inline audio after first user gesture
   const onFirstGesture = () => {
@@ -67,17 +102,14 @@ export default function mountTV(root: HTMLElement): void {
     });
     document.addEventListener("fullscreenchange", () => {
       if (document.fullscreenElement) {
-        suppress(true);
-        pauseBgm();
-        // NEW: ensure clicks go to the fullscreen video
+        suppress(true); pauseBgm();
         vid.style.pointerEvents = "auto";
       } else {
         setTimeout(() => { maybeUnsuppress(); }, 0);
-        // NEW: restore pointer behavior after exiting
         vid.style.pointerEvents = "";
       }
     });
-    // iOS Safari inline fullscreen
+    // iOS inline fullscreen
     // @ts-ignore
     video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
     // @ts-ignore
@@ -122,6 +154,50 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
+  // --- Controls under the TV ---
+  const controls = document.createElement("div");
+  controls.className = "tv-controls";
+  controls.style.maxWidth = "900px";
+  controls.style.margin = "12px auto 0";
+  controls.style.display = "grid";
+  controls.style.gridTemplateColumns = "1fr";
+  controls.style.gap = "8px";
+
+  const row1 = document.createElement("div");
+  row1.style.display = "grid";
+  row1.style.gridTemplateColumns = "1fr 1fr 1fr";
+  row1.style.gap = "6px";
+
+  const row2 = document.createElement("div");
+  row2.style.display = "grid";
+  row2.style.gridTemplateColumns = "1fr 1fr 1fr";
+  row2.style.gap = "6px";
+
+  const btnPrev = mkBtn("Previous ep");
+  const btnPlay = mkBtn("Play");
+  const btnNext = mkBtn("Next ep");
+  row1.append(btnPrev, btnPlay, btnNext);
+
+  const btnPooh = mkBtn("Winnie");
+  const btnLilo = mkBtn("Lilo & Stitch");
+  const btnDuck = mkBtn("Mickey / DuckTales"); // label for now
+  row2.append(btnPooh, btnLilo, btnDuck);
+
+  controls.append(row1, row2);
+  root.appendChild(controls);
+
+  function mkBtn(label: string): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.style.padding = "10px 12px";
+    b.style.borderRadius = "12px";
+    b.style.border = "1px solid #0003";
+    b.style.fontFamily = "inherit";
+    b.style.cursor = "pointer";
+    return b;
+  }
+
   // Layout
   const place = () => {
     const box = scene.getBoundingClientRect();
@@ -148,14 +224,9 @@ export default function mountTV(root: HTMLElement): void {
       if (typeof room.decode === "function") await room.decode();
       else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
     } catch {}
-    if ((room.naturalWidth && room.naturalWidth !== BASE.w) || (room.naturalHeight && room.naturalHeight !== BASE.h)) {
-      console.warn("living-room3.png natural size differs from BASE", {
-        natural: { w: room.naturalWidth, h: room.naturalHeight },
-        BASE,
-      });
-    }
     place();
-    vid.play().catch(() => {});
+    // kick off initial load after layout
+    initPlayer();
   };
   ready();
 
@@ -184,7 +255,6 @@ export default function mountTV(root: HTMLElement): void {
     vid.muted = false;
     vid.controls = true;
 
-    // NEW: disable the overlay while in fullscreen so it cannot intercept clicks
     hit.dataset.prevDisplay = hit.style.display || "";
     hit.style.display = "none";
     hit.style.pointerEvents = "none";
@@ -211,7 +281,6 @@ export default function mountTV(root: HTMLElement): void {
 
   const exitInline = () => {
     vid.controls = false;
-    // restore overlay so users can tap to enter fullscreen again
     hit.style.display = hit.dataset.prevDisplay ?? "";
     hit.style.pointerEvents = "";
     vid.style.pointerEvents = "";
@@ -224,4 +293,145 @@ export default function mountTV(root: HTMLElement): void {
     if (!full) exitInline();
   });
   vid.addEventListener("webkitendfullscreen" as any, exitInline);
+
+  // --- Player state and wiring ---
+  let hls: any | null = null;
+  let channelIndex = 0;
+  let epIndex = 0;
+  let saveTick = 0;
+
+  function canNativeHls(video: HTMLVideoElement): boolean {
+    return !!(video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL"));
+  }
+
+  async function setSrc(url: string) {
+    // cleanup previous hls
+    if (hls) {
+      try { hls.destroy?.(); } catch {}
+      hls = null;
+    }
+    if (canNativeHls(vid)) {
+      vid.src = url;
+      vid.load();
+    } else {
+      const mod = await import("https://cdn.jsdelivr.net/npm/hls.js@1.5.8/+esm");
+      const Hls = (mod as any).default;
+      if (Hls.isSupported()) {
+        hls = new Hls({ enableWorker: true });
+        hls.attachMedia(vid);
+        hls.loadSource(url);
+      } else {
+        // last resort: set src, some browsers will still handle it
+        vid.src = url;
+        vid.load();
+      }
+    }
+  }
+
+  function currentChannel(): Channel { return CATALOG[channelIndex]; }
+  function currentEpisode(): Episode | null {
+    const ch = currentChannel();
+    if (!ch.episodes.length) return null;
+    return ch.episodes[Math.max(0, Math.min(epIndex, ch.episodes.length - 1))];
+  }
+
+  async function loadEpisode(seekFromResume = true) {
+    const ep = currentEpisode();
+    if (!ep) return;
+    await setSrc(ep.url);
+    // apply resume if present
+    if (seekFromResume) {
+      const res = loadResume(currentChannel().id);
+      if (res && res.epIndex === epIndex && Number.isFinite(res.tSec)) {
+        const t = Math.max(0, Math.min(res.tSec, (vid.duration || res.tSec)));
+        try { vid.currentTime = t; } catch {}
+      }
+    }
+    // start if user already interacted
+    vid.play().catch(() => {});
+    updatePlayButton();
+    updateChannelButtons();
+  }
+
+  function updatePlayButton() {
+    btnPlay.textContent = vid.paused ? "Play" : "Pause";
+  }
+  function updateChannelButtons() {
+    [btnPooh, btnLilo, btnDuck].forEach((b) => b.classList.remove("active"));
+    const id = currentChannel().id;
+    if (id === "pooh") btnPooh.classList.add("active");
+    if (id === "lilo") btnLilo.classList.add("active");
+    if (id === "ducktales") btnDuck.classList.add("active");
+  }
+
+  function initPlayer() {
+    // choose defaults or per-channel resume
+    const ch0 = CATALOG[0];
+    const r = loadResume(ch0.id);
+    channelIndex = 0;
+    epIndex = Math.max(0, Math.min(r?.epIndex ?? 0, ch0.episodes.length - 1));
+    loadEpisode(true).catch(console.error);
+  }
+
+  // resume save loop
+  vid.addEventListener("timeupdate", () => {
+    const now = Date.now();
+    if (now - saveTick < 1000) return;
+    saveTick = now;
+    const ep = currentEpisode();
+    if (!ep) return;
+    saveResume(currentChannel().id, epIndex, vid.currentTime || 0);
+  });
+  ["pause", "ended"].forEach(evt => {
+    vid.addEventListener(evt, () => {
+      const ep = currentEpisode(); if (!ep) return;
+      saveResume(currentChannel().id, epIndex, vid.currentTime || 0);
+    });
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      const ep = currentEpisode(); if (!ep) return;
+      saveResume(currentChannel().id, epIndex, vid.currentTime || 0);
+      try { vid.pause(); } catch {}
+    }
+  });
+
+  // controls wiring
+  btnPlay.addEventListener("click", () => {
+    if (vid.paused) vid.play().catch(() => {}); else vid.pause();
+    updatePlayButton();
+  });
+  btnPrev.addEventListener("click", () => {
+    const goStart = vid.currentTime > 3;
+    if (goStart) { vid.currentTime = 0; return; }
+    if (epIndex > 0) { epIndex -= 1; loadEpisode(false).catch(console.error); }
+  });
+  btnNext.addEventListener("click", () => {
+    const ch = currentChannel();
+    if (epIndex < ch.episodes.length - 1) { epIndex += 1; loadEpisode(false).catch(console.error); }
+  });
+
+  btnPooh.addEventListener("click", () => {
+    channelIndex = CATALOG.findIndex(c => c.id === "pooh");
+    epIndex = loadResume("pooh")?.epIndex ?? 0;
+    loadEpisode(true).catch(console.error);
+  });
+  btnLilo.addEventListener("click", () => {
+    channelIndex = CATALOG.findIndex(c => c.id === "lilo");
+    epIndex = loadResume("lilo")?.epIndex ?? 0;
+    loadEpisode(true).catch(console.error);
+  });
+  btnDuck.addEventListener("click", () => {
+    channelIndex = CATALOG.findIndex(c => c.id === "ducktales");
+    epIndex = loadResume("ducktales")?.epIndex ?? 0;
+    loadEpisode(true).catch(console.error);
+  });
+
+  // keep play button state in sync
+  vid.addEventListener("play", updatePlayButton);
+  vid.addEventListener("pause", updatePlayButton);
+
+  // helpers used above
+  function mkSpan(text: string) { const s = document.createElement("span"); s.textContent = text; return s; }
 }
+

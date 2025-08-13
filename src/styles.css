@@ -849,3 +849,4 @@ body::before {
   visibility: hidden; /* hide your main app until loading finishes */
 }
 
+.tv-controls button.active { outline: 2px solid var(--accent, #ff8ec3); }

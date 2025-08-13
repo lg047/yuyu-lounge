@@ -35,9 +35,11 @@ export default function mountTV(root: HTMLElement): void {
   vid.id = "tv";
   vid.src = BASE_URL + "videos/test2.mp4";
   vid.muted = true;
-  vid.preload = "metadata";
+  vid.autoplay = true;            // start buffering/playing ASAP (muted allows autoplay)
+  vid.preload = "auto";           // fetch data, not just metadata
   vid.playsInline = true;
   vid.setAttribute("webkit-playsinline", "true");
+  vid.load();                     // kick off the network request immediately
 
   const vhs = new Image();
   vhs.className = "vhs";

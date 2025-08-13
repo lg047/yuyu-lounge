@@ -1,5 +1,5 @@
 // src/router.ts
-import { showLoader, hideLoader } from "./main";
+import { showLoader, hideLoader, messageForPath } from "./main";
 
 type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 
@@ -53,7 +53,8 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 }
 
 async function render(path: string): Promise<void> {
-  showLoader(path);
+  // Show loader with a friendly page-specific message
+  showLoader(messageForPath(path));
 
   const factory = routes[path] || routes["/reels"];
   const view = document.getElementById("view");
@@ -68,11 +69,13 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
+  // Wait for assets (per page) before hiding loader
   if (path === "/tv") {
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {
     await loadAllImages(view);
   }
+  // reels intentionally skipped
 
   hideLoader();
   window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });

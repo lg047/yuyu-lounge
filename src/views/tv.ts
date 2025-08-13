@@ -1,4 +1,8 @@
 // src/views/tv.ts
+
+import CATALOG, { Channel, Episode } from "../data/tv.catalog";
+import { loadResume, saveResume } from "../lib/tv.store";
+
 /* TV page: layered PNGs with a video positioned to the transparent screen hole. */
 
 type Size = { w: number; h: number };

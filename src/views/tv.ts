@@ -169,7 +169,7 @@ export default function mountTV(root: HTMLElement): void {
 
   controls.append(row1, row2, epTitle);
   scene.appendChild(controls);
-
+  
   // --- Overlay for selecting show (covers) ---
   const overlay = document.createElement("div");
   overlay.style.position = "fixed";
@@ -182,16 +182,17 @@ export default function mountTV(root: HTMLElement): void {
   overlay.style.zIndex = "999";
   overlay.style.overflowY = "auto";
   overlay.style.padding = "24px";
-
+  
   const chooser = document.createElement("div");
   chooser.style.display = "grid";
-  chooser.style.gridTemplateColumns = "repeat(3, 150px)"; // desktop default
+  // Defaults for desktop; mobile will override below
+  chooser.style.gridTemplateColumns = "repeat(3, 150px)";
   chooser.style.gap = "20px";
   chooser.style.alignItems = "start";
+  chooser.style.justifyContent = "center";
+  chooser.style.margin = "0 auto";
   chooser.style.maxWidth = "92vw";
-  chooser.style.maxHeight = "80vh";
-
-  // tiles
+  
   const tilePooh = mkCoverTile(
     "pooh",
     "Winnie the Pooh",
@@ -210,35 +211,42 @@ export default function mountTV(root: HTMLElement): void {
   chooser.append(tilePooh, tileLilo, tileDuck);
   overlay.appendChild(chooser);
   document.body.appendChild(overlay);
-
-  // responsive overlay for iOS and small screens
+  
+  // Keep exactly one row on iOS/small screens
   function applyOverlayLayout() {
-    const isMobile = matchMedia("(pointer: coarse)").matches || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isMobile =
+      window.innerWidth <= 768 ||
+      matchMedia("(pointer: coarse)").matches ||
+      /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  
     if (isMobile) {
-      chooser.style.gridTemplateColumns = "repeat(auto-fit, minmax(100px, 28vw))";
+      // 3 columns that always fit: 3*28vw + 2*4vw = 92vw
+      chooser.style.gridTemplateColumns = "repeat(3, 28vw)";
       chooser.style.gap = "4vw";
-      overlay.style.padding = "6vw";
+      chooser.style.width = "92vw";
       chooser.style.maxWidth = "92vw";
-      chooser.style.maxHeight = "80vh";
+      overlay.style.padding = "6vw";
     } else {
       chooser.style.gridTemplateColumns = "repeat(3, 150px)";
       chooser.style.gap = "20px";
+      chooser.style.width = "";
+      chooser.style.maxWidth = "92vw";
       overlay.style.padding = "24px";
     }
   }
   applyOverlayLayout();
   window.addEventListener("resize", applyOverlayLayout);
-
+  
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) hideOverlay();
   });
   window.addEventListener("keydown", (e) => {
     if (overlay.style.display !== "none" && e.key === "Escape") hideOverlay();
   });
-
+  
   function showOverlay() { overlay.style.display = "flex"; }
   function hideOverlay() { overlay.style.display = "none"; }
-
+  
   btnSelect.addEventListener("click", showOverlay);
 
   // ---- styles/helpers ----

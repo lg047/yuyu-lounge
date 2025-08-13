@@ -13,42 +13,6 @@ const BASE: Size = { w: 1536, h: 1024 };
 const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 };
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 
-// --- Minimal catalog: edit URLs as you upload ---
-type Episode = { id: string; title: string; url: string };
-type Channel = { id: "pooh" | "lilo" | "ducktales"; title: string; episodes: Episode[] };
-
-const CATALOG: Channel[] = [
-  {
-    id: "pooh",
-    title: "Winnie the Pooh",
-    episodes: [
-      {
-        id: "pooh_s01e01_pooh-oughta-be-in-pictures",
-        title: "S1E1 • Pooh Oughta Be in Pictures",
-        url: "https://pub-1d39836bb1d54ab8b78e037750c0ee43.r2.dev/tv/pooh/pooh_s01e01/index.m3u8"
-      },
-      // add more when ready
-    ],
-  },
-  { id: "lilo", title: "Lilo & Stitch", episodes: [] },
-  { id: "ducktales", title: "DuckTales", episodes: [] },
-];
-
-// --- Simple per-channel resume store ---
-const STORE_KEY = "tv:v1:resume:";
-function loadResume(channelId: string): { epIndex: number; tSec: number } | null {
-  try {
-    const raw = localStorage.getItem(STORE_KEY + channelId);
-    if (!raw) return null;
-    const v = JSON.parse(raw);
-    if (typeof v?.epIndex !== "number" || typeof v?.tSec !== "number") return null;
-    return v;
-  } catch { return null; }
-}
-function saveResume(channelId: string, epIndex: number, tSec: number): void {
-  try { localStorage.setItem(STORE_KEY + channelId, JSON.stringify({ epIndex, tSec })); } catch {}
-}
-
 export default function mountTV(root: HTMLElement): void {
   const setNavH = () => {
     const nav = document.querySelector<HTMLElement>(".topnav");
@@ -158,7 +122,7 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // --- Controls under the TV ---
+  // Controls under the TV
   const controls = document.createElement("div");
   controls.className = "tv-controls";
   controls.style.maxWidth = "900px";
@@ -184,7 +148,7 @@ export default function mountTV(root: HTMLElement): void {
 
   const btnPooh = mkBtn("Winnie");
   const btnLilo = mkBtn("Lilo & Stitch");
-  const btnDuck = mkBtn("Mickey / DuckTales"); // label for now
+  const btnDuck = mkBtn("DuckTales");
   row2.append(btnPooh, btnLilo, btnDuck);
 
   controls.append(row1, row2);
@@ -229,7 +193,6 @@ export default function mountTV(root: HTMLElement): void {
       else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
     } catch {}
     place();
-    // kick off initial load after layout
     initPlayer();
   };
   ready();
@@ -250,7 +213,6 @@ export default function mountTV(root: HTMLElement): void {
   };
 
   const enterFullscreen = () => {
-    // stop bgm before any fullscreen or play
     const w = window as any;
     w.__suppressBGMResume = true;
     try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
@@ -298,7 +260,7 @@ export default function mountTV(root: HTMLElement): void {
   });
   vid.addEventListener("webkitendfullscreen" as any, exitInline);
 
-  // --- Player state and wiring ---
+  // Player state and wiring
   let hls: any | null = null;
   let channelIndex = 0;
   let epIndex = 0;
@@ -309,7 +271,6 @@ export default function mountTV(root: HTMLElement): void {
   }
 
   async function setSrc(url: string) {
-    // cleanup previous hls
     if (hls) {
       try { hls.destroy?.(); } catch {}
       hls = null;
@@ -325,7 +286,6 @@ export default function mountTV(root: HTMLElement): void {
         hls.attachMedia(vid);
         hls.loadSource(url);
       } else {
-        // last resort: set src, some browsers will still handle it
         vid.src = url;
         vid.load();
       }
@@ -343,7 +303,6 @@ export default function mountTV(root: HTMLElement): void {
     const ep = currentEpisode();
     if (!ep) return;
     await setSrc(ep.url);
-    // apply resume if present
     if (seekFromResume) {
       const res = loadResume(currentChannel().id);
       if (res && res.epIndex === epIndex && Number.isFinite(res.tSec)) {
@@ -351,7 +310,6 @@ export default function mountTV(root: HTMLElement): void {
         try { vid.currentTime = t; } catch {}
       }
     }
-    // start if user already interacted
     vid.play().catch(() => {});
     updatePlayButton();
     updateChannelButtons();
@@ -369,7 +327,6 @@ export default function mountTV(root: HTMLElement): void {
   }
 
   function initPlayer() {
-    // choose defaults or per-channel resume
     const ch0 = CATALOG[0];
     const r = loadResume(ch0.id);
     channelIndex = 0;
@@ -435,7 +392,6 @@ export default function mountTV(root: HTMLElement): void {
   vid.addEventListener("play", updatePlayButton);
   vid.addEventListener("pause", updatePlayButton);
 
-  // helpers used above
+  // helper used above
   function mkSpan(text: string) { const s = document.createElement("span"); s.textContent = text; return s; }
 }
-

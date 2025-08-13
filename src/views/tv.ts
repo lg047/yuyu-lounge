@@ -147,19 +147,19 @@ export default function mountTV(root: HTMLElement): void {
   controls.style.zIndex = "6";
   controls.style.display = "grid";
   controls.style.gridTemplateColumns = "1fr";
-  controls.style.gap = "8px";
+  controls.style.gap = "10px";
 
   const row1 = document.createElement("div");
   row1.style.display = "grid";
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
-  row1.style.gap = "6px";
+  row1.style.gap = "8px";
 
   const rowCovers = document.createElement("div");
   rowCovers.style.display = "grid";
-  // fixed, smaller tiles
-  rowCovers.style.gridTemplateColumns = "repeat(3, 150px)";
+  // much smaller tiles + more spacing
+  rowCovers.style.gridTemplateColumns = "repeat(3, 110px)";
   rowCovers.style.justifyContent = "space-between";
-  rowCovers.style.gap = "16px";
+  rowCovers.style.gap = "20px";
 
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
@@ -191,12 +191,13 @@ export default function mountTV(root: HTMLElement): void {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
-    b.style.padding = "10px 12px";
-    b.style.borderRadius = "0";                 // no curves
-    b.style.border = "2px solid #6a4b2b";
-    b.style.background = "#1f1f1f";
-    b.style.color = "#f3e9d7";
-    b.style.fontFamily = "'VT323', monospace";  // Y2K font
+    // slim, transparent, white outline
+    b.style.padding = "6px 10px";
+    b.style.borderRadius = "0";
+    b.style.border = "2px solid #ffffff";
+    b.style.background = "transparent";
+    b.style.color = "#ffffff";
+    b.style.fontFamily = "'VT323', monospace";
     b.style.fontSize = "18px";
     b.style.letterSpacing = "0.5px";
     b.style.cursor = "pointer";
@@ -216,7 +217,7 @@ export default function mountTV(root: HTMLElement): void {
     b.style.display = "grid";
     b.style.gridTemplateRows = "auto 1fr";
     b.style.border = "1px solid #0003";
-    b.style.borderRadius = "0";           // no curves
+    b.style.borderRadius = "0";           // square corners
     b.style.overflow = "hidden";
     b.style.background = "transparent";
     b.style.boxShadow = "none";
@@ -232,9 +233,9 @@ export default function mountTV(root: HTMLElement): void {
     const cap = document.createElement("div");
     cap.textContent = label;
     cap.style.textAlign = "center";
-    cap.style.fontSize = "16px";
+    cap.style.fontSize = "14px";
     cap.style.fontFamily = "'VT323', monospace";
-    cap.style.padding = "6px 8px";
+    cap.style.padding = "4px 6px";
 
     b.append(img, cap);
 
@@ -275,7 +276,8 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
 
-    const ctrlTop = Math.round(top + height + 20); // more gap under TV
+    // buttons sit directly under TV, extra gap so they don't touch
+    const ctrlTop = Math.round(top + height + 20);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

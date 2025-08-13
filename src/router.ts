@@ -18,7 +18,7 @@ const routes: Record<string, ViewFactory> = {
 function normalizeHash(h: string): string {
   let p = (h || "#/reels").replace(/^#/, "");
   p = p.split("?")[0].split("&")[0];
-  p = p.replace(/\/+$/, ""); // trim trailing slash
+  p = p.replace(/\/+$/, "");
   p = p.trim();
   if (p === "") p = "/reels";
   p = p.replace(/\/{2,}/g, "/");
@@ -42,6 +42,16 @@ async function loadAllImages(container: HTMLElement): Promise<void> {
   );
 }
 
+async function waitForTVVideo(container: HTMLElement): Promise<void> {
+  const video = container.querySelector("video");
+  if (!video) return;
+  await new Promise<void>((resolve) => {
+    if (video.readyState >= 4) return resolve(); // HAVE_ENOUGH_DATA
+    video.addEventListener("canplaythrough", () => resolve(), { once: true });
+    video.addEventListener("error", () => resolve(), { once: true });
+  });
+}
+
 async function render(path: string): Promise<void> {
   showLoader(path);
 
@@ -58,8 +68,11 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
-  // Wait for all images/videos to load before hiding loader
-  await loadAllImages(view);
+  if (path === "/tv") {
+    await waitForTVVideo(view);
+  } else if (path === "/chat" || path === "/game") {
+    await loadAllImages(view);
+  }
 
   hideLoader();
   window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });

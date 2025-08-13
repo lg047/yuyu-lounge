@@ -42,20 +42,49 @@ async function loadAllImages(container: HTMLElement): Promise<void> {
   );
 }
 
+/**
+ * Be lenient: resolve when we have first frame (loadeddata) OR canplay/canplaythrough,
+ * and never hang forever (timeout).
+ */
 async function waitForTVVideo(container: HTMLElement): Promise<void> {
-  const video = container.querySelector("video");
+  const video = container.querySelector("video") as HTMLVideoElement | null;
   if (!video) return;
+
+  // If we already have data for the first frame, don't wait longer.
+  if (video.readyState >= 2 /* HAVE_CURRENT_DATA */) return;
+
+  // Kick the network pipeline just in case.
+  try { video.load(); } catch {}
+
   await new Promise<void>((resolve) => {
-    if (video.readyState >= 4) return resolve(); // HAVE_ENOUGH_DATA
-    video.addEventListener("canplaythrough", () => resolve(), { once: true });
-    video.addEventListener("error", () => resolve(), { once: true });
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve();
+    };
+    const onErr = () => finish();
+
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", finish);
+      video.removeEventListener("canplay", finish);
+      video.removeEventListener("canplaythrough", finish);
+      video.removeEventListener("error", onErr);
+    };
+
+    // Resolve on first useful readiness.
+    video.addEventListener("loadeddata", finish, { once: true });
+    video.addEventListener("canplay", finish, { once: true });
+    video.addEventListener("canplaythrough", finish, { once: true });
+    video.addEventListener("error", onErr, { once: true });
+
+    // Safety net: never hang the loader forever.
+    setTimeout(finish, 5000);
   });
 }
 
 async function render(path: string): Promise<void> {
-  // NEW: prevent auto-resume on TV; allow resume elsewhere
-  (window as any).__suppressBGMResume = path === "/tv"; // <-- added
-
   // Show loader with a friendly page-specific message
   showLoader(messageForPath(path));
 
@@ -76,7 +105,7 @@ async function render(path: string): Promise<void> {
   if (path === "/tv") {
     // Pause/mute background music immediately for TV page
     if ((window as any).__bgm) {
-      (window as any).__bgm.pause();
+      (window as any).__bgm.pause(); // avoids audio overlap; does not affect video readiness
     }
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {

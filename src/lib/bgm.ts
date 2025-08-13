@@ -58,9 +58,11 @@ export function makeBGM(opts: Opts): BGM {
   // opportunistic attempt on visible tabs (desktop may allow)
   if (document.visibilityState === "visible" && !muted) void safePlay();
   document.addEventListener("visibilitychange", () => {
+    const suppressed = (window as any).__suppressBGMResume === true;
     if (document.visibilityState === "hidden") el.pause();
-    else if (!muted) void safePlay();
+    else if (!muted && !suppressed) void safePlay();
   });
+
 
   async function safePlay() {
     try {

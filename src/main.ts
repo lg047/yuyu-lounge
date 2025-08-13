@@ -9,7 +9,7 @@ import "./styles/reels.css";
 // --- Loader helpers ---
 export function messageForPath(path: string): string {
   if (path.includes("/tv")) return "Loading your living room...";
-  if (path.includes("/arcade")) return "Loading arcade...";
+  if (path.includes("/arcade") || path.includes("/game")) return "Loading arcade...";
   if (path.includes("/chat")) return "Loading chat...";
   if (path.includes("/reels")) return "Loading reels...";
   return "Loading…";

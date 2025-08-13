@@ -122,7 +122,7 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // Controls under the TV
+  // ---------- Controls under the TV ----------
   const controls = document.createElement("div");
   controls.className = "tv-controls";
   controls.style.maxWidth = "900px";
@@ -131,12 +131,12 @@ export default function mountTV(root: HTMLElement): void {
   controls.style.gridTemplateColumns = "1fr";
   controls.style.gap = "8px";
 
-  const row1 = document.createElement("div");
+  const row1 = document.createElement("div"); // Prev | Play/Pause | Next
   row1.style.display = "grid";
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
   row1.style.gap = "6px";
 
-  const row2 = document.createElement("div");
+  const row2 = document.createElement("div"); // Channel buttons
   row2.style.display = "grid";
   row2.style.gridTemplateColumns = "1fr 1fr 1fr";
   row2.style.gap = "6px";
@@ -166,7 +166,7 @@ export default function mountTV(root: HTMLElement): void {
     return b;
   }
 
-  // Layout
+  // ---------- Layout ----------
   const place = () => {
     const box = scene.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
@@ -185,7 +185,6 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.top  = `${Math.round(top + height + 8)}px`;
   };
 
-  // Decode and initial layout
   const ready = async () => {
     try {
       // @ts-expect-error
@@ -202,7 +201,7 @@ export default function mountTV(root: HTMLElement): void {
   window.addEventListener("resize", place);
   window.addEventListener("orientationchange", place);
 
-  // Fullscreen control
+  // ---------- Fullscreen ----------
   let hinted = false;
   const hideHint = () => {
     if (!hinted) {
@@ -260,7 +259,7 @@ export default function mountTV(root: HTMLElement): void {
   });
   vid.addEventListener("webkitendfullscreen" as any, exitInline);
 
-  // Player state and wiring
+  // ---------- Player state and wiring ----------
   let hls: any | null = null;
   let channelIndex = 0;
   let epIndex = 0;
@@ -357,16 +356,18 @@ export default function mountTV(root: HTMLElement): void {
     }
   });
 
-  // controls wiring
+  // ---------- Controls wiring ----------
   btnPlay.addEventListener("click", () => {
     if (vid.paused) vid.play().catch(() => {}); else vid.pause();
     updatePlayButton();
   });
+
   btnPrev.addEventListener("click", () => {
     const goStart = vid.currentTime > 3;
     if (goStart) { vid.currentTime = 0; return; }
     if (epIndex > 0) { epIndex -= 1; loadEpisode(false).catch(console.error); }
   });
+
   btnNext.addEventListener("click", () => {
     const ch = currentChannel();
     if (epIndex < ch.episodes.length - 1) { epIndex += 1; loadEpisode(false).catch(console.error); }
@@ -377,11 +378,13 @@ export default function mountTV(root: HTMLElement): void {
     epIndex = loadResume("pooh")?.epIndex ?? 0;
     loadEpisode(true).catch(console.error);
   });
+
   btnLilo.addEventListener("click", () => {
     channelIndex = CATALOG.findIndex(c => c.id === "lilo");
     epIndex = loadResume("lilo")?.epIndex ?? 0;
     loadEpisode(true).catch(console.error);
   });
+
   btnDuck.addEventListener("click", () => {
     channelIndex = CATALOG.findIndex(c => c.id === "ducktales");
     epIndex = loadResume("ducktales")?.epIndex ?? 0;

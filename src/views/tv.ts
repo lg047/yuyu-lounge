@@ -41,6 +41,46 @@ export default function mountTV(root: HTMLElement): void {
   vid.setAttribute("webkit-playsinline", "true");
   vid.load();                     // kick off the network request immediately
 
+    // --- NEW: suppress/resume BGM during video activity ---
+  (function suppressBgmWhileVideoActive(video: HTMLVideoElement) {
+    const w = window as any;
+    const bgm = w.__bgm?.el as HTMLAudioElement | undefined;
+    function suppress(on: boolean) { w.__suppressBGMResume = on; }
+    function pauseBgm() {
+      if (bgm && typeof bgm.pause === "function") {
+        try { bgm.pause(); } catch {}
+      }
+    }
+    function maybeUnsuppress() {
+      const inFs = !!document.fullscreenElement;
+      const onTv = (location.hash.replace(/^#/, "") || "/reels") === "/tv";
+      if (!inFs && video.paused && onTv) suppress(false);
+    }
+    video.addEventListener("play", () => { suppress(true); pauseBgm(); }, true);
+    video.addEventListener("playing", () => { suppress(true); pauseBgm(); }, true);
+    ["pause", "ended", "emptied"].forEach(evt => {
+      video.addEventListener(evt, () => { maybeUnsuppress(); }, true);
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement) {
+        suppress(true);
+        pauseBgm();
+      } else {
+        setTimeout(() => { maybeUnsuppress(); }, 0);
+      }
+    });
+    // iOS Safari inline fullscreen
+    // @ts-ignore
+    video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
+    // @ts-ignore
+    video.addEventListener("webkitendfullscreen", () => { setTimeout(() => { maybeUnsuppress(); }, 0); }, true);
+    window.addEventListener("hashchange", () => {
+      const path = (location.hash || "#/reels").replace(/^#/, "");
+      if (path !== "/tv") suppress(false);
+    });
+  })(vid);
+  // --- END NEW ---
+
   const vhs = new Image();
   vhs.className = "vhs";
   vhs.src = BASE_URL + "assets/room/vhs-filter2.png";

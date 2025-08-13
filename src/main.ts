@@ -7,16 +7,37 @@ import { store } from "./game/core/storage";
 import "./styles/reels.css";
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Loader overlay
-  const loader = document.createElement("div");
-  loader.id = "loading-screen";
-  loader.innerHTML = `
-    <div class="loading-text"></div>
-    <div class="loading-bar">
-      <div class="loading-bar-fill"></div>
-    </div>
-  `;
-  document.body.prepend(loader);
+  const loader = document.getElementById("loading-screen") as HTMLDivElement;
+  const msgEl = loader?.querySelector<HTMLDivElement>(".loading-text");
+  const fill = loader?.querySelector<HTMLDivElement>(".loading-bar-fill");
+
+  const path = location.hash || location.pathname;
+  let message = "Loading…";
+  if (path.includes("/tv")) message = "Loading your living room...";
+  else if (path.includes("/arcade")) message = "Loading arcade...";
+  else if (path.includes("/chat")) message = "Loading chat...";
+  else if (path.includes("/reels")) message = "Loading reels...";
+  if (msgEl) msgEl.textContent = message;
+
+  let progress = 0;
+  const fake = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 15, 95);
+    if (fill) fill.style.width = progress + "%";
+  }, 200);
+
+  window.addEventListener("load", () => {
+    clearInterval(fake);
+    if (fill) fill.style.width = "100%";
+    setTimeout(() => {
+      loader.style.opacity = "0";
+      loader.style.pointerEvents = "none";
+      const app = document.getElementById("app");
+      if (app) app.style.visibility = "visible";
+    }, 400);
+  });
+});
+
+
 
   // Set message based on page
   const msgEl = loader.querySelector<HTMLDivElement>(".loading-text");

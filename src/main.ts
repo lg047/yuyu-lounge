@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- BGM setup ---
 const bgm = makeBGM({
-  src: "assets/audio/bgm.mp3",
+  src: (import.meta as any).env.BASE_URL + "assets/audio/bgm.mp3",
   store,
   key: "bgm.muted",
   volume: 0.18,

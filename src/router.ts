@@ -71,6 +71,10 @@ async function render(path: string): Promise<void> {
 
   // Wait for assets (per page) before hiding loader
   if (path === "/tv") {
+    // Pause/mute background music immediately for TV page
+    if ((window as any).__bgm) {
+      (window as any).__bgm.pause(); // use .mute() instead if preferred
+    }
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {
     await loadAllImages(view);

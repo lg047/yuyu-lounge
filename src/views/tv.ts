@@ -271,18 +271,21 @@ export default function mountTV(root: HTMLElement): void {
     const ctrlTop = Math.round(top + height + 8);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
-
+  
   const ready = async () => {
+    // kick video load first
+    initPlayer();
+  
+    // let images decode in the background, then place once
     try {
       // @ts-expect-error
       if (typeof room.decode === "function") await room.decode();
-      else if (!room.complete) await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
+      else if (!room.complete) {
+        await new Promise((r) => room.addEventListener("load", () => r(null), { once: true }));
+      }
     } catch {}
     place();
-    initPlayer();
   };
-  ready();
-
   const ro = new ResizeObserver(place);
   ro.observe(scene);
   window.addEventListener("resize", place);

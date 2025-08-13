@@ -5,6 +5,15 @@ import TopNav from "./components/topnav";
 import { makeBGM } from "./lib/bgm";
 import { store } from "./game/core/storage";
 import "./styles/reels.css";
+import { showLoader, hideLoader, messageForPath } from "./lib/loader";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const path = (location.hash || location.pathname) || "/reels";
+  showLoader(messageForPath(path), { hideApp: true });
+});
+
+// ... your existing main.ts below this line stays the same ...
+
 
 // --- Loader function ---
 export function showLoader(message: string = "Loading…") {

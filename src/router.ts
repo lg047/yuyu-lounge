@@ -44,8 +44,8 @@ async function loadAllImages(container: HTMLElement): Promise<void> {
 
 /**
  * Wait for the TV video to be realistically playable.
- * - Accepts any of: readyState >= HAVE_FUTURE_DATA (3), 'loadeddata', 'canplay', or 'canplaythrough'
- * - Adds a 1500ms safety timeout so the loader can't hang forever on iOS/HLS.
+ * Accepts any of: readyState >= HAVE_FUTURE_DATA (3), 'loadeddata', 'canplay', or 'canplaythrough'
+ * Adds a 1500ms safety timeout so the loader cannot hang forever.
  */
 async function waitForTVVideo(container: HTMLElement): Promise<void> {
   const video = container.querySelector("video");
@@ -53,7 +53,6 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 
   const HAVE_FUTURE_DATA = 3;
 
-  // Already good enough?
   if (video.readyState >= HAVE_FUTURE_DATA) return;
 
   await new Promise<void>((resolve) => {
@@ -65,7 +64,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
     const onLoadedData = () => done();
     const onCanPlay = () => done();
     const onCanPlayThrough = () => done();
-    const onError = () => done(); // do not hang the loader on error
+    const onError = () => done();
 
     const cleanup = () => {
       video.removeEventListener("loadeddata", onLoadedData);
@@ -81,7 +80,6 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
     video.addEventListener("error", onError, { once: true });
 
     const timer = setTimeout(() => {
-      // Last chance check before giving up
       if (video.readyState >= HAVE_FUTURE_DATA) return done();
       done();
     }, 1500);
@@ -89,7 +87,6 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 }
 
 async function render(path: string): Promise<void> {
-  // Show loader with a friendly page specific message
   showLoader(messageForPath(path));
 
   const factory = routes[path] || routes["/reels"];
@@ -105,12 +102,12 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
-  // Wait for assets per page before hiding loader
+  // Per page asset waits before hiding loader
   if (path === "/tv") {
-    // Pause background music immediately for TV so video can play cleanly
-    const bgm = (window as any).__bgm;
-    if (bgm && typeof bgm.pause === "function") {
-      try { bgm.pause(); } catch {}
+    // Silence site music immediately on TV
+    const bgm: any = (window as any).__bgm;
+    if (bgm?.el && typeof bgm.el.pause === "function") {
+      try { bgm.el.pause(); } catch {}
     }
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {

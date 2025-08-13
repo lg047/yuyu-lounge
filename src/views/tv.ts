@@ -34,7 +34,7 @@ export default function mountTV(root: HTMLElement): void {
   const vid = document.createElement("video");
   vid.id = "tv";
   vid.src = BASE_URL + "videos/test2.mp4";
-  // inline audio enabled: do not force mute at creation
+  // inline audio enabled - do not force mute at creation
   vid.autoplay = true;
   vid.preload = "auto";
   vid.playsInline = true;
@@ -53,7 +53,7 @@ export default function mountTV(root: HTMLElement): void {
   scene.addEventListener("click", onFirstGesture, true);
   window.addEventListener("keydown", onFirstGesture, true);
 
-  // --- suppress or resume BGM during video activity ---
+  // suppress or resume BGM during video activity
   (function suppressBgmWhileVideoActive(video: HTMLVideoElement) {
     const w = window as any;
     const bgm = w.__bgm?.el as HTMLAudioElement | undefined;
@@ -68,11 +68,15 @@ export default function mountTV(root: HTMLElement): void {
       const onTv = (location.hash.replace(/^#/, "") || "/reels") === "/tv";
       if (!inFs && video.paused && onTv) suppress(false);
     }
+
+    // any video play should suppress and pause bgm
     video.addEventListener("play", () => { suppress(true); pauseBgm(); }, true);
     video.addEventListener("playing", () => { suppress(true); pauseBgm(); }, true);
+
     ["pause", "ended", "emptied"].forEach(evt => {
       video.addEventListener(evt, () => { maybeUnsuppress(); }, true);
     });
+
     document.addEventListener("fullscreenchange", () => {
       if (document.fullscreenElement) {
         suppress(true);
@@ -81,17 +85,28 @@ export default function mountTV(root: HTMLElement): void {
         setTimeout(() => { maybeUnsuppress(); }, 0);
       }
     });
+
     // iOS Safari inline fullscreen
     // @ts-ignore
     video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
     // @ts-ignore
     video.addEventListener("webkitendfullscreen", () => { setTimeout(() => { maybeUnsuppress(); }, 0); }, true);
+
+    // leaving TV page - pause video so main.ts clears its playingVideos and allow resume
     window.addEventListener("hashchange", () => {
       const path = (location.hash || "#/reels").replace(/^#/, "");
-      if (path !== "/tv") suppress(false);
+      if (path !== "/tv") {
+        suppress(false);
+        try { video.pause(); } catch {}
+        // optional nudge in case pause event ordering races updateTopNavActive
+        setTimeout(() => {
+          if (!(window as any).__suppressBGMResume) {
+            try { (w.__bgm?.playIfAllowed as any)?.(); } catch {}
+          }
+        }, 0);
+      }
     });
   })(vid);
-  // --- end suppress helper ---
 
   const vhs = new Image();
   vhs.className = "vhs";
@@ -112,7 +127,7 @@ export default function mountTV(root: HTMLElement): void {
   hint.className = "hint";
   hint.textContent = "Tap to open";
 
-  // Layer order bottom→top: wrap(video), vhs, room, hit, hint
+  // Layer order bottom->top: wrap(video), vhs, room, hit, hint
   wrap.appendChild(vid);
   scene.append(wrap, vhs, room, hit, hint);
   root.innerHTML = "";

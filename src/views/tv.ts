@@ -154,7 +154,7 @@ export default function mountTV(root: HTMLElement): void {
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
   row1.style.gap = "6px";
 
-  =const rowCovers = document.createElement("div");
+  const rowCovers = document.createElement("div");
   rowCovers.style.display = "grid";
   // fixed, smaller tiles
   rowCovers.style.gridTemplateColumns = "repeat(3, 150px)";
@@ -203,7 +203,6 @@ export default function mountTV(root: HTMLElement): void {
     return b;
   }
 
-
   function mkCoverTile(
     id: "pooh" | "lilo" | "ducktales",
     label: string,
@@ -220,13 +219,7 @@ export default function mountTV(root: HTMLElement): void {
     b.style.borderRadius = "0";           // no curves
     b.style.overflow = "hidden";
     b.style.background = "transparent";
-    b.style.boxShadow = "none";           // optional
-    
-    cap.style.textAlign = "center";
-    cap.style.fontSize = "16px";
-    cap.style.fontFamily = "'VT323', monospace";
-    cap.style.padding = "6px 8px";
-    
+    b.style.boxShadow = "none";
 
     const img = new Image();
     img.src = src;
@@ -239,7 +232,8 @@ export default function mountTV(root: HTMLElement): void {
     const cap = document.createElement("div");
     cap.textContent = label;
     cap.style.textAlign = "center";
-    cap.style.fontSize = "0.9rem";
+    cap.style.fontSize = "16px";
+    cap.style.fontFamily = "'VT323', monospace";
     cap.style.padding = "6px 8px";
 
     b.append(img, cap);
@@ -281,7 +275,7 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
 
-    const ctrlTop = Math.round(top + height + 20);
+    const ctrlTop = Math.round(top + height + 20); // more gap under TV
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

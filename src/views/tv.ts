@@ -6,7 +6,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** EDIT these to match your PNGs */
 const BASE: Size = { w: 1536, h: 1024 }; // natural pixels of living-room.png
-const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 }; // top-left and size of hole in BASE pixels
+const TV: Rect  = { x: 560, y: 780, w: 417, h: 291 }; // top-left and size of hole in BASE pixels
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 
 export default function mountTV(root: HTMLElement): void {

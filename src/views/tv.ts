@@ -154,22 +154,35 @@ export default function mountTV(root: HTMLElement): void {
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
   row1.style.gap = "6px";
 
-  const row2 = document.createElement("div");
-  row2.style.display = "grid";
-  row2.style.gridTemplateColumns = "1fr 1fr 1fr";
-  row2.style.gap = "6px";
+  const rowCovers = document.createElement("div");
+  rowCovers.style.display = "grid";
+  rowCovers.style.gridTemplateColumns = "1fr 1fr 1fr";
+  rowCovers.style.gap = "8px";
 
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
   const btnNext = mkBtn("Next ep");
   row1.append(btnPrev, btnPlay, btnNext);
 
-  const btnPooh = mkBtn("Winnie");
-  const btnLilo = mkBtn("Lilo & Stitch");
-  const btnDuck = mkBtn("DuckTales");
-  row2.append(btnPooh, btnLilo, btnDuck);
+  // cover tiles
+  const tilePooh = mkCoverTile(
+    "pooh",
+    "Winnie the Pooh",
+    BASE_URL + "assets/tv/covers/winnie-the-pooh-cover.png"
+  );
+  const tileLilo = mkCoverTile(
+    "lilo",
+    "Lilo & Stitch",
+    BASE_URL + "assets/tv/covers/lilo-and-stitch-cover.png"
+  );
+  const tileDuck = mkCoverTile(
+    "ducktales",
+    "DuckTales",
+    BASE_URL + "assets/tv/covers/ducktales-cover.png"
+  );
 
-  controls.append(row1, row2);
+  rowCovers.append(tilePooh, tileLilo, tileDuck);
+  controls.append(row1, rowCovers);
   scene.appendChild(controls);
 
   function mkBtn(label: string): HTMLButtonElement {
@@ -181,6 +194,50 @@ export default function mountTV(root: HTMLElement): void {
     b.style.border = "1px solid #0003";
     b.style.fontFamily = "inherit";
     b.style.cursor = "pointer";
+    return b;
+  }
+
+  function mkCoverTile(
+    id: "pooh" | "lilo" | "ducktales",
+    label: string,
+    src: string
+  ): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.channel = id;
+    b.style.all = "unset";
+    b.style.cursor = "pointer";
+    b.style.display = "grid";
+    b.style.gridTemplateRows = "auto 1fr";
+    b.style.border = "1px solid #0003";
+    b.style.borderRadius = "12px";
+    b.style.overflow = "hidden";
+    b.style.background = "transparent";
+    b.style.boxShadow = "0 1px 4px rgba(0,0,0,0.12)";
+
+    const img = new Image();
+    img.src = src;
+    img.alt = label;
+    img.loading = "lazy";
+    img.style.width = "100%";
+    img.style.height = "auto";
+    img.style.display = "block";
+
+    const cap = document.createElement("div");
+    cap.textContent = label;
+    cap.style.textAlign = "center";
+    cap.style.fontSize = "0.9rem";
+    cap.style.padding = "6px 8px";
+
+    b.append(img, cap);
+
+    b.addEventListener("click", () => {
+      channelIndex = CATALOG.findIndex((c) => c.id === id);
+      epIndex = loadResume(id)?.epIndex ?? 0;
+      loadEpisode(true).catch(console.error);
+      updateChannelTiles();
+    });
+
     return b;
   }
 
@@ -240,54 +297,53 @@ export default function mountTV(root: HTMLElement): void {
       setTimeout(() => hint.remove(), 400);
     }
   };
-  
-const enterFullscreen = () => {
-  const w = window as any;
-  w.__suppressBGMResume = true;
-  try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
 
-  hideHint();
-  vid.muted = false;
-  vid.controls = true;
+  const enterFullscreen = () => {
+    const w = window as any;
+    w.__suppressBGMResume = true;
+    try { (w.__bgm?.el as HTMLAudioElement | undefined)?.pause?.(); } catch {}
 
-  hit.dataset.prevDisplay = hit.style.display || "";
-  hit.style.display = "none";
-  hit.style.pointerEvents = "none";
-  vid.style.pointerEvents = "auto";
+    hideHint();
+    vid.muted = false;
+    vid.controls = true;
 
-  const playSoon = () => setTimeout(() => { vid.play().catch(() => {}); }, 0);
+    hit.dataset.prevDisplay = hit.style.display || "";
+    hit.style.display = "none";
+    hit.style.pointerEvents = "none";
+    vid.style.pointerEvents = "auto";
 
-  const anyVid = vid as any;
-  if (typeof anyVid.webkitEnterFullscreen === "function") {
-    vid.addEventListener("webkitbeginfullscreen" as any, playSoon, { once: true });
-    try { anyVid.webkitEnterFullscreen(); } catch {}
-    return;
-  }
+    const playSoon = () => setTimeout(() => { vid.play().catch(() => {}); }, 0);
 
-  const onFs = () => {
-    if (document.fullscreenElement) playSoon();
-    document.removeEventListener("fullscreenchange", onFs);
+    const anyVid = vid as any;
+    if (typeof anyVid.webkitEnterFullscreen === "function") {
+      vid.addEventListener("webkitbeginfullscreen" as any, playSoon, { once: true });
+      try { anyVid.webkitEnterFullscreen(); } catch {}
+      return;
+    }
+
+    const onFs = () => {
+      if (document.fullscreenElement) playSoon();
+      document.removeEventListener("fullscreenchange", onFs);
+    };
+    document.addEventListener("fullscreenchange", onFs, { once: true });
+
+    if (vid.requestFullscreen) {
+      vid.requestFullscreen().catch(() => {});
+      return;
+    }
+    if ((scene as any).requestFullscreen) {
+      (scene as any).requestFullscreen().catch(() => {});
+      return;
+    }
+    playSoon();
   };
-  document.addEventListener("fullscreenchange", onFs, { once: true });
-
-  if (vid.requestFullscreen) {
-    vid.requestFullscreen().catch(() => {});
-    return;
-  }
-  if ((scene as any).requestFullscreen) {
-    (scene as any).requestFullscreen().catch(() => {});
-    return;
-  }
-  playSoon();
-};
-
 
   const exitInline = () => {
     vid.controls = false;
     hit.style.display = hit.dataset.prevDisplay ?? "";
     hit.style.pointerEvents = "";
     vid.style.pointerEvents = "";
-    vid.play().catch(() => {});
+    // do not auto-play here
   };
 
   hit.addEventListener("click", enterFullscreen);
@@ -349,18 +405,18 @@ const enterFullscreen = () => {
     }
     vid.play().catch(() => {});
     updatePlayButton();
-    updateChannelButtons();
+    updateChannelTiles();
   }
 
   function updatePlayButton() {
     btnPlay.textContent = vid.paused ? "Play" : "Pause";
   }
-  function updateChannelButtons() {
-    [btnPooh, btnLilo, btnDuck].forEach((b) => b.classList.remove("active"));
+  function updateChannelTiles() {
+    [tilePooh, tileLilo, tileDuck].forEach((b) => b.classList.remove("active"));
     const id = currentChannel().id;
-    if (id === "pooh") btnPooh.classList.add("active");
-    if (id === "lilo") btnLilo.classList.add("active");
-    if (id === "ducktales") btnDuck.classList.add("active");
+    if (id === "pooh") tilePooh.classList.add("active");
+    if (id === "lilo") tileLilo.classList.add("active");
+    if (id === "ducktales") tileDuck.classList.add("active");
   }
 
   function initPlayer() {
@@ -397,7 +453,6 @@ const enterFullscreen = () => {
   // controls wiring
   btnPlay.addEventListener("click", () => {
     if (vid.paused) {
-      // start clean
       try { hls?.startLoad?.(); } catch {}
       vid.play().catch(() => {});
     } else {
@@ -415,21 +470,6 @@ const enterFullscreen = () => {
   btnNext.addEventListener("click", () => {
     const ch = currentChannel();
     if (epIndex < ch.episodes.length - 1) { epIndex += 1; loadEpisode(false).catch(console.error); }
-  });
-  btnPooh.addEventListener("click", () => {
-    channelIndex = CATALOG.findIndex(c => c.id === "pooh");
-    epIndex = loadResume("pooh")?.epIndex ?? 0;
-    loadEpisode(true).catch(console.error);
-  });
-  btnLilo.addEventListener("click", () => {
-    channelIndex = CATALOG.findIndex(c => c.id === "lilo");
-    epIndex = loadResume("lilo")?.epIndex ?? 0;
-    loadEpisode(true).catch(console.error);
-  });
-  btnDuck.addEventListener("click", () => {
-    channelIndex = CATALOG.findIndex(c => c.id === "ducktales");
-    epIndex = loadResume("ducktales")?.epIndex ?? 0;
-    loadEpisode(true).catch(console.error);
   });
 
   vid.addEventListener("play", updatePlayButton);

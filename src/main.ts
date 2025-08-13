@@ -5,26 +5,25 @@ import TopNav from "./components/topnav";
 import { makeBGM } from "./lib/bgm";
 import { store } from "./game/core/storage";
 import "./styles/reels.css";
-import { showLoader, hideLoader, messageForPath } from "./lib/loader";
 
-document.addEventListener("DOMContentLoaded", () => {
-  const path = (location.hash || location.pathname) || "/reels";
-  showLoader(messageForPath(path), { hideApp: true });
-});
+// --- Loader helpers ---
+export function messageForPath(path: string): string {
+  if (path.includes("/tv")) return "Loading your living room...";
+  if (path.includes("/arcade")) return "Loading arcade...";
+  if (path.includes("/chat")) return "Loading chat...";
+  if (path.includes("/reels")) return "Loading reels...";
+  return "Loading…";
+}
 
-// ... your existing main.ts below this line stays the same ...
-
-
-// --- Loader function ---
-export function showLoader(message: string = "Loading…") {
+export function showLoader(message: string = "Loading…", opts?: { hideApp?: boolean }) {
   const loader = document.getElementById("loading-screen") as HTMLDivElement;
   const msgEl = loader?.querySelector<HTMLDivElement>(".loading-text");
   const fill = loader?.querySelector<HTMLDivElement>(".loading-bar-fill");
   const app = document.getElementById("app");
 
-  if (!loader || !fill || !app) return;
+  if (!loader || !fill) return;
 
-  app.style.visibility = "hidden";
+  if (opts?.hideApp && app) app.style.visibility = "hidden";
   loader.style.opacity = "1";
   loader.style.pointerEvents = "auto";
   loader.style.display = "flex";
@@ -37,7 +36,6 @@ export function showLoader(message: string = "Loading…") {
     fill.style.width = progress + "%";
   }, 200);
 
-  // Let router call hideLoader manually after view is mounted
   (window as any).__hideLoader = () => {
     clearInterval(fake);
     fill.style.width = "100%";
@@ -45,22 +43,24 @@ export function showLoader(message: string = "Loading…") {
       loader.style.opacity = "0";
       loader.style.pointerEvents = "none";
       loader.style.display = "none";
-      app.style.visibility = "visible";
+      if (app) app.style.visibility = "visible";
     }, 400);
   };
 }
 
-// Initial page load
+export function hideLoader() {
+  if (typeof (window as any).__hideLoader === "function") {
+    (window as any).__hideLoader();
+  }
+}
+
+// --- Initial page load loader ---
 document.addEventListener("DOMContentLoaded", () => {
-  const path = location.hash || location.pathname;
-  if (path.includes("/tv")) showLoader("Loading your living room...");
-  else if (path.includes("/arcade")) showLoader("Loading arcade...");
-  else if (path.includes("/chat")) showLoader("Loading chat...");
-  else if (path.includes("/reels")) showLoader("Loading reels...");
-  else showLoader();
+  const path = (location.hash || location.pathname) || "/reels";
+  showLoader(messageForPath(path), { hideApp: true });
 });
 
-// create once
+// --- BGM setup ---
 const bgm = makeBGM({
   src: "assets/audio/bgm.mp3",
   store,
@@ -69,16 +69,13 @@ const bgm = makeBGM({
 });
 (window as any).__bgm = bgm;
 
-// Mark <html> when running as an installed app
+// --- Standalone mode detection ---
 function markStandalone(): void {
   const isStandalone =
     window.matchMedia?.("(display-mode: standalone)")?.matches ||
     // @ts-ignore
     (typeof navigator !== "undefined" && (navigator as any).standalone === true);
-  document.documentElement.classList.toggle(
-    "standalone",
-    Boolean(isStandalone)
-  );
+  document.documentElement.classList.toggle("standalone", Boolean(isStandalone));
 }
 markStandalone();
 try {
@@ -86,11 +83,9 @@ try {
   mq?.addEventListener?.("change", markStandalone);
 } catch {}
 
-// --- PWA Install button wiring ---
+// --- PWA Install button ---
 let deferredPrompt: unknown = null;
-const installBtn = document.getElementById(
-  "installBtn"
-) as HTMLButtonElement | null;
+const installBtn = document.getElementById("installBtn") as HTMLButtonElement | null;
 window.addEventListener("beforeinstallprompt", (e: Event) => {
   // @ts-ignore
   e.preventDefault?.();
@@ -109,7 +104,7 @@ installBtn?.addEventListener("click", async () => {
 const topnavHost = document.getElementById("topnav") as HTMLElement | null;
 if (topnavHost) topnavHost.replaceChildren(TopNav());
 
-// Replace Settings tab with a mute button for site music
+// --- Replace Settings with music toggle ---
 (function attachMusicToggle() {
   const scope = topnavHost ?? document;
   const selectors = [
@@ -133,33 +128,21 @@ if (topnavHost) topnavHost.replaceChildren(TopNav());
   void bgm.playIfAllowed();
 })();
 
-// ---- BGM vs videos: pause BGM when any video plays, resume when none do ----
+// --- Pause/resume BGM with video ---
 const playingVideos = new Set<HTMLVideoElement>();
-
 function isVideo(t: EventTarget | null): t is HTMLVideoElement {
   return !!t && (t as any).tagName === "VIDEO";
 }
-
-document.addEventListener(
-  "play",
-  (e) => {
-    if (!isVideo(e.target)) return;
-    playingVideos.add(e.target);
-    bgm.pause();
-  },
-  true
-);
-
-document.addEventListener(
-  "playing",
-  (e) => {
-    if (!isVideo(e.target)) return;
-    playingVideos.add(e.target);
-    bgm.pause();
-  },
-  true
-);
-
+document.addEventListener("play", (e) => {
+  if (!isVideo(e.target)) return;
+  playingVideos.add(e.target);
+  bgm.pause();
+}, true);
+document.addEventListener("playing", (e) => {
+  if (!isVideo(e.target)) return;
+  playingVideos.add(e.target);
+  bgm.pause();
+}, true);
 function onStop(e: Event) {
   if (!isVideo(e.target)) return;
   const had = playingVideos.delete(e.target);
@@ -171,21 +154,18 @@ document.addEventListener("pause", onStop, true);
 document.addEventListener("ended", onStop, true);
 document.addEventListener("emptied", onStop, true);
 
-// Re-check on route changes
+// --- Route change active state ---
 function currentPath(): string {
   const hash = location.hash || "#/reels";
   return hash.replace(/^#/, "");
 }
 function updateTopNavActive(path: string): void {
-  const links = document.querySelectorAll<HTMLAnchorElement>(
-    ".topnav a[href^='#/']"
-  );
+  const links = document.querySelectorAll<HTMLAnchorElement>(".topnav a[href^='#/']");
   links.forEach((a) => {
     const hrefPath = a.getAttribute("href")?.replace(/^#/, "") ?? "";
     a.classList.toggle("active", hrefPath === path);
   });
   document.title = `Yuyu Lounge • ${path.slice(1)}`;
-
   const suppress = (window as any).__suppressBGMResume === true;
   if (playingVideos.size === 0 && !bgm.muted && !suppress) void bgm.playIfAllowed();
 }
@@ -195,10 +175,10 @@ function onRouteChange(): void {
 onRouteChange();
 window.addEventListener("hashchange", onRouteChange);
 
-// Router bootstrap
+// --- Router bootstrap ---
 initRouter();
 
-// Service Worker
+// --- Service Worker ---
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(console.error);

@@ -89,9 +89,7 @@ export default function mountTV(root: HTMLElement): void {
     // @ts-ignore
     video.addEventListener("webkitbeginfullscreen", () => { suppress(true); pauseBgm(); }, true);
     // @ts-ignore
-    video.addEventListener("webkitendfullscreen", () => {
-      // do not unsuppress here
-    }, true);
+    video.addEventListener("webkitendfullscreen", () => {}, true);
     // Leaving TV page
     window.addEventListener("hashchange", () => {
       const path = (location.hash || "#/reels").replace(/^#/, "");
@@ -139,7 +137,7 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // controls inside scene, absolute under TV
+  // controls inside scene, absolute (we'll position ~midway to bottom)
   const controls = document.createElement("div");
   controls.className = "tv-controls";
   controls.style.position = "absolute";
@@ -154,19 +152,40 @@ export default function mountTV(root: HTMLElement): void {
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
   row1.style.gap = "8px";
 
-  const rowCovers = document.createElement("div");
-  rowCovers.style.display = "grid";
-  // much smaller tiles + more spacing
-  rowCovers.style.gridTemplateColumns = "repeat(3, 110px)";
-  rowCovers.style.justifyContent = "space-between";
-  rowCovers.style.gap = "20px";
+  const row2 = document.createElement("div"); // Select show button row
+  row2.style.display = "grid";
+  row2.style.gridTemplateColumns = "1fr";
+  row2.style.gap = "0";
 
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
   const btnNext = mkBtn("Next ep");
   row1.append(btnPrev, btnPlay, btnNext);
 
-  // cover tiles
+  const btnSelect = mkBtn("Select show");
+  row2.append(btnSelect);
+
+  controls.append(row1, row2);
+  scene.appendChild(controls);
+
+  // --- Overlay for selecting show (covers) ---
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.6)";
+  overlay.style.backdropFilter = "blur(2px)";
+  overlay.style.display = "none";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "999";
+
+  const chooser = document.createElement("div");
+  chooser.style.display = "grid";
+  chooser.style.gridTemplateColumns = "repeat(3, 150px)";
+  chooser.style.gap = "20px";
+  chooser.style.alignItems = "start";
+
+  // cover tiles (used only inside overlay)
   const tilePooh = mkCoverTile(
     "pooh",
     "Winnie the Pooh",
@@ -182,11 +201,23 @@ export default function mountTV(root: HTMLElement): void {
     "DuckTales",
     BASE_URL + "assets/tv/covers/ducktales-cover.png"
   );
+  chooser.append(tilePooh, tileLilo, tileDuck);
+  overlay.appendChild(chooser);
+  document.body.appendChild(overlay);
 
-  rowCovers.append(tilePooh, tileLilo, tileDuck);
-  controls.append(row1, rowCovers);
-  scene.appendChild(controls);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) hideOverlay();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (overlay.style.display !== "none" && e.key === "Escape") hideOverlay();
+  });
 
+  function showOverlay() { overlay.style.display = "flex"; }
+  function hideOverlay() { overlay.style.display = "none"; }
+
+  btnSelect.addEventListener("click", showOverlay);
+
+  // ---- styles/helpers ----
   function mkBtn(label: string): HTMLButtonElement {
     const b = document.createElement("button");
     b.type = "button";
@@ -217,10 +248,9 @@ export default function mountTV(root: HTMLElement): void {
     b.style.display = "grid";
     b.style.gridTemplateRows = "auto 1fr";
     b.style.border = "1px solid #0003";
-    b.style.borderRadius = "0";           // square corners
+    b.style.borderRadius = "0";
     b.style.overflow = "hidden";
     b.style.background = "transparent";
-    b.style.boxShadow = "none";
 
     const img = new Image();
     img.src = src;
@@ -244,6 +274,7 @@ export default function mountTV(root: HTMLElement): void {
       epIndex = loadResume(id)?.epIndex ?? 0;
       loadEpisode(true).catch(console.error);
       updateChannelTiles();
+      hideOverlay();
     });
 
     return b;
@@ -276,8 +307,10 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
 
-    // buttons sit directly under TV, extra gap so they don't touch
-    const ctrlTop = Math.round(top + height + 20);
+    // buttons: halfway between TV bottom and page bottom (clamped)
+    const tvBottom = top + height;
+    const halfway  = tvBottom + (box.height - tvBottom) * 0.5;
+    const ctrlTop  = Math.min(Math.round(halfway), box.height - 140);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

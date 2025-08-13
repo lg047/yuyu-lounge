@@ -30,8 +30,12 @@ export function showLoader(message: string = "Loading…", opts?: { hideApp?: bo
 
   if (msgEl) msgEl.textContent = message;
 
+  // reset bar instantly to 0 on show
+  fill.style.width = "0%";
+
   let progress = 0;
   const fake = setInterval(() => {
+    // only ever increase progress
     progress = Math.min(progress + Math.random() * 15, 95);
     fill.style.width = progress + "%";
   }, 200);
@@ -184,3 +188,4 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
+

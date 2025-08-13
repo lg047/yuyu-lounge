@@ -42,33 +42,50 @@ async function loadAllImages(container: HTMLElement): Promise<void> {
   );
 }
 
-// CHANGED: add timeout + accept first usable readiness signal
-async function waitForTVVideo(container: HTMLElement, timeoutMs = 4000): Promise<void> {
+/**
+ * Wait for the TV video to be realistically playable.
+ * - Accepts any of: readyState >= HAVE_FUTURE_DATA (3), 'loadeddata', 'canplay', or 'canplaythrough'
+ * - Adds a 1500ms safety timeout so the loader can't hang forever on iOS/HLS.
+ */
+async function waitForTVVideo(container: HTMLElement): Promise<void> {
   const video = container.querySelector("video");
   if (!video) return;
 
-  await Promise.race([
-    new Promise<void>((resolve) => {
-      // If the browser already buffered enough, don't wait.
-      // 3 = HAVE_FUTURE_DATA, 4 = HAVE_ENOUGH_DATA
-      if (video.readyState >= 3) return resolve();
+  const HAVE_FUTURE_DATA = 3;
 
-      const onReady = () => cleanup(resolve);
-      const onErr = () => cleanup(resolve);
+  // Already good enough?
+  if (video.readyState >= HAVE_FUTURE_DATA) return;
 
-      const cleanup = (done: () => void) => {
-        video.removeEventListener("canplaythrough", onReady);
-        video.removeEventListener("loadeddata", onReady);
-        video.removeEventListener("error", onErr);
-        done();
-      };
+  await new Promise<void>((resolve) => {
+    const done = () => {
+      cleanup();
+      resolve();
+    };
 
-      video.addEventListener("canplaythrough", onReady, { once: true });
-      video.addEventListener("loadeddata", onReady, { once: true });
-      video.addEventListener("error", onErr, { once: true });
-    }),
-    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
-  ]);
+    const onLoadedData = () => done();
+    const onCanPlay = () => done();
+    const onCanPlayThrough = () => done();
+    const onError = () => done(); // don't hang the loader on error
+
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", onLoadedData);
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("canplaythrough", onCanPlayThrough);
+      video.removeEventListener("error", onError);
+      clearTimeout(timer);
+    };
+
+    video.addEventListener("loadeddata", onLoadedData, { once: true });
+    video.addEventListener("canplay", onCanPlay, { once: true });
+    video.addEventListener("canplaythrough", onCanPlayThrough, { once: true });
+    video.addEventListener("error", onError, { once: true });
+
+    const timer = setTimeout(() => {
+      // Last-chance check before giving up
+      if (video.readyState >= HAVE_FUTURE_DATA) return done();
+      done();
+    }, 1500);
+  });
 }
 
 async function render(path: string): Promise<void> {
@@ -90,9 +107,9 @@ async function render(path: string): Promise<void> {
 
   // Wait for assets (per page) before hiding loader
   if (path === "/tv") {
-    // Pause/mute background music immediately for TV page
+    // Pause background music immediately for TV page so video can play cleanly
     if ((window as any).__bgm) {
-      (window as any).__bgm.pause(); // use .mute() instead if preferred
+      try { (window as any).__bgm.pause(); } catch {}
     }
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {

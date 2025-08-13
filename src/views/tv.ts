@@ -154,10 +154,12 @@ export default function mountTV(root: HTMLElement): void {
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
   row1.style.gap = "6px";
 
-  const rowCovers = document.createElement("div");
+  =const rowCovers = document.createElement("div");
   rowCovers.style.display = "grid";
-  rowCovers.style.gridTemplateColumns = "1fr 1fr 1fr";
-  rowCovers.style.gap = "8px";
+  // fixed, smaller tiles
+  rowCovers.style.gridTemplateColumns = "repeat(3, 150px)";
+  rowCovers.style.justifyContent = "space-between";
+  rowCovers.style.gap = "16px";
 
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
@@ -190,12 +192,17 @@ export default function mountTV(root: HTMLElement): void {
     b.type = "button";
     b.textContent = label;
     b.style.padding = "10px 12px";
-    b.style.borderRadius = "12px";
-    b.style.border = "1px solid #0003";
-    b.style.fontFamily = "inherit";
+    b.style.borderRadius = "0";                 // no curves
+    b.style.border = "2px solid #6a4b2b";
+    b.style.background = "#1f1f1f";
+    b.style.color = "#f3e9d7";
+    b.style.fontFamily = "'VT323', monospace";  // Y2K font
+    b.style.fontSize = "18px";
+    b.style.letterSpacing = "0.5px";
     b.style.cursor = "pointer";
     return b;
   }
+
 
   function mkCoverTile(
     id: "pooh" | "lilo" | "ducktales",
@@ -268,7 +275,7 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
 
-    const ctrlTop = Math.round(top + height + 8);
+    const ctrlTop = Math.round(top + height + 20);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

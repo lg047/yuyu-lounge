@@ -15,53 +15,80 @@ export function messageForPath(path: string): string {
   return "Loading…";
 }
 
+// singleton state to prevent multiple competing intervals
+let __loaderRunning = false;
+let __loaderTimer: number | undefined;
+let __progress = 0;
+
+function resolveMessage(input: string | undefined): string {
+  if (!input) return "Loading…";
+  // Accept either a friendly string or a route-like path
+  if (input.startsWith("/") || input.startsWith("#/") || input.includes("/")) {
+    return messageForPath(input);
+  }
+  return input;
+}
+
 export function showLoader(message: string = "Loading…", opts?: { hideApp?: boolean }) {
-  const loader = document.getElementById("loading-screen") as HTMLDivElement;
-  const msgEl = loader?.querySelector<HTMLDivElement>(".loading-text");
-  const fill = loader?.querySelector<HTMLDivElement>(".loading-bar-fill");
+  const loader = document.getElementById("loading-screen") as HTMLDivElement | null;
+  const msgEl = loader?.querySelector<HTMLDivElement>(".loading-text") ?? null;
+  const fill = loader?.querySelector<HTMLDivElement>(".loading-bar-fill") ?? null;
   const app = document.getElementById("app");
 
   if (!loader || !fill) return;
 
+  // Set message (supports passing paths like "/tv" or text)
+  if (msgEl) msgEl.textContent = resolveMessage(message);
+
+  // Show overlay
   if (opts?.hideApp && app) app.style.visibility = "hidden";
   loader.style.opacity = "1";
   loader.style.pointerEvents = "auto";
   loader.style.display = "flex";
 
-  if (msgEl) msgEl.textContent = message;
+  // If already running, don't start another interval (prevents wobble)
+  if (__loaderRunning) return;
 
-  // reset bar instantly to 0 on show
+  __loaderRunning = true;
+  __progress = 0;
   fill.style.width = "0%";
 
-  let progress = 0;
-  const fake = setInterval(() => {
-    // only ever increase progress
-    progress = Math.min(progress + Math.random() * 15, 95);
-    fill.style.width = progress + "%";
+  // Smooth, forward-only fake progress up to 92%
+  __loaderTimer = window.setInterval(() => {
+    const step = 3 + Math.random() * 5; // 3–8% per tick
+    __progress = Math.min(__progress + step, 92);
+    fill.style.width = __progress.toFixed(2) + "%";
   }, 200);
-
-  (window as any).__hideLoader = () => {
-    clearInterval(fake);
-    fill.style.width = "100%";
-    setTimeout(() => {
-      loader.style.opacity = "0";
-      loader.style.pointerEvents = "none";
-      loader.style.display = "none";
-      if (app) app.style.visibility = "visible";
-    }, 400);
-  };
 }
 
 export function hideLoader() {
-  if (typeof (window as any).__hideLoader === "function") {
-    (window as any).__hideLoader();
+  const loader = document.getElementById("loading-screen") as HTMLDivElement | null;
+  const fill = loader?.querySelector<HTMLDivElement>(".loading-bar-fill") ?? null;
+  const app = document.getElementById("app");
+
+  if (!loader || !fill) return;
+
+  // Only act if we actually started it
+  if (__loaderTimer !== undefined) {
+    clearInterval(__loaderTimer);
+    __loaderTimer = undefined;
   }
+  __loaderRunning = false;
+
+  // Finish cleanly
+  fill.style.width = "100%";
+  setTimeout(() => {
+    loader.style.opacity = "0";
+    loader.style.pointerEvents = "none";
+    loader.style.display = "none";
+    if (app) app.style.visibility = "visible";
+  }, 400);
 }
 
 // --- Initial page load loader ---
 document.addEventListener("DOMContentLoaded", () => {
   const path = (location.hash || location.pathname) || "/reels";
-  showLoader(messageForPath(path), { hideApp: true });
+  showLoader(path, { hideApp: true }); // accepts a path or a message
 });
 
 // --- BGM setup ---
@@ -188,4 +215,3 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(console.error);
   });
 }
-

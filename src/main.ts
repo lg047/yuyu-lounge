@@ -49,10 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-#app {
-  visibility: hidden; /* hide your main app until loading finishes */
-}
-
 
 // create once
 const bgm = makeBGM({

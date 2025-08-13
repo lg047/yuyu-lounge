@@ -13,13 +13,20 @@ export function showLoader(message = "Loading…", opts: { hideApp?: boolean } =
   const { loader, msgEl, fill, app } = els();
   if (!loader || !fill) return;
 
+  // Temporarily disable CSS transition so bar snaps to 0%
+  fill.style.transition = "none";
   fill.style.width = "0%";
+
   loader.style.display = "flex";
   loader.style.opacity = "1";
   loader.style.pointerEvents = "auto";
 
   if (opts.hideApp && app) app.style.visibility = "hidden";
   if (msgEl) msgEl.textContent = message;
+
+  // Force reflow to apply width before re-enabling transition
+  void fill.offsetWidth;
+  fill.style.transition = ""; // restore to CSS default
 
   if (fakeTimer) window.clearInterval(fakeTimer);
   let progress = 0;
@@ -28,6 +35,7 @@ export function showLoader(message = "Loading…", opts: { hideApp?: boolean } =
     fill.style.width = `${progress}%`;
   }, 200);
 }
+
 
 export function hideLoader(): void {
   const { loader, fill, app } = els();

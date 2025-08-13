@@ -10,6 +10,9 @@ const BASE: Size = { w: 1536, h: 1024 };
 const TV: Rect  = { x: 560, y: 380, w: 417, h: 291 };
 const BASE_URL = (import.meta as any).env.BASE_URL || "/";
 
+// softer, warm off-white that fits the cabinet palette
+const BTN_TINT = "#e6d8c6";
+
 export default function mountTV(root: HTMLElement): void {
   const setNavH = () => {
     const nav = document.querySelector<HTMLElement>(".topnav");
@@ -137,7 +140,7 @@ export default function mountTV(root: HTMLElement): void {
   root.innerHTML = "";
   root.appendChild(scene);
 
-  // controls inside scene, absolute (we'll position ~midway to bottom)
+  // controls inside scene, absolute
   const controls = document.createElement("div");
   controls.className = "tv-controls";
   controls.style.position = "absolute";
@@ -145,17 +148,16 @@ export default function mountTV(root: HTMLElement): void {
   controls.style.zIndex = "6";
   controls.style.display = "grid";
   controls.style.gridTemplateColumns = "1fr";
-  controls.style.gap = "10px";
+  controls.style.rowGap = "18px"; // more spacing between rows
 
   const row1 = document.createElement("div");
   row1.style.display = "grid";
   row1.style.gridTemplateColumns = "1fr 1fr 1fr";
-  row1.style.gap = "8px";
+  row1.style.columnGap = "10px";
 
   const row2 = document.createElement("div"); // Select show button row
   row2.style.display = "grid";
   row2.style.gridTemplateColumns = "1fr";
-  row2.style.gap = "0";
 
   const btnPrev = mkBtn("Previous ep");
   const btnPlay = mkBtn("Play");
@@ -185,7 +187,6 @@ export default function mountTV(root: HTMLElement): void {
   chooser.style.gap = "20px";
   chooser.style.alignItems = "start";
 
-  // cover tiles (used only inside overlay)
   const tilePooh = mkCoverTile(
     "pooh",
     "Winnie the Pooh",
@@ -222,12 +223,11 @@ export default function mountTV(root: HTMLElement): void {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = label;
-    // slim, transparent, white outline
     b.style.padding = "6px 10px";
     b.style.borderRadius = "0";
-    b.style.border = "2px solid #ffffff";
+    b.style.border = `2px solid ${BTN_TINT}`;   // softer outline
     b.style.background = "transparent";
-    b.style.color = "#ffffff";
+    b.style.color = BTN_TINT;
     b.style.fontFamily = "'VT323', monospace";
     b.style.fontSize = "18px";
     b.style.letterSpacing = "0.5px";
@@ -266,6 +266,7 @@ export default function mountTV(root: HTMLElement): void {
     cap.style.fontSize = "14px";
     cap.style.fontFamily = "'VT323', monospace";
     cap.style.padding = "4px 6px";
+    cap.style.color = BTN_TINT;
 
     b.append(img, cap);
 
@@ -307,10 +308,12 @@ export default function mountTV(root: HTMLElement): void {
     hint.style.left = `${Math.round(left + width / 2 - 40)}px`;
     hint.style.top  = `${Math.round(top + height + 8)}px`;
 
-    // buttons: halfway between TV bottom and page bottom (clamped)
+    // buttons ~halfway between TV bottom and page bottom, but push further down on desktop
     const tvBottom = top + height;
     const halfway  = tvBottom + (box.height - tvBottom) * 0.5;
-    const ctrlTop  = Math.min(Math.round(halfway), box.height - 140);
+    const isDesktop = matchMedia("(pointer: fine)").matches && window.innerWidth >= 900;
+    const extra = isDesktop ? 28 : 0; // lower a bit more on desktop
+    const ctrlTop  = Math.min(Math.round(halfway + extra), box.height - 140);
     Object.assign(controls.style, { left: `${left}px`, top: `${ctrlTop}px`, width: `${width}px` });
   };
 

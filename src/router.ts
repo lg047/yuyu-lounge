@@ -65,7 +65,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
     const onLoadedData = () => done();
     const onCanPlay = () => done();
     const onCanPlayThrough = () => done();
-    const onError = () => done(); // don't hang the loader on error
+    const onError = () => done(); // do not hang the loader on error
 
     const cleanup = () => {
       video.removeEventListener("loadeddata", onLoadedData);
@@ -81,7 +81,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
     video.addEventListener("error", onError, { once: true });
 
     const timer = setTimeout(() => {
-      // Last-chance check before giving up
+      // Last chance check before giving up
       if (video.readyState >= HAVE_FUTURE_DATA) return done();
       done();
     }, 1500);
@@ -89,7 +89,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 }
 
 async function render(path: string): Promise<void> {
-  // Show loader with a friendly page-specific message
+  // Show loader with a friendly page specific message
   showLoader(messageForPath(path));
 
   const factory = routes[path] || routes["/reels"];
@@ -105,11 +105,12 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
-  // Wait for assets (per page) before hiding loader
+  // Wait for assets per page before hiding loader
   if (path === "/tv") {
-    // Pause background music immediately for TV page so video can play cleanly
-    if ((window as any).__bgm) {
-      try { (window as any).__bgm.pause(); } catch {}
+    // Pause background music immediately for TV so video can play cleanly
+    const bgm = (window as any).__bgm;
+    if (bgm && typeof bgm.pause === "function") {
+      try { bgm.pause(); } catch {}
     }
     await waitForTVVideo(view);
   } else if (path === "/chat" || path === "/game") {

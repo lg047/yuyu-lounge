@@ -1,9 +1,8 @@
 {
   "name": "Yuyu Lounge",
   "short_name": "Yuyu",
-  "id": "/yuyu-lounge/",
-  "start_url": "/yuyu-lounge/",
-  "scope": "/yuyu-lounge/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fff6fb",

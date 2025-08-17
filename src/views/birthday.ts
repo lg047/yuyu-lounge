@@ -13,6 +13,8 @@ export default function BirthdayView(): HTMLElement {
       display: grid;
       place-items: center;
       padding: 24px;
+      /* keep content clear of fixed topnav if you use --topbar-h */
+      padding-top: calc(var(--topbar-h, 0px) + 24px);
       background:
         radial-gradient(circle at 20% 10%, rgba(255, 235, 245, 0.9), transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(230, 255, 250, 0.9), transparent 50%),
@@ -21,6 +23,8 @@ export default function BirthdayView(): HTMLElement {
       overflow: hidden;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       text-align: center;
+      position: relative;
+      isolation: isolate; /* local stacking context so nothing escapes to topnav */
     }
     .b-card {
       position: relative;
@@ -30,6 +34,7 @@ export default function BirthdayView(): HTMLElement {
       background: rgba(255,255,255,0.70);
       backdrop-filter: blur(6px);
       box-shadow: 0 10px 30px rgba(0,0,0,0.12), inset 0 0 0 2px rgba(255,255,255,0.65);
+      z-index: 0;
     }
     .b-title {
       font-size: clamp(28px, 6vw, 56px);
@@ -61,16 +66,13 @@ export default function BirthdayView(): HTMLElement {
       filter: drop-shadow(0 6px 6px rgba(0,0,0,0.15));
     }
     @keyframes rise {
-      0%   { transform: translateY(0)     rotate(0deg);   opacity: 0; }
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
       5%   { opacity: 1; }
       100% { transform: translateY(-120vh) rotate(15deg); opacity: 1; }
     }
-    .sparkle {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      mask-image: radial-gradient(circle at center, #000 40%, transparent 75%);
-    }
+    /* remove sparkle layer to avoid any tinting */
+    .sparkle { display: none; }
+
     .b-footer {
       margin-top: 16px;
       font-size: 14px;
@@ -92,6 +94,13 @@ export default function BirthdayView(): HTMLElement {
       width: 100%;
       height: 100%;
       pointer-events: none;
+      background: transparent !important; /* kill any global canvas background */
+      z-index: 0; /* stays inside card, below any nav */
+    }
+
+    /* reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      .balloon { animation: none; }
     }
   `;
   root.appendChild(style);
@@ -126,7 +135,7 @@ export default function BirthdayView(): HTMLElement {
   // balloons
   const balloons = card.querySelector(".balloons") as HTMLDivElement;
   const balloonEmoji = "🎈";
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < 18; i++) {
     const b = document.createElement("div");
     b.className = "balloon";
     b.textContent = balloonEmoji;
@@ -136,17 +145,19 @@ export default function BirthdayView(): HTMLElement {
     balloons.appendChild(b);
   }
 
-  // confetti
-  const cleanup = startConfetti(card);
+  // confetti on demand only, never on load
+  let cleanup: null | (() => void) = null;
   const btn = card.querySelector(".cta") as HTMLButtonElement;
   btn?.addEventListener("click", () => {
-    startConfetti(card, 600, 1400);
+    cleanup?.();
+    cleanup = startConfetti(card, 250, 6000);
   });
 
   // clean up when leaving the route
   const onHash = () => {
     if (!location.hash.startsWith("#/birthday")) {
-      cleanup();
+      cleanup?.();
+      cleanup = null;
       window.removeEventListener("hashchange", onHash);
     }
   };
@@ -171,9 +182,7 @@ function startConfetti(container: HTMLElement, n = 350, durationMs = 12000): () 
   };
   resize();
 
-  const colors = [
-    "#ff4fa3","#ff8ec3","#ffd166","#06d6a0","#118ab2","#ef476f","#caa8ff","#fff6fb"
-  ];
+  const colors = ["#ff4fa3","#ff8ec3","#ffd166","#06d6a0","#118ab2","#ef476f","#caa8ff","#fff6fb"];
   type P = { x:number; y:number; vx:number; vy:number; w:number; h:number; a:number; rot:number; vr:number; col:string; };
   const parts: P[] = Array.from({ length: n }, () => ({
     x: Math.random() * W,
@@ -182,7 +191,7 @@ function startConfetti(container: HTMLElement, n = 350, durationMs = 12000): () 
     vy: 2 + Math.random() * 2.5,
     w: 3 + Math.random() * 6,
     h: 6 + Math.random() * 10,
-    a: 0.6 + Math.random() * 0.4,
+    a: 0.5 + Math.random() * 0.4,
     rot: Math.random() * Math.PI,
     vr: (-0.05 + Math.random() * 0.1),
     col: colors[(Math.random() * colors.length) | 0],
@@ -197,13 +206,12 @@ function startConfetti(container: HTMLElement, n = 350, durationMs = 12000): () 
     if (!running) return;
     ctx.clearRect(0, 0, W, H);
     for (const p of parts) {
-      p.x += p.vx + wind * (Math.sin(p.y * 0.01));
+      p.x += p.vx + wind * Math.sin(p.y * 0.01);
       p.y += p.vy;
       p.vy += g;
       p.rot += p.vr;
 
       if (p.y > H + 30) {
-        // recycle to top
         p.x = Math.random() * W;
         p.y = -20 - Math.random() * 60;
         p.vy = 2 + Math.random() * 2.5;

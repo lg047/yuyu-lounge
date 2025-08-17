@@ -3,6 +3,12 @@ import { showLoader, hideLoader, messageForPath } from "./main";
 
 type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 
+// Force default route to the birthday page on first load
+if (!location.hash || location.hash === "#") {
+  location.replace("#/birthday");
+}
+
+
 const routes: Record<string, ViewFactory> = {
   "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),

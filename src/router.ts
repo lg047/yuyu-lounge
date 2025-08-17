@@ -8,8 +8,8 @@ if (!location.hash || location.hash === "#") {
   location.replace("#/birthday");
 }
 
-
 const routes: Record<string, ViewFactory> = {
+  "/birthday": async () => (await import("./views/birthday.ts")).default(),
   "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),
   "/tv": async () => {
@@ -22,11 +22,11 @@ const routes: Record<string, ViewFactory> = {
 };
 
 function normalizeHash(h: string): string {
-  let p = (h || "#/reels").replace(/^#/, "");
+  let p = (h || "#/birthday").replace(/^#/, "");
   p = p.split("?")[0].split("&")[0];
   p = p.replace(/\/+$/, "");
   p = p.trim();
-  if (p === "") p = "/reels";
+  if (p === "") p = "/birthday";
   p = p.replace(/\/{2,}/g, "/");
   p = p.toLowerCase();
   if (p.startsWith("/chat/")) p = "/chat";
@@ -95,7 +95,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 async function render(path: string): Promise<void> {
   showLoader(messageForPath(path));
 
-  const factory = routes[path] || routes["/reels"];
+  const factory = routes[path] || routes["/birthday"];
   const view = document.getElementById("view");
   if (!view) {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -108,19 +108,17 @@ async function render(path: string): Promise<void> {
   const node = await factory();
   view.appendChild(node);
 
-
   if (path === "/tv") {
     // Silence site music immediately on TV
     const bgm: any = (window as any).__bgm;
     if (bgm?.el && typeof bgm.el.pause === "function") {
-      try { bgm.el.pause(); } catch {}
+      try {
+        bgm.el.pause();
+      } catch {}
     }
-    // Wait for video AND all images (room, vhs, covers) before hiding loader
-    await Promise.all([
-      waitForTVVideo(view),
-      loadAllImages(view),
-    ]);
-  } else if (path === "/chat" || path === "/game") {
+    // Wait for video and all images before hiding loader
+    await Promise.all([waitForTVVideo(view), loadAllImages(view)]);
+  } else if (path === "/chat" || path === "/game" || path === "/birthday") {
     await loadAllImages(view);
   }
 

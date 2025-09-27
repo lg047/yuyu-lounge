@@ -3,13 +3,12 @@ import { showLoader, hideLoader, messageForPath } from "./main";
 
 type ViewFactory = () => Promise<HTMLElement> | HTMLElement;
 
-// Force default route to the birthday page on first load
+// Force default route to /reels on first load
 if (!location.hash || location.hash === "#") {
-  location.replace("#/birthday");
+  location.replace("#/reels");
 }
 
 const routes: Record<string, ViewFactory> = {
-  "/birthday": async () => (await import("./views/birthday.ts")).default(),
   "/reels": async () => (await import("./views/clips.ts")).default(),
   "/chat": async () => (await import("./views/chat.ts")).default(),
   "/tv": async () => {
@@ -22,11 +21,11 @@ const routes: Record<string, ViewFactory> = {
 };
 
 function normalizeHash(h: string): string {
-  let p = (h || "#/birthday").replace(/^#/, "");
+  let p = (h || "#/reels").replace(/^#/, "");
   p = p.split("?")[0].split("&")[0];
   p = p.replace(/\/+$/, "");
   p = p.trim();
-  if (p === "") p = "/birthday";
+  if (p === "") p = "/reels";
   p = p.replace(/\/{2,}/g, "/");
   p = p.toLowerCase();
   if (p.startsWith("/chat/")) p = "/chat";
@@ -95,7 +94,7 @@ async function waitForTVVideo(container: HTMLElement): Promise<void> {
 async function render(path: string): Promise<void> {
   showLoader(messageForPath(path));
 
-  const factory = routes[path] || routes["/birthday"];
+  const factory = routes[path] || routes["/reels"];
   const view = document.getElementById("view");
   if (!view) {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -118,7 +117,7 @@ async function render(path: string): Promise<void> {
     }
     // Wait for video and all images before hiding loader
     await Promise.all([waitForTVVideo(view), loadAllImages(view)]);
-  } else if (path === "/chat" || path === "/game" || path === "/birthday") {
+  } else if (path === "/chat" || path === "/game") {
     await loadAllImages(view);
   }
 

@@ -12,6 +12,7 @@ export function messageForPath(path: string): string {
   if (path.includes("/arcade") || path.includes("/game")) return "Loading arcade...";
   if (path.includes("/chat")) return "Loading chat...";
   if (path.includes("/reels")) return "Loading reels...";
+  if (path.includes("/menu")) return "Loading menu...";
   return "Loading…";
 }
 

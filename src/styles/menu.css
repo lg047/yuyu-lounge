@@ -1,0 +1,418 @@
+/* Menu page styles */
+
+.menu-view {
+  min-height: 100vh;
+  background: #ebacf7;
+  padding: 2rem 1rem;
+  overflow-x: hidden;
+  position: relative;
+  margin: 0;
+}
+
+#menu {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  position: relative;
+}
+
+#menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/yuyu-lounge/assets/sparkle.gif');
+  background-repeat: repeat;
+  background-size: 64px 64px;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.menu-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header - Hidden */
+.menu-header {
+  display: none;
+}
+
+/* Category Buttons */
+.menu-category-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  padding: 3rem 2rem;
+  background: transparent;
+  border: none;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.menu-category-button {
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
+  font-weight: normal;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 
+    0 8px 32px rgba(255, 79, 163, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 2px 4px rgba(255, 255, 255, 0.4) inset;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  min-height: 80px;
+}
+
+.menu-category-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: none;
+  transition: all 0.3s ease;
+}
+
+.menu-category-button:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-4px);
+  box-shadow: 
+    0 16px 48px rgba(255, 79, 163, 0.25),
+    0 8px 24px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 2px 8px rgba(255, 255, 255, 0.5) inset,
+    0 0 20px rgba(255, 142, 195, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.menu-category-button.active {
+  background: rgba(255, 142, 195, 0.4);
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 
+    0 16px 48px rgba(255, 79, 163, 0.4),
+    0 8px 24px rgba(255, 142, 195, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 2px 8px rgba(255, 255, 255, 0.6) inset,
+    0 0 30px rgba(255, 79, 163, 0.5);
+  border-color: rgba(255, 142, 195, 0.8);
+}
+
+.menu-category-button::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.menu-category-button.active::before {
+  background: white;
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+/* Content Areas */
+.menu-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.menu-category-content {
+  animation: menuFadeIn 0.4s ease-out;
+}
+
+/* Subcategories (for dinner menu) */
+.menu-subcategories {
+  display: grid;
+  gap: 2rem;
+}
+
+.menu-subcategory {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 248, 0.8) 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 2px solid rgba(255, 79, 163, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 79, 163, 0.1);
+}
+
+.menu-subcategory-title {
+  font-family: 'VT323', monospace;
+  font-size: 1.4rem;
+  font-weight: normal;
+  color: var(--ink);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 79, 163, 0.3);
+  text-align: center;
+  text-shadow: 1px 1px 0px rgba(255, 79, 163, 0.2);
+}
+
+/* Updated sections layout */
+.menu-sections {
+  padding: 0;
+}
+
+/* Menu Items - More compact */
+.menu-items {
+  display: grid;
+  gap: 1rem;
+}
+
+.menu-item {
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 248, 0.8) 100%);
+  border: 2px solid rgba(255, 79, 163, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(255, 79, 163, 0.1);
+}
+
+.menu-item::before {
+  content: '♡';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--accent);
+  opacity: 0.3;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 79, 163, 0.25);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 248, 0.9) 100%);
+}
+
+.menu-item:hover::before {
+  opacity: 0.8;
+  transform: scale(1.2);
+}
+
+.menu-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+}
+
+.menu-item-name {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--ink);
+  margin: 0;
+  flex: 1;
+  line-height: 1.2;
+  text-shadow: 1px 1px 0px rgba(255, 79, 163, 0.3);
+}
+
+.menu-item-origin {
+  background: linear-gradient(45deg, var(--accent), var(--lilac));
+  color: white;
+  font-family: 'VT323', monospace;
+  font-size: 0.7rem;
+  font-weight: normal;
+  padding: 0.2rem 0.5rem;
+  border-radius: 15px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.menu-item-description {
+  font-family: 'VT323', monospace;
+  font-style: italic;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.4;
+  opacity: 0.75;
+  font-size: 0.95rem;
+  font-weight: normal;
+}
+
+/* Loader */
+.menu-loader {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--ink);
+}
+
+.menu-loader p {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+}
+
+.menu-spinner {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.menu-spinner div {
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: menu-bounce 1.4s ease-in-out infinite both;
+}
+
+.menu-spinner div:nth-child(1) { animation-delay: -0.32s; }
+.menu-spinner div:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes menu-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Error state */
+.menu-error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--ink);
+}
+
+.menu-error h3 {
+  font-family: 'VT323', monospace;
+  color: #e74c3c;
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.menu-error p {
+  font-family: 'VT323', monospace;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .menu-sections {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .menu-category-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-view {
+    padding: 1rem 0.5rem;
+  }
+  
+  .menu-category-buttons {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+  
+  .menu-category-button {
+    font-size: 1.1rem;
+    padding: 0.875rem 1rem;
+    min-height: 70px;
+  }
+  
+  .menu-category-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .menu-content {
+    padding: 1.5rem;
+  }
+  
+  .menu-item {
+    padding: 0.875rem;
+  }
+  
+  .menu-item-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .menu-item-origin {
+    align-self: flex-start;
+  }
+  
+  .menu-subcategory {
+    padding: 1.25rem;
+  }
+  
+  .menu-subcategory-title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-view {
+    padding: 0.5rem;
+  }
+  
+  .menu-category-buttons {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .menu-category-button {
+    font-size: 1rem;
+    padding: 0.75rem;
+    min-height: 60px;
+  }
+  
+  .menu-category-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .menu-content {
+    padding: 1rem;
+  }
+  
+  .menu-item {
+    padding: 0.75rem;
+  }
+  
+  .menu-subcategory {
+    padding: 1rem;
+  }
+}
+
+

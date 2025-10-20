@@ -6,6 +6,7 @@ export default function TopNav(): DocumentFragment {
     { label: "Chat", href: "#/chat", id: "nav-chat" },
     { label: "Arcade", href: "#/game", id: "nav-game" },
     { label: "TV", href: "#/tv", id: "nav-tv" },
+    { label: "Menu", href: "#/menu", id: "nav-menu" },
   ];
 
   const nav = document.createElement("nav");

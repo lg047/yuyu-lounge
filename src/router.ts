@@ -18,6 +18,7 @@ const routes: Record<string, ViewFactory> = {
     return wrap;
   },
   "/game": async () => (await import("./views/game.ts")).default(),
+  "/menu": async () => (await import("./views/menu.ts")).default(),
 };
 
 function normalizeHash(h: string): string {

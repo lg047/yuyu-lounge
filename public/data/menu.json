@@ -1,0 +1,223 @@
+{
+  "menu": {
+    "title": "Leo Kitchen",
+    "categories": [
+      {
+        "id": "breakfast",
+        "title": "Breakfast",
+        "items": [
+          {
+            "name": "Avocado e Uovo",
+            "origin": "IT",
+            "description": "Poached egg on smashed avocado toast with olive oil, sea salt, and black pepper."
+          },
+          {
+            "name": "Funghi Strapazzati",
+            "origin": "IT",
+            "description": "Soft scrambled eggs with wild mushrooms, butter, and thyme."
+          },
+          {
+            "name": "Hong Kong Macaroni Breakfast Soup",
+            "origin": "HK",
+            "description": "Classic HK-style breakfast broth with macaroni, crispy fried egg, and pan-seared Spam."
+          },
+          {
+            "name": "Full English Breakfast",
+            "origin": "UK",
+            "description": "Traditional British breakfast with crispy bacon, grilled sausages, fried eggs, roasted tomato, golden hashbrown, and buttered toast."
+          },
+          {
+            "name": "Breakfast Wrap",
+            "origin": "—",
+            "description": "Warm tortilla filled with bacon, sausage, scrambled egg, fresh avocado, spinach, and tomato."
+          },
+          {
+            "name": "Mango Fresco Medley",
+            "origin": "—",
+            "description": "Fresh mango with seasonal fruit and light mint syrup."
+          }
+        ]
+      },
+      {
+        "id": "dinner",
+        "title": "Dinner",
+        "subcategories": [
+          {
+            "id": "pasta",
+            "title": "Pasta",
+            "items": [
+              {
+                "name": "Spicy Pasta (Conchiglie Piccanti)",
+                "origin": "IT",
+                "description": "Conchiglie with Italian sausage, broccolini, white wine, garlic, and chilli."
+              },
+              {
+                "name": "Linguine al Tonno e Limone",
+                "origin": "IT",
+                "description": "Linguine with tuna, anchovies, zucchini, garlic, chilli, rocket, and lemon."
+              },
+              {
+                "name": "Pasta al Chorizo y Tomate Asado",
+                "origin": "ES",
+                "description": "Spanish-style pasta with chorizo, caramelised onions, charred zucchini, and slow-cooked plum tomatoes."
+              },
+              {
+                "name": "Pasta alla Norma",
+                "origin": "IT",
+                "description": "Roasted aubergine, tomato, basil, and ricotta salata in a Sicilian-style sauce."
+              },
+              {
+                "name": "Linguine ai Frutti di Mare",
+                "origin": "IT",
+                "description": "Linguine with fresh clams, garlic, and white wine."
+              },
+              {
+                "name": "Linguine agli Asparagi e Pancetta",
+                "origin": "IT",
+                "description": "Linguine with asparagus, pancetta, and a touch of Parmigiano."
+              },
+              {
+                "name": "Pasta ai Funghi Selvatici",
+                "origin": "IT",
+                "description": "Wild mushrooms sautéed with garlic, butter, and white wine."
+              },
+              {
+                "name": "Pasta al Forno della Casa",
+                "origin": "IT",
+                "description": "Oven-baked pasta with creamy tomato sauce and melted cheese."
+              }
+            ]
+          },
+          {
+            "id": "from_the_sea",
+            "title": "From the Sea",
+            "items": [
+              {
+                "name": "Merluza a la Vasca",
+                "origin": "ES-Basque",
+                "description": "Basque-style hake with clams in a parsley and white wine salsa verde."
+              },
+              {
+                "name": "Pulpo a la Vasca",
+                "origin": "ES-Basque",
+                "description": "Tender Basque octopus seared with smoked paprika oil and garlic."
+              },
+              {
+                "name": "Udon Shōyu Itame",
+                "origin": "JP",
+                "description": "Stir-fried udon noodles with tuna, cabbage, and vegetables in oyster and soy sauce glaze."
+              }
+            ]
+          },
+          {
+            "id": "from_the_land",
+            "title": "From the Land",
+            "items": [
+              {
+                "name": "Bistecca al Bordelaise",
+                "origin": "FR/IT",
+                "description": "Aged sirloin steak basted in rosemary-garlic butter with a red wine Bordelaise sauce."
+              },
+              {
+                "name": "Poulet à la Crème de Vin Blanc",
+                "origin": "FR",
+                "description": "Pan-seared chicken breast with a light French white wine and cream sauce."
+              },
+              {
+                "name": "Shawarma di Pollo",
+                "origin": "ME",
+                "description": "Marinated chicken shawarma served with tahini sauce and warm flatbread."
+              },
+              {
+                "name": "Bibimbap",
+                "origin": "KR",
+                "description": "Korean rice bowl with sautéed vegetables, gochujang, and fried egg."
+              },
+              {
+                "name": "Ramyun Gireumjang",
+                "origin": "KR",
+                "description": "Chilli oil noodles topped with a crispy fried egg."
+              },
+              {
+                "name": "Gochujang Cream Ramyun",
+                "origin": "KR",
+                "description": "Creamy Korean ramen with gochujang, soy-marinated egg, and seared Spam."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sides",
+        "title": "Sides",
+        "items": [
+          {
+            "name": "Rustic Fries",
+            "origin": "—",
+            "description": "Skin-on fries, golden and crisp with sea salt."
+          },
+          {
+            "name": "Patatas Bravas",
+            "origin": "ES",
+            "description": "Spanish-style fried potatoes with spicy tomato and paprika sauce."
+          },
+          {
+            "name": "Baby Potatoes al Burro",
+            "origin": "IT",
+            "description": "Baby potatoes tossed in butter, herbs, and black pepper."
+          },
+          {
+            "name": "Verdure Verdi",
+            "origin": "IT",
+            "description": "Seasonal green vegetables with olive oil and lemon."
+          },
+          {
+            "name": "Funghi Saltati",
+            "origin": "IT",
+            "description": "Pan-seared mushrooms with butter and garlic."
+          },
+          {
+            "name": "Melanzane alla Griglia",
+            "origin": "IT",
+            "description": "Chargrilled aubergine with olive oil and sea salt."
+          },
+          {
+            "name": "Eggs (Your Way)",
+            "origin": "—",
+            "description": "Fried, poached, or soft-scrambled."
+          },
+          {
+            "name": "Sautéed Mushrooms",
+            "origin": "—",
+            "description": "Browned in butter with a little garlic."
+          },
+          {
+            "name": "Riso Bianco",
+            "origin": "—",
+            "description": "Steamed white rice."
+          },
+          {
+            "name": "Insalata Fresca",
+            "origin": "—",
+            "description": "Mixed leaf salad with olive oil and vinegar."
+          }
+        ]
+      },
+      {
+        "id": "drinks",
+        "title": "Drinks",
+        "items": [
+          { "name": "Hong Kong Lemon Iced Tea", "origin": "HK", "description": "Black tea shaken with lemon and sugar." },
+          { "name": "Iced Green Tea", "origin": "—", "description": "Cold-brewed green tea." },
+          { "name": "Iced Peach Tea", "origin": "—", "description": "Peach tea over ice." },
+          { "name": "Mango Juice", "origin": "—", "description": "Chilled mango nectar." },
+          { "name": "Iced Latte", "origin": "—", "description": "Espresso over ice with milk." },
+          { "name": "Iced Mocha", "origin": "—", "description": "Espresso, milk, and chocolate over ice." },
+          { "name": "Latte", "origin": "—", "description": "Steamed milk with espresso." },
+          { "name": "Mocha", "origin": "—", "description": "Espresso with milk and cocoa." },
+          { "name": "Coca-Cola", "origin": "—", "description": "Served cold with ice and lemon." }
+        ]
+      }
+    ]
+  }
+}
